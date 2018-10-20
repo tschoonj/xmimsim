@@ -1430,7 +1430,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	GError *error = NULL;
 
 	if (xmi_write_archive_xml(sad->aod->xmsa_file, archive, &error) == 0) {
-		xmi_free_archive(archive);
+		xmi_archive_free(archive);
 		g_task_return_error(task, error);
 		return;
 	}
@@ -1441,7 +1441,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	int i, j;
 	for (i = 0 ; i <= sad->aod->nsteps1 ; i++) {
 		for (j = 0 ; j <= sad->aod->nsteps2 ; j++) {
-			xmi_free_output(sad->output[i][j]);
+			xmi_output_free(sad->output[i][j]);
 		}
 		g_free(sad->output[i]);
 	}
@@ -1451,7 +1451,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	g_free(sad->aod);
 	g_free(sad->xpath1);
 	g_free(sad->xpath2);
-	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_free_archive);
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_free);
 }
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {

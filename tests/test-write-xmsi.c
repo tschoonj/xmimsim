@@ -24,9 +24,9 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_input_xml(TEST_XMSI_COPY, &input_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_compare_input(input, input_copy) == 0);
+	g_assert(xmi_input_compare(input, input_copy) == 0);
 
-	xmi_free_input(input_copy);
+	xmi_input_free(input_copy);
 
 	//delete the file
 	unlink(TEST_XMSI_COPY);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "message: %s\n", error->message);
 	g_error_free(error);
 	
-	xmi_free_input(input);
+	xmi_input_free(input);
 
 	return 0;
 }

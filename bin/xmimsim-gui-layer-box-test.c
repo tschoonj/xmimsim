@@ -45,12 +45,12 @@ static void changed(XmiMsimGuiLayerBox *lbc, gchar *change, gpointer data) {
 		fprintf(stdout, "composition empty\n");
 		return;
 	}
-	xmi_print_layer(stdout, composition->layers, composition->n_layers);
+	//xmi_print_layer(stdout, composition->layers, composition->n_layers);
 	if (xmi_msim_gui_layer_box_get_layers_type(lbc) == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION)
 		fprintf(stdout, "reference_layer: %d\n", composition->reference_layer);
 	fprintf(stdout, "\n");
 
-	xmi_free_composition(composition);
+	xmi_composition_free(composition);
 }
 
 static void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_copy_val, gboolean paste_val, gpointer data) {

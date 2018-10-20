@@ -595,7 +595,7 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		indices[i] = i;
 
 	xmi_layer temp;
-	xmi_copy_layer2(&g_array_index(self->layer_array, xmi_layer, selected_index), &temp);
+	xmi_layer_copy2(&g_array_index(self->layer_array, xmi_layer, selected_index), &temp);
 
 	g_array_remove_index(self->layer_array, selected_index);
 	
@@ -700,7 +700,7 @@ static void xmi_msim_gui_layer_box_init(XmiMsimGuiLayerBox *self) {
 	);
 
 	self->layer_array = g_array_new(FALSE, FALSE, sizeof(xmi_layer));
-	g_array_set_clear_func(self->layer_array, (GDestroyNotify) xmi_free_layer);
+	g_array_set_clear_func(self->layer_array, (GDestroyNotify) xmi_layer_free);
 	g_array_ref(self->layer_array);
 	self->reference_layer = -1; // intentionally invalid
 
@@ -877,7 +877,7 @@ xmi_composition* xmi_msim_gui_layer_box_get_composition(XmiMsimGuiLayerBox *self
 	unsigned int i;
 
 	for (i = 0 ; i < self->layer_array->len ; i++) {
-		xmi_copy_layer2(&g_array_index(self->layer_array, xmi_layer, i), &rv->layers[i]);
+		xmi_layer_copy2(&g_array_index(self->layer_array, xmi_layer, i), &rv->layers[i]);
 	}
 
 	if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {

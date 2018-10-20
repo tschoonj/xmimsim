@@ -182,7 +182,7 @@ xmi_output* run_main(const char *compound) {
 		g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
 
 	// get default input-file
-	xmi_input *input = xmi_init_empty_input();
+	xmi_input *input = xmi_input_init_empty();
 	// simulate 1M photons
 	input->general->n_photons_line = 1000000;
 
@@ -251,7 +251,7 @@ xmi_output* run_main(const char *compound) {
 	unlink(data_file);
 	g_free(data_file);
 	FreeCompoundData(cd);
-	xmi_free_input(input);
+	xmi_input_free(input);
 	xmi_free_input_F(&inputFPtr);
 
 	g_assert(xmi_end_random_acquisition() == 1);

@@ -1,3 +1,4 @@
+AM_CFLAGS = @WSTRICT_CFLAGS@
 NULL =
 
 check_LTLIBRARIES = libxmimsim-test.la

@@ -233,7 +233,7 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "This is a bug and should be reported to the developers");
 			gtk_dialog_run(GTK_DIALOG(info_dialog));
 			gtk_widget_destroy(info_dialog);
-			xmi_free_input(current_input);
+			xmi_input_free(current_input);
 			g_free(source_name);
 			return;	
 		}
@@ -256,8 +256,8 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(self), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy lines: one or more of the new energies exist already in the list of lines.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
-						xmi_free_input(current_input);
-						xmi_free_excitation(excitation);
+						xmi_input_free(current_input);
+						xmi_excitation_free(excitation);
 						g_free(source_name);
 						return;
 					}
@@ -269,8 +269,8 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 						GtkWidget *error_dialog = gtk_message_dialog_new(GTK_WINDOW(self), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Could not add new energy intervals: one or more of the new energies exist already in the list of intervals.");
 						gtk_dialog_run(GTK_DIALOG(error_dialog));
 						gtk_widget_destroy(error_dialog);
-						xmi_free_input(current_input);
-						xmi_free_excitation(excitation);
+						xmi_input_free(current_input);
+						xmi_excitation_free(excitation);
 						g_free(source_name);
 						return;
 					}
@@ -306,8 +306,8 @@ static void sources_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			g_signal_emit_by_name(energiesW, "changed", message);
 			g_free(message);
 		}
-		xmi_free_input(current_input);
-		xmi_free_excitation(excitation);
+		xmi_input_free(current_input);
+		xmi_excitation_free(excitation);
 		g_free(source_name);
 	}
 	else {

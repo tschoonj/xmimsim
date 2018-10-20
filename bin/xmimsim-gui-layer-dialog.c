@@ -516,7 +516,7 @@ static void add_to_catalog_button_clicked(GtkButton *button, XmiMsimGuiLayerDial
     gtk_dialog_run(GTK_DIALOG(error_dialog));
     gtk_widget_destroy(error_dialog);
     g_free(layer_name);
-    xmi_free_layer(layer);
+    xmi_layer_free(layer);
     g_free(layer);
   }
   gtk_widget_destroy(update_dialog);
@@ -550,7 +550,7 @@ static void predef_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dial
       gtk_entry_set_text(GTK_ENTRY(dialog->thicknessEntry), buffer);
       g_free(buffer);
     }
-    xmi_free_layer(layer);
+    xmi_layer_free(layer);
     g_free(layer);
   }
   gtk_widget_destroy(catalog_dialog);

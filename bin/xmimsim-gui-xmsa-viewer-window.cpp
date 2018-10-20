@@ -123,7 +123,7 @@ static void xmi_msim_gui_xmsa_viewer_window_finalize(GObject *gobject) {
 	g_free(window->x);
 	g_free(window->y);
 	g_free(window->z);
-	xmi_free_archive(window->archive);
+	xmi_archive_free(window->archive);
 	g_ptr_array_free(window->fd, TRUE);
 
 	G_OBJECT_CLASS(xmi_msim_gui_xmsa_viewer_window_parent_class)->finalize(gobject);

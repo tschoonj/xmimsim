@@ -326,7 +326,7 @@ static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5
 	else if (chd->kind == XMI_HDF5_SOLID_ANGLES && xmi_check_solid_angle_match(temp_input, chd->temp_input) == 1) {
 		rv = 1;
 	}
-	xmi_free_input(temp_input);
+	xmi_input_free(temp_input);
 	return rv;
 }
 
@@ -395,7 +395,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 
 	herr_t iterate_rv = H5Literate(chd->file_to_id, H5_INDEX_NAME, H5_ITER_INC, NULL, xmi_read_single_hdf5_group2, (void *) chd);
 
-	xmi_free_input(temp_input);
+	xmi_input_free(temp_input);
 
 	if (iterate_rv < 0)
 		return -1;

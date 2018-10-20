@@ -23,21 +23,21 @@ int main(int argc, char *argv[]) {
   xmi_input *input = NULL;
   g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
 
-  g_assert(xmi_compare_input(input, output->input) == 0);
+  g_assert(xmi_input_compare(input, output->input) == 0);
 
-  xmi_free_input(input);
+  xmi_input_free(input);
 
   // 2. change outputfile
   g_assert(xmi_xmso_to_xmsi_xslt(TEST_XMSO, "temp.xmsi", "new-outputfile.xmso") == 1);
   
   g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
 
-  g_assert(xmi_compare_input(input, output->input) == XMI_CONFLICT_GENERAL);
+  g_assert(xmi_input_compare(input, output->input) == XMI_CONFLICT_GENERAL);
  
   g_assert_cmpstr(input->general->outputfile, ==, "new-outputfile.xmso");
 
-  xmi_free_input(input);
-  xmi_free_output(output);
+  xmi_input_free(input);
+  xmi_output_free(output);
   unlink("temp.xmsi");
 
   return 0;

@@ -29,7 +29,7 @@ typedef struct {
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
 	data->main_loop = g_main_loop_new(NULL, FALSE);
-	data->input = xmi_init_empty_input();
+	data->input = xmi_input_init_empty();
 	// simulate 10M photons
 	data->input->general->n_photons_line = 10000000;
 	data->options = xmi_main_options_new();
@@ -48,7 +48,7 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 
 static void teardown_data(SetupData *data, gconstpointer user_data) {
 	g_main_loop_unref(data->main_loop);
-	xmi_free_input(data->input);
+	xmi_input_free(data->input);
 }
 
 static void test_no_executable(SetupData *data, gconstpointer user_data) {
@@ -149,10 +149,10 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
-	g_assert(xmi_validate_input(data->input) == 0);
+	g_assert(xmi_input_validate(data->input) == 0);
 	// file is valid now, let's make it invalid...
 	data->input->composition->reference_layer = 5;
-	g_assert(xmi_validate_input(data->input) != 0);
+	g_assert(xmi_input_validate(data->input) != 0);
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
@@ -207,7 +207,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	GError *error = NULL;
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
-	g_assert(xmi_validate_input(data->input) == 0);
+	g_assert(xmi_input_validate(data->input) == 0);
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
@@ -260,7 +260,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	GError *error = NULL;
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
-	g_assert(xmi_validate_input(data->input) == 0);
+	g_assert(xmi_input_validate(data->input) == 0);
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
@@ -323,7 +323,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	GError *error = NULL;
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
-	g_assert(xmi_validate_input(data->input) == 0);
+	g_assert(xmi_input_validate(data->input) == 0);
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file
@@ -387,7 +387,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	GError *error = NULL;
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
-	g_assert(xmi_validate_input(data->input) == 0);
+	g_assert(xmi_input_validate(data->input) == 0);
 	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
 
 	// write input to file

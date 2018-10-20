@@ -631,7 +631,7 @@ static void select_outputfile_cb(GtkButton *button, XmiMsimGuiXmsiConfigScrolled
 		gtk_entry_set_text(GTK_ENTRY(self->outputfileW), filename);
 		g_free (filename);
 	}
-	xmi_free_input(current);
+	xmi_input_free(current);
 
 	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 

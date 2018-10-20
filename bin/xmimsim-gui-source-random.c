@@ -148,7 +148,7 @@ static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *s
 
 	// update member variables -> if we get here, everything must be fine.
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+		xmi_excitation_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_random;
 

@@ -176,7 +176,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner), GTK_ADJUSTMENT(adj));
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner),output->ninteractions);
 		//free everything
-		xmi_free_output(output);
+		xmi_output_free(output);
 
 		gtk_entry_set_text(GTK_ENTRY(xt->entry), filename);
 		g_free(filename);
@@ -234,7 +234,7 @@ static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, xmi_tool
 	gtk_widget_set_sensitive(xt->button2, TRUE);
 
 	//free everything
-	xmi_free_archive(archive);
+	xmi_archive_free(archive);
 	gtk_entry_set_text(GTK_ENTRY(xt->entry), g_task_get_task_data(task));
 }
 
@@ -424,7 +424,7 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy(dialog);
 
-	xmi_free_input(input);
+	xmi_input_free(input);
 	g_free(input_file);
 	g_free(composition_file);
 	g_free(detector_file);

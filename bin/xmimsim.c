@@ -294,7 +294,8 @@ XMI_MAIN
 		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
 
 	if (options->extra_verbose)
-		xmi_print_input(stdout,input);
+		xmi_input_print(input, stdout);
+
 	//copy to the corresponding fortran variable
 	xmi_input_C2F(input,&inputFPtr);
 
@@ -670,7 +671,7 @@ XMI_MAIN
 		else if (options->verbose)
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
-		xmi_free_output(output);
+		xmi_output_free(output);
 		if (svg_file_conv != NULL) {
 			// 1 = convoluted
 			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
@@ -727,7 +728,7 @@ XMI_MAIN
 	}
 #endif
 
-	xmi_free_input(input);
+	xmi_input_free(input);
 #ifdef HAVE_OPENMPI
 	if (rank == 0) {
 #endif

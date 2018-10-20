@@ -251,7 +251,7 @@ static void xmi_msim_gui_xmso_results_scrolled_window_dispose(GObject *gobject) 
 static void xmi_msim_gui_xmso_results_scrolled_window_finalize(GObject *gobject) {
 	XmiMsimGuiXmsoResultsScrolledWindow *window = XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(gobject);
 	if (window->results != NULL)
-		xmi_free_output(window->results);
+		xmi_output_free(window->results);
 
 	G_OBJECT_CLASS(xmi_msim_gui_xmso_results_scrolled_window_parent_class)->finalize(gobject);
 }
@@ -772,7 +772,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 
 	// if we get here, then the file could be read...
 	if (window->results != NULL)
-		xmi_free_output(window->results);
+		xmi_output_free(window->results);
 
 	window->results = output;
 	

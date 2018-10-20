@@ -373,7 +373,8 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
-		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+		 @WSTRICT_CFLAGS@
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
@@ -407,7 +408,8 @@ xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
-		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\"
+		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
+		       @WSTRICT_CFLAGS@
 
 xmsi2xrmc_SOURCES = xmsi2xrmc.c
 xmsi2xrmc_LDADD = ../src/libxmimsim.la \

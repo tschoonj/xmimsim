@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 
 	// cleanup
 	unlink(xmimsim_hdf5_solid_angles);
-	xmi_free_input(input);
+	xmi_input_free(input);
 
 	// xmi_free_input_F(&inputFPtr); // this currently does not work since I do not read in the HDF5 data file
 	xmi_free_solid_angle(solid_angle_def);

@@ -25,18 +25,18 @@ int main(int argc, char *argv[]) {
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
 			xmi_output *output_copy = NULL;
-			xmi_copy_output(archive->output[i][j], &output_copy);
-			g_assert(xmi_validate_input(output_copy->input) == 0);
-			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);
-			xmi_free_output(output_copy);
+			xmi_output_copy(archive->output[i][j], &output_copy);
+			g_assert(xmi_input_validate(output_copy->input) == 0);
+			g_assert(xmi_input_compare(archive->input[i][j], output_copy->input) == 0);
+			xmi_output_free(output_copy);
 		}
 	}
 
 	//make a copy
-	xmi_copy_archive(archive, &archive_copy);
-	g_assert(xmi_compare_archive(archive, archive_copy) == 0);
-	xmi_free_archive(archive);
-	xmi_free_archive(archive_copy);
+	xmi_archive_copy(archive, &archive_copy);
+	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	xmi_archive_free(archive);
+	xmi_archive_free(archive_copy);
 
 	//download file
 	g_assert(test_download_file(TEST_XMSA_URL_2) == 1);
@@ -48,18 +48,18 @@ int main(int argc, char *argv[]) {
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
 			xmi_output *output_copy = NULL;
-			xmi_copy_output(archive->output[i][j], &output_copy);
-			g_assert(xmi_validate_input(output_copy->input) == 0);
-			g_assert(xmi_compare_input(archive->input[i][j], output_copy->input) == 0);
-			xmi_free_output(output_copy);
+			xmi_output_copy(archive->output[i][j], &output_copy);
+			g_assert(xmi_input_validate(output_copy->input) == 0);
+			g_assert(xmi_input_compare(archive->input[i][j], output_copy->input) == 0);
+			xmi_output_free(output_copy);
 		}
 	}
 
 	//make a copy
-	xmi_copy_archive(archive, &archive_copy);
-	g_assert(xmi_compare_archive(archive, archive_copy) == 0);
-	xmi_free_archive(archive);
-	xmi_free_archive(archive_copy);
+	xmi_archive_copy(archive, &archive_copy);
+	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	xmi_archive_free(archive);
+	xmi_archive_free(archive_copy);
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;

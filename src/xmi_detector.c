@@ -96,9 +96,9 @@ void xmi_escape_ratios_calculation(xmi_input *inputPtr, xmi_escape_ratios **esca
 
 
 	//copy input structure
-	xmi_copy_input(inputPtr, &esc_ratio_inputPtr);
+	xmi_input_copy(inputPtr, &esc_ratio_inputPtr);
 
-	xmi_free_composition(esc_ratio_inputPtr->composition);
+	xmi_composition_free(esc_ratio_inputPtr->composition);
 
 	xmi_copy_abs_or_crystal2composition(esc_ratio_inputPtr->detector->crystal_layers, esc_ratio_inputPtr->detector->n_crystal_layers, &(esc_ratio_inputPtr->composition));
 	esc_ratio_inputPtr->composition->reference_layer = 1;
@@ -321,7 +321,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	if (xmi_check_escape_ratios_match(temp_input, data->input) == 1) {
 		//match
 		//read in this group completely
-		xmi_free_input(temp_input);
+		xmi_input_free(temp_input);
 		*(data->escape_ratios) = (xmi_escape_ratios *) g_malloc(sizeof(xmi_escape_ratios));
 		escape_ratios = *(data->escape_ratios);
 		escape_ratios->xmi_input_string  = xmi_input_string;
@@ -411,7 +411,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
-		xmi_free_input(temp_input);
+		xmi_input_free(temp_input);
 		g_free(xmi_input_string);
 		if (data->options->extra_verbose)
 			fprintf(stdout,"No match in escape ratios\n");

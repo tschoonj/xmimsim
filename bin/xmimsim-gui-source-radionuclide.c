@@ -457,7 +457,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 
 	// update member variables
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+		xmi_excitation_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_nuclide;
 
