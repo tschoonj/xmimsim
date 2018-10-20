@@ -133,7 +133,7 @@ static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
 	if (source->raw_data)
-		xmi_free_excitation(source->raw_data);
+		xmi_excitation_free(source->raw_data);
 	if (source->x)
 		g_array_free(source->x, TRUE);
 	if (source->y)

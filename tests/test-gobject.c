@@ -190,23 +190,23 @@ static void setup_data_main_options(SetupDataMainOptions *data, gconstpointer us
 }
 
 static void teardown_data_composition(SetupDataComposition *data, gconstpointer user_data) {
-	xmi_free_composition(data->composition);
+	xmi_composition_free(data->composition);
 }
 
 static void teardown_data_excitation(SetupDataExcitation *data, gconstpointer user_data) {
-	xmi_free_excitation(data->excitation);
+	xmi_excitation_free(data->excitation);
 }
 
 static void teardown_data_input(SetupDataInput *data, gconstpointer user_data) {
-	xmi_free_input(data->input);
+	xmi_input_free(data->input);
 }
 
 static void teardown_data_archive(SetupDataArchive *data, gconstpointer user_data) {
-	xmi_free_archive(data->archive);
+	xmi_archive_free(data->archive);
 }
 
 static void teardown_data_main_options(SetupDataMainOptions *data, gconstpointer user_data) {
-	xmi_free_main_options(data->main_options);
+	xmi_main_options_free(data->main_options);
 }
 
 static void test_composition_static(SetupDataComposition *data, gconstpointer user_data) {
@@ -319,7 +319,7 @@ static void test_input(SetupDataInput *data, gconstpointer user_data) {
 	g_value_init(&value, XMI_MSIM_TYPE_INPUT);
 	g_value_set_boxed(&value, data->input);
 	g_assert(data->input != g_value_get_boxed(&value));
-	g_assert(xmi_compare_input(data->input, g_value_get_boxed(&value)) == 0);
+	g_assert(xmi_input_compare(data->input, g_value_get_boxed(&value)) == 0);
 	g_value_unset(&value);
 }
 
@@ -357,7 +357,7 @@ static void test_archive(SetupDataArchive *data, gconstpointer user_data) {
 	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
 	g_value_set_boxed(&value, data->archive);
 	g_assert(data->archive != g_value_get_boxed(&value));
-	g_assert(xmi_compare_archive(data->archive, g_value_get_boxed(&value)) == 0);
+	g_assert(xmi_archive_compare(data->archive, g_value_get_boxed(&value)) == 0);
 	g_value_unset(&value);
 }
 

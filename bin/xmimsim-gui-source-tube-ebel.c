@@ -789,14 +789,14 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	g_free(energies);
 	g_free(efficiencies);
 
-	xmi_free_layer(anode);
+	xmi_layer_free(anode);
 	g_free(anode);
 	if (window != NULL) {
-		xmi_free_layer(window);
+		xmi_layer_free(window);
 		g_free(window);
 	}
 	if (filter != NULL) {
-		xmi_free_layer(filter);
+		xmi_layer_free(filter);
 		g_free(filter);
 	}
 
@@ -841,7 +841,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 	excitation_tube_def->discrete = (xmi_energy_discrete *) g_array_free(discrete_def, FALSE);
 	excitation_tube_def->continuous = (xmi_energy_continuous *) g_array_free(continuous_def, FALSE);
 
-	xmi_free_excitation(excitation_tube);
+	xmi_excitation_free(excitation_tube);
 
 	GArray *x = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube_def->n_continuous);
 	GArray *y = g_array_sized_new(FALSE, FALSE, sizeof(double), excitation_tube_def->n_continuous);
@@ -889,7 +889,7 @@ static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract
 
 	// update member variables
 	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_free_excitation(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+		xmi_excitation_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
 
 	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_tube_def;
 

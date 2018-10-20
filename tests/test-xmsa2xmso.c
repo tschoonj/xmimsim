@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_1, "temp.xmso", 0, -1) == 1);
   xmi_output *output = NULL;
   g_assert(xmi_read_output_xml("temp.xmso", &output, NULL) == 1);
-  xmi_free_output(output);
+  xmi_output_free(output);
   unlink("temp.xmso");
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_1, "temp.xmso", 0, 1) == 0);
@@ -39,16 +39,16 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
-    g_assert(xmi_compare_output(output, archive->output[i][0]) == 0);
-    xmi_free_output(output);
+    g_assert(xmi_output_compare(output, archive->output[i][0]) == 0);
+    xmi_output_free(output);
     unlink(filename);
     g_free(filename);
   }
-  xmi_free_archive(archive);
+  xmi_archive_free(archive);
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 0, 0) == 1);
   g_assert(xmi_read_output_xml("temp.xmso", &output, NULL) == 1);
-  xmi_free_output(output);
+  xmi_output_free(output);
   unlink("temp.xmso");
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 10, 10) == 1);
   unlink("temp.xmso");
@@ -67,13 +67,13 @@ int main(int argc, char *argv[]) {
         return 1;
       }
       g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
-      g_assert(xmi_compare_output(output, archive->output[i][j]) == 0);
-      xmi_free_output(output);
+      g_assert(xmi_output_compare(output, archive->output[i][j]) == 0);
+      xmi_output_free(output);
       unlink(filename);
       g_free(filename);
     }
   }
-  xmi_free_archive(archive);
+  xmi_archive_free(archive);
 
   return 0;
 }

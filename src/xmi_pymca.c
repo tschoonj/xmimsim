@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <string.h>
 
-
 static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input) {
 
 	//this function will read the concentrations calculated by PyMCA, of course only if they were calculated in the first place
@@ -297,7 +296,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 			}
 			else if (alloc == FALSE) {
 				//this creates a memory leak... but one we can live with...
-				xmi_copy_layer2(compoundData2xmi_layer (cd1), *layer);
+				xmi_layer_copy2(compoundData2xmi_layer (cd1), *layer);
 			}
 			FreeCompoundData(cd1);
 		}
@@ -324,7 +323,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 			}
 			else if (alloc == FALSE) {
 				//this creates a memory leak... but one we can live with...
-				xmi_copy_layer2(compoundData2xmi_layer (cd_sum), *layer);
+				xmi_layer_copy2(compoundData2xmi_layer (cd_sum), *layer);
 			}
 			FreeCompoundData(cd_sum);
 		}
@@ -343,7 +342,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 		}
 		else if (alloc == FALSE) {
 			//this creates a memory leak... but one we can live with...
-			xmi_copy_layer2(compoundData2xmi_layer (cd1), *layer);
+			xmi_layer_copy2(compoundData2xmi_layer (cd1), *layer);
 		}
 		FreeCompoundData(cd1);
 	}

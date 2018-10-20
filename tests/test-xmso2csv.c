@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
   g_object_unref(data_stream);
 
   unlink(TEST_CSV);
-  xmi_free_output(output);
+  xmi_output_free(output);
 
   return 0;
 }

@@ -22,15 +22,15 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
 
 	//validate the input
-	g_assert(xmi_validate_input(output->input) == 0);
+	g_assert(xmi_input_validate(output->input) == 0);
 
 	//make a copy
-	xmi_copy_output(output, &output_copy);
-	g_assert(xmi_validate_input(output_copy->input) == 0);
-	g_assert(xmi_compare_input(output->input, output_copy->input) == 0);
+	xmi_output_copy(output, &output_copy);
+	g_assert(xmi_input_validate(output_copy->input) == 0);
+	g_assert(xmi_input_compare(output->input, output_copy->input) == 0);
 
-	xmi_free_output(output);
-	xmi_free_output(output_copy);
+	xmi_output_free(output);
+	xmi_output_free(output_copy);
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;

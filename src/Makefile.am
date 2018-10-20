@@ -76,7 +76,8 @@ libxmimsim_la_CFLAGS =  \
 	@OPENMP_CFLAGS@ \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 	-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
-	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\"
+	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\" \
+	@WSTRICT_CFLAGS@
 
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
 			@fgsl_CFLAGS@ \
@@ -96,7 +97,7 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
-xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
+xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ @WSTRICT_CFLAGS@
 xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
@@ -150,7 +151,8 @@ libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1 \
 libxmimsim_ql_la_CFLAGS = \
 	@xml2_CFLAGS@ \
 	@glib2_CFLAGS@ \
-	@xraylib_CFLAGS@
+	@xraylib_CFLAGS@ \
+	@WSTRICT_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
 	@xml2_LIBS@ \
 	@glib2_LIBS@

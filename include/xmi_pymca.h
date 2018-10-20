@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_PYMCA_H
 
 
-
 #include "xmi_data_structs.h"
 
 #ifdef __cplusplus

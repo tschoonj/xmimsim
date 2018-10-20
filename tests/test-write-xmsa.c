@@ -24,10 +24,10 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_compare_archive(archive, archive_copy) == 0);
+	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
 
-	xmi_free_archive(archive);
-	xmi_free_archive(archive_copy);
+	xmi_archive_free(archive);
+	xmi_archive_free(archive_copy);
 
 	//delete the file
 	unlink(TEST_XMSA_COPY_1);
@@ -42,9 +42,9 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_2, &archive_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_compare_archive(archive, archive_copy) == 0);
+	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
 
-	xmi_free_archive(archive_copy);
+	xmi_archive_free(archive_copy);
 
 	//delete the file
 	unlink(TEST_XMSA_COPY_2);
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "message: %s\n", error->message);
 	g_error_free(error);
 	
-	xmi_free_archive(archive);
+	xmi_archive_free(archive);
 
 	return 0;
 }

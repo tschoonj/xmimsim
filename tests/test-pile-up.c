@@ -57,8 +57,8 @@ int main(int argc, char *argv[]) {
 
 	xmi_deallocate(channels_without_pile_up);
 	xmi_deallocate(channels_with_pile_up);
-	xmi_free_output(output);
-	xmi_free_input(input);
+	xmi_output_free(output);
+	xmi_input_free(input);
 
 	return 0;
 }

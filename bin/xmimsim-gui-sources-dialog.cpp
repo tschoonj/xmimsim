@@ -416,7 +416,7 @@ static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, X
 
 		// set source data to NULL
 		if (source->raw_data) {
-			xmi_free_excitation(source->raw_data);
+			xmi_excitation_free(source->raw_data);
 			source->raw_data = NULL;
 		}
 		if (source->x) {

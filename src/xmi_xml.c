@@ -69,9 +69,9 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 static gboolean xml_catalog_loaded = FALSE;
 
 static void handle_error(GError **error) {
-	xmlErrorPtr xmlError = xmlGetLastError();
-	if (xmlError) {
-		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "%s", xmlError->message);
+	xmlErrorPtr _xmlError = xmlGetLastError();
+	if (_xmlError) {
+		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "%s", _xmlError->message);
 	}
 	else {
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "unknown error occurred");
@@ -1321,7 +1321,7 @@ int xmi_read_input_xml (const char *xmlfile, xmi_input **input, GError **error) 
 		return 0;
 
 #ifndef QUICKLOOK
-	if (xmi_validate_input(*input) != 0) {
+	if (xmi_input_validate(*input) != 0) {
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		fprintf(stderr, "Error validating input data\n");
@@ -2230,7 +2230,7 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int
 		return 0;
 
 #ifndef QUICKLOOK
-	if (xmi_validate_input(op->input) != 0) {
+	if (xmi_input_validate(op->input) != 0) {
 		xmlFreeDoc(doc);
 		fprintf(stderr, "Error validating input data\n");
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");

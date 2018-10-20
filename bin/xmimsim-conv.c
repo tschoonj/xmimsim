@@ -142,7 +142,7 @@ XMI_MAIN
 	xmso_in->input->detector->detector_type = xmsi_in->detector->detector_type;
 	xmso_in->input->detector->pulse_width = xmsi_in->detector->pulse_width;
 
-	xmi_free_input(xmsi_in);
+	xmi_input_free(xmsi_in);
 
 	SetErrorMessages(0);
 	static char *xmimsim_hdf5_escape_ratios = NULL;

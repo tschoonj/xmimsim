@@ -84,9 +84,9 @@ static void test(SetupData *data, gconstpointer user_data) {
 }
 
 static void teardown_data(SetupData *data, gconstpointer user_data) {
-	xmi_free_layer(data->tube_anode);
-	xmi_free_layer(data->tube_window);
-	xmi_free_layer(data->tube_filter);
+	xmi_layer_free(data->tube_anode);
+	xmi_layer_free(data->tube_window);
+	xmi_layer_free(data->tube_filter);
 	g_free(data->tube_anode);
 	g_free(data->tube_window);
 	g_free(data->tube_filter);

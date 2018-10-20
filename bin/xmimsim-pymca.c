@@ -264,9 +264,9 @@ XMI_MAIN
 		else if (options->verbose) {
 			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
 		}
-		xmi_free_excitation(xi->excitation);
-		xmi_copy_excitation(override->excitation, &xi->excitation);
-		xmi_free_input(override);
+		xmi_excitation_free(xi->excitation);
+		xmi_excitation_copy(override->excitation, &xi->excitation);
+		xmi_input_free(override);
 	}
 
 	if (geometry_file) {
@@ -278,9 +278,9 @@ XMI_MAIN
 		else if (options->verbose) {
 			g_fprintf(stderr, "Override geometry file %s successfully parsed\n", geometry_file);
 		}
-		xmi_free_geometry(xi->geometry);
-		xmi_copy_geometry(override->geometry, &xi->geometry);
-		xmi_free_input(override);
+		xmi_geometry_free(xi->geometry);
+		xmi_geometry_copy(override->geometry, &xi->geometry);
+		xmi_input_free(override);
 	}
 
 	if (excitation_file) {
@@ -292,9 +292,9 @@ XMI_MAIN
 		else if (options->verbose) {
 			g_fprintf(stderr, "Override excitation file %s successfully parsed\n", excitation_file);
 		}
-		xmi_free_excitation(xi->excitation);
-		xmi_copy_excitation(override->excitation, &xi->excitation);
-		xmi_free_input(override);
+		xmi_excitation_free(xi->excitation);
+		xmi_excitation_copy(override->excitation, &xi->excitation);
+		xmi_input_free(override);
 	}
 
 
@@ -408,7 +408,7 @@ XMI_MAIN
 
 
 	//calculate initial
-	xmi_copy_layer(xi->composition->layers + xp->ilay_pymca, &matrix);
+	xmi_layer_copy(xi->composition->layers + xp->ilay_pymca, &matrix);
 
 
 
@@ -854,7 +854,7 @@ single_run:
 	}
 	else if (options->verbose)
 		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
-	xmi_free_output(output);
+	xmi_output_free(output);
 
 	//write to CSV and SPE if necessary...
 	csv_convPtr = csv_noconvPtr = NULL;

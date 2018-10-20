@@ -38,6 +38,22 @@ GType xmi_msim_archive_get_type(void) G_GNUC_CONST;
 #define XMI_MSIM_TYPE_MAIN_OPTIONS (xmi_msim_main_options_get_type ())
 GType xmi_msim_main_options_get_type(void) G_GNUC_CONST;
 
+#define XMI_MSIM_TYPE_OUTPUT (xmi_msim_output_get_type ())
+GType xmi_msim_output_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_GENERAL (xmi_msim_general_get_type ())
+GType xmi_msim_general_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_GEOMETRY (xmi_msim_geometry_get_type ())
+GType xmi_msim_geometry_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_ABSORBERS (xmi_msim_absorbers_get_type ())
+GType xmi_msim_absorbers_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_DETECTOR (xmi_msim_detector_get_type ())
+GType xmi_msim_detector_get_type(void) G_GNUC_CONST;
+
+
 G_END_DECLS
 
 #endif

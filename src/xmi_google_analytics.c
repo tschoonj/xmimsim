@@ -126,7 +126,7 @@ static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker
 }
 
 /**
- * xmi_msim_google_analytics_tracker_new:
+ * xmi_msim_google_analytics_tracker_new: (constructor)
  * @uuid: (nullable): a valid UUID, or %NULL
  *
  * Instantiate a new google analytics tracker object
@@ -185,7 +185,7 @@ static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGoogle
 }
 
 /**
- * xmi_msim_google_analytics_tracker_send_event:
+ * xmi_msim_google_analytics_tracker_send_event: (method)
  * @tracker: (not nullable): the tracker
  * @category: (not nullable): the event category (must be less than 150 characters)
  * @action: (not nullable): the event action (must be less than 500 characters)

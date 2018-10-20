@@ -274,7 +274,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	if (xmi_check_solid_angle_match(temp_input, data->input) == 1) {
 		//match
 		//read in this group completely
-		xmi_free_input(temp_input);
+		xmi_input_free(temp_input);
 		*(data->solid_angles) = g_malloc(sizeof(xmi_solid_angle));
 		solid_angles = *(data->solid_angles);
 		solid_angles->xmi_input_string  = xmi_input_string;
@@ -320,7 +320,7 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	else {
 		//no match -> continue looking...
 		H5Gclose(group_id);
-		xmi_free_input(temp_input);
+		xmi_input_free(temp_input);
 		g_free(xmi_input_string);
 		if (data->options->extra_verbose)
 			fprintf(stdout, "No match in solid angle grid\n");

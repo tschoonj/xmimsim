@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_input_xml(TEST_XMSI, &input, NULL) == 1);
 
 	//validate the file
-	g_assert(xmi_validate_input(input) == 0);
+	g_assert(xmi_input_validate(input) == 0);
 
 	//check the values
 	//general
@@ -119,13 +119,13 @@ int main(int argc, char *argv[]) {
 
 
 	//make a copy
-	xmi_copy_input(input, &input_copy);
+	xmi_input_copy(input, &input_copy);
 
 	//compare
-	g_assert(xmi_compare_input(input, input_copy) == 0);
+	g_assert(xmi_input_compare(input, input_copy) == 0);
 
-	xmi_free_input(input);
-	xmi_free_input(input_copy);
+	xmi_input_free(input);
+	xmi_input_free(input_copy);
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;

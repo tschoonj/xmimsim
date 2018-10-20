@@ -489,7 +489,7 @@ static void energy_edit_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesS
 			// check if the new xed is different from the old one
 			xmi_energy_discrete *xed_current = &g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, selected_index);
 
-			if (xmi_equal_energy_discrete(xed, xed_current)) {
+			if (xmi_energy_discrete_equal(xed, xed_current)) {
 				// do nothing
 			}
 			else if (bsearch(xed, single_box->parent_box->discrete_array->data, single_box->parent_box->discrete_array->len, sizeof(xmi_energy_discrete), xmi_cmp_struct_xmi_energy_discrete) != NULL) {
@@ -511,7 +511,7 @@ static void energy_edit_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesS
 			// check if the new xec is different from the old one
 			xmi_energy_continuous *xec_current = &g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, selected_index);
 
-			if (xmi_equal_energy_continuous(xec, xec_current)) {
+			if (xmi_energy_continuous_equal(xec, xec_current)) {
 				// do nothing
 			}
 			else if (bsearch(xec, single_box->parent_box->continuous_array->data, single_box->parent_box->continuous_array->len, sizeof(xmi_energy_continuous), xmi_cmp_struct_xmi_energy_continuous) != NULL) {

@@ -152,7 +152,7 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
     cairo_surface_destroy(surface);
     cairo_destroy(cairo);
     
-    xmi_free_output(output);
+    xmi_output_free(output);
     
     return noErr;
 }
