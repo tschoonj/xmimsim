@@ -239,7 +239,7 @@ before_install:
       brew uninstall --force --ignore-dependencies $(brew list) || exit 1
       brew update || exit 1
       brew cleanup -s || exit 1
-      rm -rf $(brew --cache) || exit 1
+      #rm -rf $(brew --cache) || exit 1
       brew install git gsl autoconf automake libtool libxslt hdf5 libsoup wget pygobject3 || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
@@ -249,7 +249,7 @@ before_install:
       export FC=$MYFC
       export LIBS=$MYLIBS
       brew cleanup -s || exit 1
-      rm -rf $(brew --cache) || exit 1
+      #rm -rf $(brew --cache) || exit 1
       if [ -n "$GTKMM_PLPLOT_BRANCH" ] ; then
         brew uninstall --force gtkmm-plplot
       fi
