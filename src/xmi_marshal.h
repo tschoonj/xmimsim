@@ -66,6 +66,24 @@ void xmi_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN (GClosure     *closure,
                                                       gpointer      invocation_hint,
                                                       gpointer      marshal_data);
 
+/* VOID:ENUM,DOUBLE (xmi_marshal.list:9) */
+extern
+void xmi_VOID__ENUM_DOUBLE (GClosure     *closure,
+                            GValue       *return_value,
+                            guint         n_param_values,
+                            const GValue *param_values,
+                            gpointer      invocation_hint,
+                            gpointer      marshal_data);
+
+/* VOID:ENUM,STRING (xmi_marshal.list:10) */
+extern
+void xmi_VOID__ENUM_STRING (GClosure     *closure,
+                            GValue       *return_value,
+                            guint         n_param_values,
+                            const GValue *param_values,
+                            gpointer      invocation_hint,
+                            gpointer      marshal_data);
+
 
 G_END_DECLS
 

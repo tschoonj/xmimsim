@@ -493,28 +493,27 @@ INTROSPECTION_GIRS =
 INTROSPECTION_SCANNER_ARGS = --add-include-path=$(top_builddir)/src --warn-all
 INTROSPECTION_COMPILER_ARGS = --includedir=$(top_builddir)/src 
 
-#if ENABLE_GUI
-#if HAVE_INTROSPECTION
-#introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
+if ENABLE_GUI
+if HAVE_INTROSPECTION
+introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
 
-#XmiMsimGui-1.0.gir: libxmimsim-gui.la
-#XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0 XmiMsim-1.0 Gtk-3.0
-#XmiMsimGui_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
-#XmiMsimGui_1_0_gir_LIBS = libxmimsim-gui.la
-#XmiMsimGui_1_0_gir_FILES = $(introspection_sources)
-#INTROSPECTION_GIRS += XmiMsimGui-1.0.gir
+XmiMsimGui-1.0.gir: libxmimsim-gui.la
+XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0 XmiMsim-1.0 Gtk-3.0
+XmiMsimGui_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
+XmiMsimGui_1_0_gir_LIBS = libxmimsim-gui.la
+XmiMsimGui_1_0_gir_FILES = $(introspection_sources)
+INTROSPECTION_GIRS += XmiMsimGui-1.0.gir
 
-#girdir = $(datadir)/gir-1.0
-#gir_DATA = $(INTROSPECTION_GIRS)
+girdir = $(datadir)/gir-1.0
+gir_DATA = $(INTROSPECTION_GIRS)
 
-#typelibdir = $(libdir)/girepository-1.0
-#typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
-#CLEANFILES = $(gir_DATA) $(typelib_DATA) $(INTROSPECTION_GIRS:.gir=.gir.files)
+CLEANFILES = $(gir_DATA) $(typelib_DATA) $(INTROSPECTION_GIRS:.gir=.gir.files)
 
-
-#endif
-#endif
+endif
+endif
 
 if OS_WINDOWS
 xmimsim-icon.o: xmimsim-icon.rc

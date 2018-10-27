@@ -40,6 +40,7 @@ enum {
 
 static guint signals[LAST_SIGNAL];
 
+// this should probably be protected with a mutex...
 static XmiMsimGoogleAnalyticsTracker *global_tracker = NULL;
 
 struct _XmiMsimGoogleAnalyticsTracker {
@@ -106,6 +107,13 @@ static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsT
 		G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY)
 	);
 
+	/**
+	 * XmiMsimGoogleAnalyticsTracker::after-event:
+	 * @tracker: The #XmiMsimGoogleAnalyticsTracker object emitting the signal
+	 * @message: if an error occurred, the string will contain an appropriate error message, otherwise it will be set to %NULL. The same message will also be printed on the console, even if the signal is not handled.
+	 *
+	 * Emitted after an tracking event has been sent to the Google Analytics servers.
+	 */
 	signals[AFTER_EVENT] = g_signal_new(
 		"after-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -118,7 +126,6 @@ static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsT
 		1,
 		G_TYPE_STRING // string with error message or NULL
 	);
-
 }
 
 static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker *self) {
@@ -135,7 +142,6 @@ static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker
  */
 XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_new(const gchar *uuid) {
 	return XMI_MSIM_GOOGLE_ANALYTICS_TRACKER(g_object_new(XMI_MSIM_TYPE_GOOGLE_ANALYTICS_TRACKER, "uuid", uuid, NULL));
-	
 }
 
 /**
@@ -224,8 +230,4 @@ gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyti
 
 	g_hash_table_destroy(hash);
 	return TRUE;
-}
-
-GQuark xmi_msim_google_analytics_tracker_error_quark(void) {
-	return g_quark_from_static_string("xmi-msim-gui-google-analytics-tracker-error-quark");
 }

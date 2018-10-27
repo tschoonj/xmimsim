@@ -60,7 +60,6 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 		"non-existent-file.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -115,7 +114,6 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 		"non-existent-file.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -161,7 +159,6 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -192,15 +189,14 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(unlink(COMPOUND "-test.xmsi") == 0);
 }
 
-static void test_special_event_cb(XmiMsimJob *job, int event, const gchar *buffer, gpointer data) {
+static void test_special_event_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *buffer, gpointer data) {
 	g_assert_true(xmi_msim_job_is_running(job));
 	// this test is running in brute force mode, so we know exactly what to expect
 	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE)
 		g_assert(strcmp(buffer, "Solid angle grid redundant") == 0);
 	else if (event == XMI_MSIM_JOB_SPECIAL_EVENT_ESCAPE_PEAKS)
 		g_assert(strcmp(buffer, "Escape peaks redundant") == 0);
-	else
-		g_debug("special_event: %s", buffer);
+	g_debug("special_event: %s", buffer);
 }
 
 static void test_good_input_file_simple(SetupData *data, gconstpointer user_data) {
@@ -216,7 +212,6 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -269,7 +264,6 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -332,7 +326,6 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);
@@ -396,7 +389,6 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		-1,
 		extra_options,
 		&error
 		);

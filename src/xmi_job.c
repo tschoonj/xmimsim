@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmi_job.h"
 #include "xmi_marshal.h"
+#include "xmi_type_builtins.h"
 #include "xmi_aux.h"
 #include <string.h>
 
@@ -74,16 +75,43 @@ struct _XmiMsimJobClass {
 
 G_DEFINE_TYPE(XmiMsimJob, xmi_msim_job, G_TYPE_OBJECT)
 
+/**
+ * xmi_msim_job_kill:
+ * @job: the #XmiMsimJob instance.
+ * @error: return location for a GError, or NULL
+ *
+ * Kills the job, if currently running. Basically the same as #xmi_msim_job_stop(), but #XmiMsimJob::finished-event will not be emitted.
+ *
+ * Returns: %TRUE if the job was killed, %FALSE otherwise
+ */
 gboolean xmi_msim_job_kill(XmiMsimJob *job, GError **error) {
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
 	job->do_not_emit = TRUE;
 	return xmi_msim_job_stop(job, error);
 }
 
+/**
+ * xmi_msim_job_stop:
+ * @job: the #XmiMsimJob instance.
+ * @error: return location for a GError, or NULL
+ *
+ * Stops the job, if currently running. #XmiMsimJob::finished-event will be emitted.
+ *
+ * Returns: %TRUE if the job was stopped, %FALSE otherwise
+ */
 gboolean xmi_msim_job_stop(XmiMsimJob *job, GError **error) {
 	// difference UNIX <-> Windows
 	// UNIX -> send sigkill signal
 	// Windows -> TerminateProcess
 	
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
+
 	// first check if still running
 	if (xmi_msim_job_is_running(job) == FALSE) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "job is not running");
@@ -132,7 +160,21 @@ gboolean xmi_msim_job_stop(XmiMsimJob *job, GError **error) {
 	return TRUE;
 }
 
+/**
+ * xmi_msim_job_suspend:
+ * @job: the #XmiMsimJob instance.
+ * @error: return location for a GError, or NULL
+ *
+ * Suspends the job, if currently running.
+ *
+ * Returns: %TRUE if the job was suspended, %FALSE otherwise
+ */
 gboolean xmi_msim_job_suspend(XmiMsimJob *job, GError **error) {
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
+
 	// check if we can suspend
 	if (xmi_msim_job_is_suspend_available() == FALSE) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "suspend is not supported on this platform");
@@ -176,7 +218,21 @@ gboolean xmi_msim_job_suspend(XmiMsimJob *job, GError **error) {
 	return TRUE;
 }
 
+/**
+ * xmi_msim_job_resume:
+ * @job: the #XmiMsimJob instance.
+ * @error: return location for a GError, or NULL
+ *
+ * Resumes the job, if currently suspended.
+ *
+ * Returns: %TRUE if the job was resumed, %FALSE otherwise
+ */
 gboolean xmi_msim_job_resume(XmiMsimJob *job, GError **error) {
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
+
 	// check if we can resume 
 	if (xmi_msim_job_is_suspend_available() == FALSE) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "resume is not supported on this platform");
@@ -188,6 +244,7 @@ gboolean xmi_msim_job_resume(XmiMsimJob *job, GError **error) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "job is not running");
 		return FALSE;	
 	}
+
 	// then confirm it isn't paused already...
 	if (xmi_msim_job_is_suspended(job) == FALSE) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "job is not suspended");
@@ -266,6 +323,14 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 	object_class->dispose = xmi_msim_job_dispose;
 	object_class->finalize = xmi_msim_job_finalize;
 	
+	/**
+	 * XmiMsimJob::stdout-event:
+	 * @job: The #XmiMsimJob object emitting the signal
+	 * @message: The %stdout line produced by the %xmimsim executable
+	 *
+	 * Emitted whenever a regular %stdout message was produced by the %xmimsim executable.
+	 * Special messages can also be emitted, if #xmi_msim_job_send_all_stdout_events() is set to %TRUE
+	 */
 	signals[STDOUT_EVENT] = g_signal_new(
 		"stdout-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -279,6 +344,13 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		G_TYPE_STRING // gchar*
 	);
 
+	/**
+	 * XmiMsimJob::stderr-event:
+	 * @job: The #XmiMsimJob object emitting the signal
+	 * @message: The %stderr line produced by the %xmimsim executable
+	 *
+	 * Emitted whenever a %stderr message was produced by the %xmimsim executable.
+	 */
 	signals[STDERR_EVENT] = g_signal_new(
 		"stderr-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -292,6 +364,14 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		G_TYPE_STRING // gchar*
 	);
 
+	/**
+	 * XmiMsimJob::finished-event:
+	 * @job: The #XmiMsimJob object emitting the signal
+	 * @status: The exit status of the finished job. %TRUE if successful, %FALSE otherwise
+	 * @message: An appropriate message marking that the job is now finished.
+	 *
+	 * Emitted when the #XmiMsimJob has finished.
+	 */
 	signals[FINISHED_EVENT] = g_signal_new(
 		"finished-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -306,6 +386,14 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		G_TYPE_STRING // gchar*
 	);
 
+	/**
+	 * XmiMsimJob::special-event:
+	 * @job: The #XmiMsimJob object emitting the signal
+	 * @event_type: The type of special event that occurred.
+	 * @message: A message containing a description of the event.
+	 *
+	 * Emitted whenever a 'special' event has occurred.
+	 */
 	signals[SPECIAL_EVENT] = g_signal_new(
 		"special-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -313,13 +401,21 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__INT_STRING,
+		xmi_VOID__ENUM_STRING,
 		G_TYPE_NONE,
 		2,
-		G_TYPE_INT, // XmiMsimJobSpecialEvent
+		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
 		G_TYPE_STRING // gchar*
 	);
 
+	/**
+	 * XmiMsimJob::progress-event:
+	 * @job: The #XmiMsimJob object emitting the signal
+	 * @event_type: The type of special event that occurred.
+	 * @fraction: the progress fraction that has been reached when this event was emitted
+	 *
+	 * Emitted whenever a 'special' event has occurred that corresponds to a change in progress.
+	 */
 	signals[PROGRESS_EVENT] = g_signal_new(
 		"progress-event",
 		G_TYPE_FROM_CLASS(klass),
@@ -327,11 +423,11 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__INT_DOUBLE,
+		xmi_VOID__ENUM_DOUBLE,
 		G_TYPE_NONE,
 		2,
-		G_TYPE_INT, // XmiMsimJobSpecialEvent
-		G_TYPE_DOUBLE // guint (between 0 and 100)
+		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
+		G_TYPE_DOUBLE // double (between 0 and 1)
 	);
 
 	init_globals();
@@ -341,6 +437,22 @@ static void xmi_msim_job_init(XmiMsimJob *self) {
 	g_mutex_init(&self->job_mutex);
 }
 
+/**
+ * xmi_msim_job_new: (constructor)
+ * @xmi_msim_executable: (not nullable): the full path to the %xmimsim executable
+ * @xmsifile: (not nullable): the full path to the xmsi input-file
+ * @options: (not nullable): an #XmiMsimMainOptions boxed struct containing the options for the job
+ * @spe_conv: (nullable): prefix to the SPE files
+ * @csv_conv: (nullable): full path to a CSV file
+ * @svg_conv: (nullable): full path to an SVG file
+ * @html_conv: (nullable): full path to an HTML file
+ * @extra_options: (nullable) (array zero-terminated=1) (element-type utf8): %NULL terminated array of additional options to pass to the executable
+ * @error: return location for a GError, or NULL
+ *
+ * Instantiate a new #XmiMsimJob job object. Use the available methods to start/stop/suspend/resume as well as its signals to follow progress, messages and termination.
+ *
+ * Returns: (transfer full): the #XmiMsimJob object, or %NULL if an error occurred.
+ */
 XmiMsimJob* xmi_msim_job_new(
 	const gchar *xmi_msim_executable,
 	const gchar *xmsifile,
@@ -349,7 +461,6 @@ XmiMsimJob* xmi_msim_job_new(
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	int nthreads,
 	const gchar **extra_options,
 	GError **error
 	) {
@@ -363,11 +474,8 @@ XmiMsimJob* xmi_msim_job_new(
 		return NULL;
 	}
 	if (!options) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmi_msim_executable cannot be NULL");
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "options cannot be NULL");
 		return NULL;
-	}
-	if (nthreads <= 0) {
-		nthreads = xmi_omp_get_max_threads();
 	}
 
 	XmiMsimJob *job = XMI_MSIM_JOB(g_object_new(XMI_MSIM_TYPE_JOB, NULL));
@@ -507,7 +615,7 @@ XmiMsimJob* xmi_msim_job_new(
 	g_free(xmimsim_hdf5_escape_ratios);
 #endif
 
-	g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", nthreads));
+	g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", options->omp_num_threads));
 
 	// extra options
 	if (extra_options) {
@@ -727,7 +835,20 @@ static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, X
 	return rv;
 }
 
+/**
+ * xmi_msim_job_start:
+ * @job: the #XmiMsimJob instance.
+ * @error: return location for a GError, or NULL
+ *
+ * Starts the job
+ *
+ * Returns: %TRUE if the job was succesfully started, %FALSE otherwise
+ */
 gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
 
 	gboolean spawn_rv;
 
@@ -799,7 +920,22 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	return TRUE;
 }
 
+/**
+ * xmi_msim_job_get_pid:
+ * @job: the #XmiMsimJob instance.
+ * @pid: (out): the job PID.
+ * @error: return location for a GError, or NULL
+ *
+ * Gets the PID of the job. The job must have started for this to work.
+ *
+ * Returns: %TRUE if the PID was available, %FALSE otherwise
+ */
 gboolean xmi_msim_job_get_pid(XmiMsimJob *job, gint *pid, GError **error) {
+	if (job == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "job cannot be NULL");
+		return FALSE;
+	}
+
 	g_mutex_lock(&job->job_mutex);
 	if (job->pid == 0) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "job has not been successfully started yet");
@@ -811,7 +947,17 @@ gboolean xmi_msim_job_get_pid(XmiMsimJob *job, gint *pid, GError **error) {
 	return TRUE;
 }
 
+/**
+ * xmi_msim_job_is_running:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns whether or not the job is currently running. Suspended jobs will return %TRUE!
+ *
+ * Returns: %TRUE if the job is currently running, %FALSE otherwise
+ */
 gboolean xmi_msim_job_is_running(XmiMsimJob *job) {
+	g_return_val_if_fail(job != NULL, FALSE);
+
 	gboolean rv;
 	g_mutex_lock(&job->job_mutex);
 	rv = job->running;
@@ -819,7 +965,15 @@ gboolean xmi_msim_job_is_running(XmiMsimJob *job) {
 	return rv;
 }
 
+/**
+ * xmi_msim_job_is_suspended:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns: %TRUE if the job is currently suspended, %FALSE otherwise
+ */
 gboolean xmi_msim_job_is_suspended(XmiMsimJob *job) {
+	g_return_val_if_fail(job != NULL, FALSE);
+
 	gboolean rv;
 	g_mutex_lock(&job->job_mutex);
 	rv = job->paused;
@@ -827,7 +981,15 @@ gboolean xmi_msim_job_is_suspended(XmiMsimJob *job) {
 	return rv;
 }
 
+/**
+ * xmi_msim_job_has_finished:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns: %TRUE if the job has finished (successfully or not...), %FALSE otherwise
+ */
 gboolean xmi_msim_job_has_finished(XmiMsimJob *job) {
+	g_return_val_if_fail(job != NULL, FALSE);
+
 	gboolean rv;
 	g_mutex_lock(&job->job_mutex);
 	rv = job->finished;
@@ -835,7 +997,15 @@ gboolean xmi_msim_job_has_finished(XmiMsimJob *job) {
 	return rv;
 }
 
+/**
+ * xmi_msim_job_was_successful:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns: %TRUE if the job has finished and was successful, %FALSE otherwise
+ */
 gboolean xmi_msim_job_was_successful(XmiMsimJob *job) {
+	g_return_val_if_fail(job != NULL, FALSE);
+
 	gboolean rv;
 	g_mutex_lock(&job->job_mutex);
 	rv = job->successful;
@@ -843,11 +1013,27 @@ gboolean xmi_msim_job_was_successful(XmiMsimJob *job) {
 	return rv;
 }
 
+/**
+ * xmi_msim_job_send_all_stdout_events:
+ * @job: the #XmiMsimJob instance.
+ * @setting: if %TRUE, all stdout events will be emitted via the #XmiMsimJob::stdout-event signal.
+ *
+ */
 void xmi_msim_job_send_all_stdout_events(XmiMsimJob *job, gboolean setting) {
+	g_return_if_fail(job != NULL);
+
 	job->send_all_stdout_events = setting;
 }
 
+/**
+ * xmi_msim_job_get_commands:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns: the complete command that is associated with this #XmiMsimJob instance. Free after usage with #g_free.
+ */
 gchar* xmi_msim_job_get_command(XmiMsimJob *job) {
+	g_return_val_if_fail(job != NULL, NULL);
+
 	if (job->argv)
 		return g_strjoinv(" ", (gchar **) job->argv->pdata);
 	return NULL;
@@ -857,6 +1043,11 @@ GQuark xmi_msim_job_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-gui-job-error-quark");
 }
 
+/**
+ * xmi_msim_job_kill_all:
+ *
+ * Kills whatever job is currently running.
+ */
 void xmi_msim_job_kill_all(void ) {
 	// no further processing will be triggered, just a clean kill
 	G_LOCK(current_job);
@@ -867,6 +1058,11 @@ void xmi_msim_job_kill_all(void ) {
 	G_UNLOCK(current_job);
 }
 
+/**
+ * xmi_msim_job_is_suspend_available:
+ *
+ * Returns: %TRUE if jobs can be suspended, %FALSE otherwise.
+ */
 gboolean xmi_msim_job_is_suspend_available(void) {
 	init_globals();
 #ifdef G_OS_WIN32

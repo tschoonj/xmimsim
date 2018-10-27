@@ -1782,6 +1782,16 @@ static const xmi_main_options __default_main_options = {
         .use_default_seeds = 0
 };
 
+/**
+ * xmi_main_options_new: (constructor)
+ *
+ * Allocates a new #xmi_main_options.
+ *
+ * The contents of the returned structure correspond to the defaults.
+ *
+ * Returns: (transfer full): the newly allocated #xmi_main_options structure.
+ *   Use xmi_main_options_free() to free the resources allocated by this function
+ */
 xmi_main_options* xmi_main_options_new(void) {
 	xmi_main_options *rv = g_memdup(&__default_main_options, sizeof(xmi_main_options));
         rv->omp_num_threads = xmi_omp_get_max_threads();
@@ -1789,6 +1799,13 @@ xmi_main_options* xmi_main_options_new(void) {
 	return rv;
 }
 
+/**
+ * xmi_main_options_free:
+ * @options: a #xmi_main_options
+ *
+ * Frees the resources allocated by xmi_main_options_new().
+ *
+ */
 void xmi_main_options_free(xmi_main_options *options) {
 	if (!options)
 		return;
@@ -1796,6 +1813,14 @@ void xmi_main_options_free(xmi_main_options *options) {
 	g_free(options);
 }
 
+/**
+ * xmi_main_options_copy:
+ * @A: the original  #xmi_main_options struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_main_options struct
+ *
+ */
 void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 	*B = g_memdup(A, sizeof(xmi_main_options));
 	if (!*B)
