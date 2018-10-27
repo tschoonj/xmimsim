@@ -37,14 +37,6 @@ void xmi_msim_google_analytics_tracker_free_global(void);
 
 gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value);
 
-typedef enum {
-	XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_LIBSOUP,
-} XmiMsimGoogleAnalyticsTrackerError;
-
-#define XMI_MSIM_GOOGLE_ANALYTICS_TRACKER_ERROR (xmi_msim_google_analytics_tracker_error_quark())
-
-GQuark xmi_msim_google_analytics_tracker_error_quark(void);
-
 G_END_DECLS
 
 #endif

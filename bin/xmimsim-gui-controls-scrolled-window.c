@@ -524,6 +524,8 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	if (self->job)
 		g_clear_object(&self->job);
 
+	options->omp_num_threads = (int) gtk_range_get_value(GTK_RANGE(self->nthreadsW));
+
 	self->job = xmi_msim_job_new(
 		gtk_entry_get_text(GTK_ENTRY(self->executableW)),
 		self->input_file,
@@ -532,9 +534,10 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		gtk_entry_get_text(GTK_ENTRY(self->csv_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->svg_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->html_convW)),
-		(int) gtk_range_get_value(GTK_RANGE(self->nthreadsW)),
 		NULL,
 		&error);
+
+	xmi_main_options_free(options);
 
 	if (error) {
 		buffer = g_strdup_printf("Could not create new job: %s\n", error->message);

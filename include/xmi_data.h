@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef XMI_DATA_H
 #define XMI_DATA_H
 
-#include <xmi_data_structs.h>
+#include "xmi_data_structs.h"
 
 #ifdef __cplusplus
 extern "C" {

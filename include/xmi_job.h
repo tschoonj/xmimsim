@@ -16,11 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-#include <glib-object.h>
-#include "xmi_main.h"
-
 #ifndef XMI_MSIM_JOB_H
 #define XMI_MSIM_JOB_H
+
+#include <glib-object.h>
+#include "xmi_main.h"
 
 G_BEGIN_DECLS
 
@@ -42,7 +42,6 @@ XmiMsimJob* xmi_msim_job_new(
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	int nthreads,
 	const gchar **extra_options,
 	GError **error
 	);

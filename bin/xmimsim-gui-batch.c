@@ -1008,7 +1008,9 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		GError *error = NULL;
 		gchar *buffer;
 
-		bwd->job = xmi_msim_job_new(xmimsim_executable, (const char *) g_slist_nth_data(bwd->filenames, file_index), options, NULL, NULL, NULL, NULL, (int) gtk_range_get_value(GTK_RANGE(bwd->nthreadsW)), NULL, &error);
+		options->omp_num_threads = (int) gtk_range_get_value(GTK_RANGE(bwd->nthreadsW));
+
+		bwd->job = xmi_msim_job_new(xmimsim_executable, (const char *) g_slist_nth_data(bwd->filenames, file_index), options, NULL, NULL, NULL, NULL, NULL, &error);
 
 		if (error != NULL) {
 			buffer = g_strdup_printf("%s\n", error->message);

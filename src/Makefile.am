@@ -52,6 +52,8 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_job.c \
 			xmi_marshal.c \
 			xmi_marshal.h \
+			xmi_type_builtins.c \
+			xmi_type_builtins.h \
 			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
@@ -183,7 +185,30 @@ xmi_marshal.c: $(marshal_input)
 		--body \
 		$(marshal_input) ) > $(srcdir)/xmi_marshal.c
 
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h xmi_type_builtins.c xmi_type_builtins.h
+
+mkenum_sources = ../include/xmi_job.h
+
+xmi_type_builtins.h: $(mkenum_sources) xmi_type_builtins.c
+
+xmi_type_builtins.c: $(mkenum_sources) 
+	( cd $(srcdir) && $(GLIB_MKENUMS) \
+		--fhead "#ifndef __XMIMSIM_TYPE_BUILTINS_H__\n#define __XMIMSIM_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n#include <glib.h>\n\nG_BEGIN_DECLS\n\n" \
+		--fprod "/* enumerations from \"@filename@\" */\n" \
+		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
+		--ftail "\nG_END_DECLS\n#endif /* __XMIMSIM_TYPE_BUILTINS_H__ */" \
+		--identifier-prefix "XmiMsim" \
+		--symbol-prefix "xmi_msim" \
+		$(mkenum_sources) ) > $(srcdir)/xmi_type_builtins.h
+	( cd $(srcdir) && $(GLIB_MKENUMS) \
+		--fhead "#include \"xmi_type_builtins.h\"\n#include \"xmi_job.h\"\n" \
+		--fprod "\n/* enumerations from \"@filename@\" */" \
+		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
+		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
+		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
+		--identifier-prefix "XmiMsim" \
+		--symbol-prefix "xmi_msim" \
+		$(mkenum_sources) ) > $(srcdir)/xmi_type_builtins.c
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -199,16 +224,36 @@ xmimsim_detector.mod: libxmimsim.la
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
-INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --add-include-path=$(top_srcdir)/include --warn-all
-INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+INTROSPECTION_SCANNER_ARGS = \
+	--warn-all \
+	--identifier-filter-cmd="python $(srcdir)/identfilter.py" \
+	--symbol-filter-cmd="python $(srcdir)/symbolfilter.py" \
+	--c-include=include/xmi_gobject.h \
+	--c-include=include/xmi_data_structs.h \
+	--accept-unprefixed \
+	-v \
+	$(NULL)
+INTROSPECTION_COMPILER_ARGS =
+
+if HAVE_INTROSPECTION
+introspection_sources = \
+	$(top_srcdir)/include/xmi_data_structs.h \
+	$(top_srcdir)/include/xmi_job.h \
+	$(top_srcdir)/include/xmi_gobject.h \
+	xmi_type_builtins.h \
+	xmi_data_structs.c \
+	xmi_job.c \
+	xmi_gobject.c \
+	xmi_type_builtins.c \
+	$(NULL)
 
 if ENABLE_GOOGLE_ANALYTICS
-if HAVE_INTROSPECTION
-introspection_sources = xmi_google_analytics.c $(top_srcdir)/include/xmi_google_analytics.h
+introspection_sources += $(top_srcdir)/include/xmi_google_analytics.h xmi_google_analytics.c
+endif
 
 XmiMsim-1.0.gir: libxmimsim.la
 XmiMsim_1_0_gir_INCLUDES = GObject-2.0
-XmiMsim_1_0_gir_CFLAGS = $(INCLUDES) -I$(top_srcdir)/include
+XmiMsim_1_0_gir_CFLAGS = 
 XmiMsim_1_0_gir_LIBS = libxmimsim.la
 XmiMsim_1_0_gir_FILES = $(introspection_sources)
 INTROSPECTION_GIRS += XmiMsim-1.0.gir
@@ -222,7 +267,6 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 CLEANFILES = $(gir_DATA) $(typelib_DATA) $(INTROSPECTION_GIRS:.gir=.gir.files)
 
 endif
-endif
 
 #I delete the libtool archives on installation, so this step is necessary to ensure the libraries are uninstalled
 uninstall-local:
@@ -234,7 +278,6 @@ clean-local:
 	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
-:wa
 
-EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list
+EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list identfilter.py symbolfilter.py
 
