@@ -101,7 +101,7 @@ static void generate_button_clicked_cb(XmiMsimGuiSourcesDialog *dialog) {
 	// get currently active notebook page
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 #ifdef HAVE_GOOGLE_ANALYTICS
-	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SOURCES-DIALOG-GENERATE", xmi_msim_gui_source_abstract_get_name(source), NULL);
 #endif
 	xmi_msim_gui_source_abstract_generate(source);

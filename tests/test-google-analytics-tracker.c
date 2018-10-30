@@ -38,11 +38,11 @@ static void test_send_from_local_tracker_fixed_uuid(SetupData *data, gconstpoint
 
 static void test_send_from_global_tracker_fixed_uuid(SetupData *data, gconstpointer user_data) {
 	xmi_msim_google_analytics_tracker_create_global(TEST_UUID);
-	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 
 	g_assert_nonnull(tracker);
 
-	const XmiMsimGoogleAnalyticsTracker *tracker2 = xmi_msim_google_analytics_tracker_get_global();
+	XmiMsimGoogleAnalyticsTracker *tracker2 = xmi_msim_google_analytics_tracker_get_global();
 
 	g_assert(tracker == tracker2);
 

@@ -579,7 +579,7 @@ static void geometry_help_clicked_cb(XmiMsimGuiXmsiConfigScrolledWindow *self) {
 	gtk_widget_show_all(self->cs_window);
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SHOW-GEOMETRY-HELP", NULL, NULL);
 #endif
 }

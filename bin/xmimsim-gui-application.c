@@ -485,7 +485,7 @@ static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
 
 	gchar *event_label = g_strdup_printf("OS: %s VERSION: %s", os, PACKAGE_VERSION);
 
-	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "LAUNCH", event_label, NULL);
+	xmi_msim_google_analytics_tracker_send_event((XmiMsimGoogleAnalyticsTracker *) tracker, "XMI-MSIM-GUI", "LAUNCH", event_label, NULL);
 	g_free(event_label);
 	return FALSE;
 }
