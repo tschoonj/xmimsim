@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
+#include "xmi_random.h"
 
 int xmi_start_random_acquisition(void) {
 	//does nothing really
