@@ -31,11 +31,11 @@ XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_new(const gchar
 
 void xmi_msim_google_analytics_tracker_create_global(const gchar *uuid);
 
-const XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void);
+XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void);
 
 void xmi_msim_google_analytics_tracker_free_global(void);
 
-gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value);
+gboolean xmi_msim_google_analytics_tracker_send_event(XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value);
 
 G_END_DECLS
 

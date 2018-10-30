@@ -25,6 +25,17 @@ extern "C" {
 #endif
 
 typedef struct _xmi_general xmi_general;
+/**
+ * xmi_general:
+ * @version: XMI-MSIM version of the library that was used when writing the file.
+ * @outputfile: the name of the file that the simulation results will be written into (the XMSO-file...).
+ * @n_photons_interval: the number of photons that will be simulated per interval of the continuous excitation spectrum
+ * @n_photons_line: the number of photons that will be simulated per line in the discrete excitation spectrum
+ * @n_interactions_trajectory: the maximum number of interactions that will be experienced by each simulated photon. A typical value is 4.
+ * @comments: text that may be added to the input-file that may help the reader to understand the purpose of the simulation.
+ *
+ * A struct containing the general settings for an XMI-MSIM simulation
+ */
 struct _xmi_general {
 	float version;
 	char *outputfile;
@@ -35,6 +46,16 @@ struct _xmi_general {
 };
 
 typedef struct _xmi_layer xmi_layer;
+/**
+ * xmi_layer:
+ * @n_elements: (skip): the number of elements that is contained within this layer.
+ * @Z: (array length=n_elements): an array containing the atomic numbers of the elements within the layer.
+ * @weight: (array length=n_elements): an array containing the element weights. The sum of these weights should be 1.
+ * @density: the density of the layer, expressed in g/cm3.
+ * @thickness: the thickness of the layer, expressed in cm.
+ *
+ * A struct containing a description of a layer, a concept used in several more types. In XMI-MSIM, layers are assumed to be defined within just one dimension, along the sample normal vector, and are infinite in the two dimensions orthogonal to this vector.
+ */
 struct _xmi_layer {
 	int n_elements;
 	int *Z;
@@ -44,6 +65,14 @@ struct _xmi_layer {
 };
 
 typedef struct _xmi_composition xmi_composition;
+/**
+ * xmi_composition:
+ * @n_layers: (skip): the number of layers that is contained within this sample composition.
+ * @layers: (array length=n_layers): an array containing the layers that make up the sample composition.
+ * @reference_layer: this value corresponds to the layer within #layers that will be used to calculate the sample to source distance. First layer corresponds to 1, not 0!
+ *
+ * A struct containing a description of the sample composition. Layers are assumed to be ordered according to increasing distance from source.
+ */
 struct _xmi_composition {
 	int n_layers;
 	xmi_layer *layers;
@@ -272,9 +301,15 @@ int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous 
 
 void xmi_input_copy(xmi_input *A, xmi_input **B);
 
+xmi_composition* xmi_composition_new(int n_layers, xmi_layer *layers, int reference_layer);
+
+xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index);
+
 void xmi_composition_free(xmi_composition *composition);
 
 void xmi_composition_copy(xmi_composition *A, xmi_composition **B);
+
+xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density, double thickness);
 
 void xmi_layer_free(xmi_layer *layer);
 

@@ -164,7 +164,7 @@ void xmi_msim_google_analytics_tracker_create_global(const gchar *uuid) {
  *
  * Returns: (transfer none): the global tracker
  */
-const XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void) {
+XmiMsimGoogleAnalyticsTracker *xmi_msim_google_analytics_tracker_get_global(void) {
 	return global_tracker;
 }
 
@@ -191,7 +191,7 @@ static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGoogle
 }
 
 /**
- * xmi_msim_google_analytics_tracker_send_event: (method)
+ * xmi_msim_google_analytics_tracker_send_event:
  * @tracker: (not nullable): the tracker
  * @category: (not nullable): the event category (must be less than 150 characters)
  * @action: (not nullable): the event action (must be less than 500 characters)
@@ -201,7 +201,7 @@ static void event_callback(SoupSession *session, SoupMessage *msg, XmiMsimGoogle
  * Returns: %TRUE if the message was sent (does not mean it was received!), %FALSE otherwise
  *
  */
-gboolean xmi_msim_google_analytics_tracker_send_event(const XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value) {
+gboolean xmi_msim_google_analytics_tracker_send_event(XmiMsimGoogleAnalyticsTracker *tracker, const gchar *category, const gchar *action, const gchar *label, const gchar *value) {
 	g_return_val_if_fail(tracker != NULL, FALSE);
 	g_return_val_if_fail(category != NULL, FALSE);
 	g_return_val_if_fail(strlen(category) < 150, FALSE);

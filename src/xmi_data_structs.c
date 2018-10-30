@@ -31,6 +31,30 @@ void xmi_layer_free (xmi_layer *layer) {
 	g_free(layer->weight);
 }
 
+/**
+ * xmi_layer_new: (constructor)
+ * @n_elements: the number of elements the layer will contain.
+ * @Z: (array length=n_elements) (transfer none): the atomic numbers of the elements
+ * @weight: (array length=n_elements) (transfer none): the weights of the elements
+ * @density: the density of the layer, expressed in g/cm3
+ * @thickness: the thickness of the layer, expressed in cm
+ * 
+ * Allocates space for an #xmi_layer struct and populates it with the provided values
+ *
+ * Returns: (transfer full): the newly allocated #xmi_layer structure.
+ */
+xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density, double thickness) {
+	xmi_layer *rv = g_malloc0(sizeof(xmi_layer));
+	rv->n_elements = n_elements;
+	rv->Z = g_memdup(Z, sizeof(int) * n_elements);
+	rv->weight = g_memdup(weight, sizeof(double) * n_elements);
+	rv->density = density;
+	rv->thickness = thickness;
+
+	return rv;
+
+}
+
 void xmi_input_free(xmi_input *input) {
 	if (input == NULL)
 		return;
@@ -464,6 +488,57 @@ int xmi_input_compare(xmi_input *A, xmi_input *B) {
 }
 #endif
 
+/**
+ * xmi_composition_new: (constructor)
+ * @n_layers: number of layers in the composition (0 is allowed!)
+ * @layers: (array length=n_layers) (transfer none) (nullable): array with the layers
+ * @reference_layer: index of the layer that corresponds to the layer that will be used to establish the sample to source distance
+ *
+ * Allocates a new xmi_composition struct and populates it with the provided arguments
+ */
+xmi_composition* xmi_composition_new(int n_layers, xmi_layer *layers, int reference_layer) {
+	if (n_layers < 0) {
+		g_warning("xmi_composition_new: n_layers must be greater than or equal to zero");
+		return NULL;
+	}
+	else if (n_layers > 0 && (reference_layer < 1 || reference_layer > n_layers)) {
+		g_warning("xmi_composition_new: reference_layer must be at least one and less than or equal to n_layers");
+		return NULL;
+	}
+	else if ((n_layers == 0 && layers != NULL) || (n_layers > 0 && layers == NULL)) {
+		g_warning("xmi_composition_new: n_layers and layers inconsistency");
+	}
+	xmi_composition *rv = g_malloc0(sizeof(xmi_composition));
+	rv->n_layers = n_layers;
+	rv->reference_layer = reference_layer;
+	if (n_layers > 0) {
+		rv->layers = g_malloc0(sizeof(xmi_layer) * n_layers);
+		int i;
+		for (i = 0 ; i < n_layers ; i++) {
+			xmi_layer_copy2(&layers[i], &rv->layers[i]);
+		}
+	}
+	return rv;
+}
+
+/**
+ * xmi_composition_get_layer:
+ * @composition: #XmiMsimComposition instance
+ * @index: index of the required layer
+ *
+ * Returns: (transfer full): a copy of the layer within this sample composition, or %NULL if not available
+ */
+xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index) {
+	g_return_val_if_fail(composition != NULL, NULL);
+	g_return_val_if_fail(composition->n_layers > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < composition->n_layers, NULL);
+
+	xmi_layer *rv;
+	xmi_layer_copy(&composition->layers[index], &rv);
+
+	return rv;
+}
+
 void xmi_composition_free(xmi_composition *composition) {
 	if (composition == NULL)
 		return;
@@ -499,6 +574,10 @@ void xmi_composition_copy(xmi_composition *A, xmi_composition **B) {
 }
 
 void xmi_layer_copy(xmi_layer *A, xmi_layer **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
 	//allocate space for B
 	*B = (xmi_layer *) g_malloc(sizeof(xmi_layer));
 	(*B)->n_elements = A->n_elements;
@@ -508,7 +587,9 @@ void xmi_layer_copy(xmi_layer *A, xmi_layer **B) {
 	(*B)->weight = (double*) g_memdup(A->weight, A->n_elements*sizeof(double));
 }
 
-
+/**
+ * xmi_layer_copy2: (skip)
+ */
 void xmi_layer_copy2(xmi_layer *A, xmi_layer *B) {
 	B->n_elements = A->n_elements;
 	B->density = A->density;
@@ -517,6 +598,11 @@ void xmi_layer_copy2(xmi_layer *A, xmi_layer *B) {
 	B->weight = (double*) g_memdup(A->weight, A->n_elements*sizeof(double));
 }
 
+/**
+ * xmi_input_init_empty: (constructor)
+ *
+ * Returns: an #XmiMsimInput instance, with default values, but empty outputfile and composition
+ */
 xmi_input *xmi_input_init_empty(void) {
 
 	xmi_input *rv;

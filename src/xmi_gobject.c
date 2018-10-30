@@ -56,3 +56,25 @@ XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimGeneral, general);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimGeometry, geometry);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimAbsorbers, absorbers);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimDetector, detector);
+
+// xmi_layer_free is special so it needs special treatment...
+static gpointer xmi_msim_layer_copy(gpointer boxed) {
+	xmi_layer *A = boxed;
+	xmi_layer *B = NULL;
+	xmi_layer_copy(A, &B);
+	return B;
+}
+
+static void xmi_msim_layer_free(gpointer boxed) {
+	xmi_layer_free((xmi_layer *) boxed);
+	g_free(boxed); // necessary since xmi_layer_free does not free the struct itself, only the Z and weight arrays within...
+}
+
+GType xmi_msim_layer_get_type(void) {
+	static volatile gsize xmi_msim_define_id__volatile = 0;
+	if (g_once_init_enter (&xmi_msim_define_id__volatile)) {
+		GType xmi_msim_define_id = g_boxed_type_register_static(g_intern_static_string("XmiMsimLayer"), (GBoxedCopyFunc) xmi_msim_layer_copy, (GBoxedFreeFunc) xmi_msim_layer_free);
+		g_once_init_leave (&xmi_msim_define_id__volatile, xmi_msim_define_id);
+	}
+	return xmi_msim_define_id__volatile;
+}

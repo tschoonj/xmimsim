@@ -489,7 +489,7 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	// if saved -> start job	
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-	const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "SIMULATION-START", NULL, NULL);
 #endif
 

@@ -1509,7 +1509,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				return;
 			}
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+			XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 			xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-MULTIPLE-OPTIONS", NULL);
 #endif
 		}
@@ -1523,7 +1523,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 			}
 			//options are set
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+			XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 			xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "BATCH-SIMULATION-START", "MULTIPLE-FILES-SINGLE-OPTION", NULL);
 #endif
 		}
@@ -1561,7 +1561,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 				g_debug("allowed2: %i", allowed2);
 			}
 #ifdef HAVE_GOOGLE_ANALYTICS
-			const XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+			XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
 			gchar *event_label = NULL;
 			if (xpath2)
 				event_label = g_strdup_printf("SINGLE-FILE-%s-%s", xpath1, xpath2);
