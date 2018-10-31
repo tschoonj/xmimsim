@@ -949,7 +949,7 @@ static void widget_populate_hash_with_value(GtkWidget *widget, GValue *value) {
 			buffer = g_strdup_printf("%ld", g_value_get_long(value));
 		}
 		else if (G_VALUE_HOLDS_STRING(value)) {
-			buffer = g_value_get_string(value) == NULL ? g_strdup_printf("") : g_value_dup_string(value);
+			buffer = g_value_get_string(value) == NULL ? g_strdup("") : g_value_dup_string(value);
 		}
 		else if (G_VALUE_HOLDS_DOUBLE(value)) {
 			buffer = g_strdup_printf("%g", g_value_get_double(value));
