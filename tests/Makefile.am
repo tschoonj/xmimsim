@@ -26,7 +26,7 @@ check_PROGRAMS = \
 TEST_EXTENSIONS = .py
 PY_LOG_COMPILER = $(PYTHON)
 AM_PY_LOG_FLAGS =
-AM_TESTS_ENVIRONMENT = LD_LIBRARY_PATH='${top_builddir}/src/.libs' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH ;
+AM_TESTS_ENVIRONMENT = LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH ;
 
 
 if HAVE_INTROSPECTION
