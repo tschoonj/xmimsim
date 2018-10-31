@@ -43,7 +43,6 @@ export LIBS="-L/usr/local/lib/nvidia"
 make
 if test -z ${DEPLOY+x} ; then
 	make check
-	make distcheck
 else
 	# I think the OpenCL test will block due to that stupid dialog. So don't test until glib 2.56.0 is out
 	make dist
