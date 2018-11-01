@@ -81,7 +81,7 @@ static gboolean excitation_equal(xmi_excitation *A, xmi_excitation *B) {
 				if (A->discrete[i].distribution_type != B->discrete[i].distribution_type) {
 					return FALSE;
 				}
-				else if (A->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+				else if (A->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
 					XMI_IF_COMPARE_EXCITATION_DISCRETE(scale_parameter)
 				}
 			}
@@ -174,7 +174,7 @@ static void setup_data_excitation(SetupDataExcitation *data, gconstpointer user_
 	data->excitation->discrete[0].sigma_y= 0.0;
 	data->excitation->discrete[0].sigma_yp= 0.0;
 	data->excitation->discrete[0].scale_parameter = 0.0;
-	data->excitation->discrete[0].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+	data->excitation->discrete[0].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 }
 
 static void setup_data_input(SetupDataInput *data, gconstpointer user_data) {

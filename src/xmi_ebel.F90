@@ -406,7 +406,7 @@ ELSE
 ENDIF
 
 DO i=1,ndisc
-        ebel_spectrum_disc(i)%distribution_type = XMI_DISCRETE_MONOCHROMATIC
+        ebel_spectrum_disc(i)%distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC
         SELECT CASE(disc_lines(i))
                 CASE (KP5_LINE:KL1_LINE)
                         ebel_spectrum_disc(i)%horizontal_intensity = rhelp(i)*const2_K*oneovers(i)*r(i)*&

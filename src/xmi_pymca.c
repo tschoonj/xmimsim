@@ -1123,7 +1123,7 @@ static int read_excitation_spectrum(GKeyFile *pymcaFile, xmi_excitation **excita
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_y = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_size_y", NULL);
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_xp = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_diverg_x", NULL);
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].sigma_yp = g_key_file_get_double(pymcaFile, "xrfmc.setup","source_diverg_y", NULL);
-		(*excitation)->discrete[((*excitation)->n_discrete)-1].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		(*excitation)->discrete[((*excitation)->n_discrete)-1].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 		(*excitation)->discrete[((*excitation)->n_discrete)-1].scale_parameter = 0.0;
 
 	}

@@ -606,7 +606,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
                 !Calculate initial mu's
                 IF (exc%discrete(i)%distribution_type .EQ.&
-                XMI_DISCRETE_MONOCHROMATIC) THEN
+                XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) THEN
                         initial_mus = xmi_mu_calc(inputF%composition,&
                         exc%discrete(i)%energy)
                 ENDIF
@@ -616,10 +616,10 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 #if DEBUG == 1
 !$omp critical
                 IF (exc%discrete(i)%distribution_type .EQ.&
-                        XMI_DISCRETE_GAUSSIAN) THEN
+                        XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN) THEN
                 WRITE (output_unit, '(A)') 'gaussian'
                 ELSEIF (exc%discrete(i)%distribution_type .EQ.&
-                        XMI_DISCRETE_LORENTZIAN) THEN
+                        XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) THEN
                 WRITE (output_unit, '(A)') 'lorentzian'
                 ELSE
                 WRITE (output_unit, '(A)') 'monochromatic'
@@ -645,7 +645,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%energy_changed=.FALSE.
                         ALLOCATE(photon%mus(inputF%composition%n_layers))
                         IF (exc%discrete(i)%distribution_type .EQ.&
-                        XMI_DISCRETE_GAUSSIAN) THEN
+                        XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN) THEN
                                 !gaussian distribution
                                 photon%energy = xmi_ran_gaussian_ziggurat(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy
@@ -655,7 +655,7 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                 photon%mus = xmi_mu_calc(inputF%composition,&
                                 photon%energy)
                         ELSEIF (exc%discrete(i)%distribution_type .EQ.&
-                        XMI_DISCRETE_LORENTZIAN) THEN
+                        XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) THEN
                                 !lorentzian distribution
                                 photon%energy = xmi_ran_cauchy(rng,&
                                 exc%discrete(i)%scale_parameter)+exc%discrete(i)%energy

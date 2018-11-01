@@ -156,10 +156,10 @@ static void energy_print_scale_parameter(GtkTreeViewColumn *column, GtkCellRende
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
 
-	if (type == XMI_DISCRETE_MONOCHROMATIC) {
+	if (type == XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
 		text = g_strdup("n/a");
 	}
-	else if (type == XMI_DISCRETE_GAUSSIAN || type == XMI_DISCRETE_LORENTZIAN) {
+	else if (type == XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN || type == XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) {
 		gtk_tree_model_get(tree_model,iter, SCALE_PARAMETER_COLUMN, &scale_parameter,-1);
 		text = g_strdup_printf("%g", scale_parameter);
 	}
@@ -175,13 +175,13 @@ static void energy_print_distribution_type(GtkTreeViewColumn *column, GtkCellRen
 
 	gtk_tree_model_get(tree_model,iter, DISTRIBUTION_TYPE_COLUMN, &type,-1);
 
-	if (type == XMI_DISCRETE_MONOCHROMATIC) {
+	if (type == XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
 		text = g_strdup("Monochromatic");
 	}
-	else if (type == XMI_DISCRETE_GAUSSIAN) {
+	else if (type == XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN) {
 		text = g_strdup("Gaussian");
 	}
-	else if (type == XMI_DISCRETE_LORENTZIAN) {
+	else if (type == XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) {
 		text = g_strdup("Lorentzian");
 	}
 
@@ -795,7 +795,7 @@ static GArray* xmi_read_energies_from_ascii_file_discrete(const gchar *filename,
 		temp.sigma_y = 0.0;
 		temp.sigma_xp = 0.0;
 		temp.sigma_yp = 0.0;
-		temp.distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		temp.distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 		temp.scale_parameter = 0.0;
 
 		switch (values) {

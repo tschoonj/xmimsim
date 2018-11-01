@@ -39,11 +39,15 @@ typedef struct _xmi_general xmi_general;
 struct _xmi_general {
 	float version;
 	char *outputfile;
-	long int n_photons_interval;
-	long int n_photons_line;
+	long n_photons_interval;
+	long n_photons_line;
 	int n_interactions_trajectory;
 	char *comments;
 };
+
+xmi_general* xmi_general_new(const char *outputfile, long n_photons_interval, long n_photons_line, int n_interactions_trajectory, const char *comments);
+void xmi_general_copy(xmi_general *A, xmi_general **B);
+void xmi_general_free(xmi_general *A);
 
 typedef struct _xmi_layer xmi_layer;
 /**
@@ -64,6 +68,12 @@ struct _xmi_layer {
 	double thickness;
 };
 
+xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density, double thickness);
+void xmi_layer_free(xmi_layer *layer);
+void xmi_layer_copy(xmi_layer *A, xmi_layer **B);
+void xmi_layer_copy2(xmi_layer *A, xmi_layer *B);
+void xmi_layer_print(xmi_layer *layer, FILE *fPtr);
+
 typedef struct _xmi_composition xmi_composition;
 /**
  * xmi_composition:
@@ -79,7 +89,27 @@ struct _xmi_composition {
 	int reference_layer;
 };
 
+xmi_composition* xmi_composition_new(int n_layers, xmi_layer *layers, int reference_layer);
+xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index);
+void xmi_composition_free(xmi_composition *composition);
+void xmi_composition_copy(xmi_composition *A, xmi_composition **B);
+
 typedef struct _xmi_geometry xmi_geometry;
+/**
+ * xmi_geometry:
+ * @d_sample_source: the distance (in cm) between source and sample. The sample layer marked as reference_layer will be used for this calculation.
+ * @n_sample_orientation: (array fixed-size=3): a three coordinate array describing the sample normal vector. The z-component has to be positive!
+ * @p_detector_window: (array fixed-size=3): a three coordinate array describing the position (in cm) of the detector window.
+ * @n_detector_orientation: (array fixed-size=3): a three coordinate array describing the normal vector of the detector window.
+ * @area_detector: the active detector area (in cm2).
+ * @collimator_height: the height of the collimator cone, measured from the detector window, in cm.
+ * @collimator_diameter: the diameter of the collimator cone opening, in cm2
+ * @d_source_slit: the distance between source and (virtual) slits, in cm.
+ * @slit_size_x: the height of the slits, in cm.
+ * @slit_size_y: the width of the slits, in cm.
+ *
+ * A struct containing a description of the experiment geometry. Collimators are optional: to disable them set both #collimator_height and #collimator_diameter to 0.
+ */
 struct _xmi_geometry {
 	double d_sample_source;
 	double n_sample_orientation[3];
@@ -93,11 +123,23 @@ struct _xmi_geometry {
 	double slit_size_y;
 };
 
-enum {
-	XMI_DISCRETE_MONOCHROMATIC,
-	XMI_DISCRETE_GAUSSIAN,
-	XMI_DISCRETE_LORENTZIAN
-};
+xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientation[3], double p_detector_window[3], double n_detector_orientation[3], double area_detector, double collimator_height, double collimator_diameter, double d_source_slit, double slit_size_x, double slit_size_y);
+void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B);
+void xmi_geometry_free(xmi_geometry *A);
+
+/**
+ * XmiEnergyDiscreteDistribution:
+ * @XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC: Assume a purely monochromatic energy source. No sampling will be done as the energy as defined in xmi_energy_discrete will always be used as is.
+ * @XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN: Energies will be sampled from a Gaussian distribution will mean set to the energy from the xmi_energy_discrete struct and the standard deviation to the scale_parameter.
+ * @XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN: Energies will be sampled from a Lorentzian distribution with median set to the energy from the xmi_energy_discrete struct and the scale parameter to the scale_parameter.
+ *
+ * An enum covering the different types that can be used to sample from discrete energy distributions.
+ */
+typedef enum {
+	XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC,
+	XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN,
+	XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN
+} XmiEnergyDiscreteDistribution;
 
 typedef struct _xmi_energy_discrete xmi_energy_discrete;
 struct _xmi_energy_discrete {
@@ -108,7 +150,7 @@ struct _xmi_energy_discrete {
 	double sigma_xp;
 	double sigma_y;
 	double sigma_yp;
-	int distribution_type;
+	XmiEnergyDiscreteDistribution distribution_type;
 	double scale_parameter;
 };
 
@@ -263,6 +305,9 @@ struct _xmi_main_options {
 	int use_default_seeds; // default : 0
 };
 
+xmi_main_options* xmi_main_options_new(void);
+void xmi_main_options_free(xmi_main_options *options);
+void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B);
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
@@ -301,21 +346,6 @@ int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous 
 
 void xmi_input_copy(xmi_input *A, xmi_input **B);
 
-xmi_composition* xmi_composition_new(int n_layers, xmi_layer *layers, int reference_layer);
-
-xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index);
-
-void xmi_composition_free(xmi_composition *composition);
-
-void xmi_composition_copy(xmi_composition *A, xmi_composition **B);
-
-xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density, double thickness);
-
-void xmi_layer_free(xmi_layer *layer);
-
-void xmi_layer_copy(xmi_layer *A, xmi_layer **B);
-void xmi_layer_copy2(xmi_layer *A, xmi_layer *B);
-
 xmi_input *xmi_input_init_empty(void);
 
 void xmi_absorbers_free(xmi_absorbers *absorbers);
@@ -341,8 +371,6 @@ int xmi_init_input(xmi_inputFPtr *inputFPtr);
 //prints the contents of the structure... useful when debugging
 void xmi_input_print(xmi_input *input, FILE *fPtr);
 
-void xmi_layer_print(xmi_layer *layer, FILE *fPtr);
-
 xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions );
 
 void xmi_fluorescence_line_counts_free(xmi_fluorescence_line_counts *history, int nhistory);
@@ -358,23 +386,15 @@ void xmi_output_copy(xmi_output *A, xmi_output **B);
 
 double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
-void xmi_general_copy(xmi_general *A, xmi_general **B);
 void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
 void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B);
-void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B);
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 
-void xmi_general_free(xmi_general *A);
 void xmi_detector_free(xmi_detector *A);
 void xmi_excitation_free(xmi_excitation *A);
-void xmi_geometry_free(xmi_geometry *A);
 void xmi_exc_absorbers_free(xmi_absorbers *A);
 void xmi_det_absorbers_free(xmi_absorbers *A);
-
-xmi_main_options* xmi_main_options_new(void);
-void xmi_main_options_free(xmi_main_options *options);
-void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B);
 
 #ifdef __cplusplus
 }
