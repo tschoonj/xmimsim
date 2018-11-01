@@ -555,13 +555,13 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 		);
 		g_free(buffer2);
 		switch (input->excitation->discrete[i].distribution_type) {
-			case XMI_DISCRETE_MONOCHROMATIC:
+			case XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC:
 				gtk_tree_store_set(model, &iter3,
 					INPUT_VALUE_COLUMN, "monochromatic",
 					-1
 				);
 				break;
-			case XMI_DISCRETE_GAUSSIAN:
+			case XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN:
 				gtk_tree_store_set(model, &iter3,
 					INPUT_VALUE_COLUMN, "gaussian",
 					-1);
@@ -579,7 +579,7 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 				g_free(buffer);
 				g_free(buffer2);
 				break;
-			case XMI_DISCRETE_LORENTZIAN:
+			case XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN:
 				gtk_tree_store_set(model, &iter3,
 					INPUT_VALUE_COLUMN, "lorentzian",
 					-1

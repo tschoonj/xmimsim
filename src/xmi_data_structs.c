@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -80,6 +80,34 @@ void xmi_input_free(xmi_input *input) {
 	g_free(input);
 }
 
+/**
+ * xmi_general_new: (constructor)
+ * @outputfile: the name of the file that the simulation results will be written into (the XMSO-file...).
+ * @n_photons_interval: the number of photons that will be simulated per interval of the continuous excitation spectrum
+ * @n_photons_line: the number of photons that will be simulated per line in the discrete excitation spectrum
+ * @n_interactions_trajectory: the maximum number of interactions that will be experienced by each simulated photon. A typical value is 4.
+ * @comments: (nullable): text that may be added to the input-file that may help the reader to understand the purpose of the simulation.
+ *
+ * Returns: a freshly allocated xmi_general struct containing the provided argument values.
+ */
+xmi_general* xmi_general_new(const char *outputfile, long n_photons_interval, long n_photons_line, int n_interactions_trajectory, const char *comments) {
+	xmi_general *rv = g_malloc0(sizeof(xmi_general));
+	rv->version = g_ascii_strtod(VERSION, NULL);
+	rv->outputfile = outputfile == NULL || strlen(outputfile) == 0 ? g_strdup("") : g_strdup(outputfile);
+	rv->n_photons_interval = n_photons_interval;
+	rv->n_photons_line = n_photons_line;
+	rv->n_interactions_trajectory = n_interactions_trajectory;
+	rv->comments = comments == NULL || strlen(comments) == 0 ? g_strdup("") : g_strdup(comments);
+	return rv;
+}
+
+/**
+ * xmi_general_copy:
+ * @A: the original  #xmi_general struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_general_copy struct
+ */
 void xmi_general_copy(xmi_general *A, xmi_general **B) {
 	if (A == NULL) {
 		*B = NULL;
@@ -91,6 +119,12 @@ void xmi_general_copy(xmi_general *A, xmi_general **B) {
 	(*B)->comments = g_strdup(A->comments);
 }
 
+/**
+ * xmi_general_free:
+ * @A: a #xmi_general struct
+ *
+ * Frees the resources allocated by xmi_general_new().
+ */
 void xmi_general_free(xmi_general *A) {
 	if (A == NULL)
 		return;
@@ -99,6 +133,13 @@ void xmi_general_free(xmi_general *A) {
 	g_free(A->comments);
 }
 
+/**
+ * xmi_input_copy:
+ * @A: the original  #xmi_input struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_input_copy struct
+ */
 void xmi_input_copy(xmi_input *A, xmi_input **B) {
 	//allocate space for B
 	*B = (xmi_input *) g_malloc(sizeof(xmi_input));
@@ -141,7 +182,7 @@ int xmi_energy_discrete_equal(xmi_energy_discrete *a, xmi_energy_discrete *b) {
 		return 0;
 	if (a->distribution_type != b->distribution_type)
 		return 0;
-	if (a->distribution_type != XMI_DISCRETE_MONOCHROMATIC && fabs(a->scale_parameter - b->scale_parameter) > XMI_COMPARE_THRESHOLD)
+	if (a->distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC && fabs(a->scale_parameter - b->scale_parameter) > XMI_COMPARE_THRESHOLD)
 		return 0;
 
 	return 1;
@@ -325,7 +366,7 @@ int xmi_input_compare(xmi_input *A, xmi_input *B) {
 					rv |= XMI_CONFLICT_EXCITATION;
 					break;
 				}
-				else if (A->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+				else if (A->excitation->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
 					XMI_IF_COMPARE_EXCITATION_DISCRETE(scale_parameter)
 				}
 			}
@@ -539,6 +580,12 @@ xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index) {
 	return rv;
 }
 
+/**
+ * xmi_composition_free:
+ * @composition: a #xmi_composition struct
+ *
+ * Frees the resources allocated by xmi_composition_new().
+ */
 void xmi_composition_free(xmi_composition *composition) {
 	if (composition == NULL)
 		return;
@@ -548,10 +595,16 @@ void xmi_composition_free(xmi_composition *composition) {
 		xmi_layer_free(composition->layers+i);
 
 	g_free(composition->layers);
-
 	g_free(composition);
 }
 
+/**
+ * xmi_composition_copy:
+ * @A: the original  #xmi_composition_copy struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_composition struct
+ */
 void xmi_composition_copy(xmi_composition *A, xmi_composition **B) {
 	if (A == NULL) {
 		*B = NULL;
@@ -569,10 +622,15 @@ void xmi_composition_copy(xmi_composition *A, xmi_composition **B) {
 		(*B)->layers[i].Z = (int *) g_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));
 		(*B)->layers[i].weight = (double *) g_memdup((A)->layers[i].weight,((A)->layers[i].n_elements)*sizeof(double));
 	}
-
-
 }
 
+/**
+ * xmi_layer_copy:
+ * @A: the original  #xmi_layer struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_layer struct
+ */
 void xmi_layer_copy(xmi_layer *A, xmi_layer **B) {
 	if (A == NULL) {
 		*B = NULL;
@@ -607,10 +665,10 @@ xmi_input *xmi_input_init_empty(void) {
 
 	xmi_input *rv;
 
-	rv = (xmi_input *) g_malloc(sizeof(xmi_input));
+	rv = g_malloc(sizeof(xmi_input));
 
 	//general
-	rv->general = (xmi_general *) g_malloc(sizeof(xmi_general));
+	rv->general = g_malloc(sizeof(xmi_general));
 	rv->general->version = g_ascii_strtod(VERSION, NULL);
 	rv->general->outputfile = g_strdup("");
 	rv->general->comments= g_strdup("");
@@ -658,7 +716,7 @@ xmi_input *xmi_input_init_empty(void) {
 	rv->excitation->discrete[0].sigma_y= 0.0;
 	rv->excitation->discrete[0].sigma_yp= 0.0;
 	rv->excitation->discrete[0].scale_parameter = 0.0;
-	rv->excitation->discrete[0].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+	rv->excitation->discrete[0].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 
 	//absorbers
 	rv->absorbers = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
@@ -699,7 +757,6 @@ xmi_input *xmi_input_init_empty(void) {
 	return rv;
 
 }
-
 
 void xmi_exc_absorbers_free(xmi_absorbers *A) {
 	if (A == NULL)
@@ -929,11 +986,11 @@ after_geometry:
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
-		else if (a->excitation->discrete[i].distribution_type < XMI_DISCRETE_MONOCHROMATIC || a->excitation->discrete[i].distribution_type > XMI_DISCRETE_LORENTZIAN) {
+		else if (a->excitation->discrete[i].distribution_type < XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC || a->excitation->discrete[i].distribution_type > XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
-		else if (a->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC && a->excitation->discrete[i].scale_parameter <= 0.0) {
+		else if (a->excitation->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC && a->excitation->discrete[i].scale_parameter <= 0.0) {
 			rv |= XMI_CONFLICT_EXCITATION;
 			goto after_excitation;
 		}
@@ -1173,7 +1230,7 @@ void xmi_input_print(xmi_input *input, FILE *fPtr) {
 		fprintf(fPtr, "sigma_y: %g\n",input->excitation->discrete[i].sigma_y);
 		fprintf(fPtr, "sigma_yp: %g\n",input->excitation->discrete[i].sigma_yp);
 		fprintf(fPtr, "distribution_type: %i\n",input->excitation->discrete[i].distribution_type);
-		if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC)
+		if (input->excitation->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC)
 			fprintf(fPtr, "scale_parameter: %g\n",input->excitation->discrete[i].scale_parameter);
 	}
 
@@ -1544,6 +1601,43 @@ void xmi_output_copy(xmi_output *A, xmi_output **B) {
 	*B = C;
 }
 
+/**
+ * xmi_geometry_new: (constructor)
+ * @d_sample_source: the distance (in cm) between source and sample. The sample layer marked as reference_layer will be used for this calculation.
+ * @n_sample_orientation: (array fixed-size=3): a three coordinate array describing the sample normal vector. The z-component has to be positive!
+ * @p_detector_window: (array fixed-size=3): a three coordinate array describing the position (in cm) of the detector window.
+ * @n_detector_orientation: (array fixed-size=3): a three coordinate array describing the normal vector of the detector window.
+ * @area_detector: the active detector area (in cm2).
+ * @collimator_height: the height of the collimator cone, measured from the detector window, in cm.
+ * @collimator_diameter: the diameter of the collimator cone opening, in cm2
+ * @d_source_slit: the distance between source and (virtual) slits, in cm.
+ * @slit_size_x: the height of the slits, in cm.
+ * @slit_size_y: the width of the slits, in cm.
+ *
+ * Returns: a freshly allocated xmi_geometry struct, populated with the arguments that were passed.
+ */
+xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientation[3], double p_detector_window[3], double n_detector_orientation[3], double area_detector, double collimator_height, double collimator_diameter, double d_source_slit, double slit_size_x, double slit_size_y) {
+	xmi_geometry *rv = g_malloc0(sizeof(xmi_geometry));
+	rv->d_sample_source = d_sample_source;
+	memcpy(rv->n_sample_orientation, n_sample_orientation, sizeof(double) * 3);
+	memcpy(rv->p_detector_window, p_detector_window, sizeof(double) * 3);
+	memcpy(rv->n_detector_orientation, n_detector_orientation, sizeof(double) * 3);
+	rv->area_detector = area_detector;
+	rv->collimator_height = collimator_height;
+	rv->collimator_diameter = collimator_diameter;
+	rv->d_source_slit= d_source_slit;
+	rv->slit_size_x = slit_size_x;
+	rv->slit_size_y = slit_size_y;
+	return rv;
+}
+
+/**
+ * xmi_geometry_copy:
+ * @A: the original  #xmi_geometry struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_geometry struct
+ */
 void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B) {
 	//allocate space for B
 	*B = (xmi_geometry *) g_memdup(A,sizeof(xmi_geometry));
@@ -1760,7 +1854,6 @@ int xmi_output_compare(xmi_output *A, xmi_output *B) {
 	return 0;
 }
 
-
 int xmi_archive_compare(xmi_archive *A, xmi_archive *B) {
 
 	if (A->start_value1 != B->start_value1) {
@@ -1887,7 +1980,7 @@ xmi_main_options* xmi_main_options_new(void) {
 
 /**
  * xmi_main_options_free:
- * @options: a #xmi_main_options
+ * @options: a #xmi_main_options struct
  *
  * Frees the resources allocated by xmi_main_options_new().
  *
@@ -1905,7 +1998,6 @@ void xmi_main_options_free(xmi_main_options *options) {
  * @B: (out):the destination to copy to
  *
  * Copies a #xmi_main_options struct
- *
  */
 void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 	*B = g_memdup(A, sizeof(xmi_main_options));

@@ -273,15 +273,15 @@ static void distribution_type_combo_changed(GtkComboBox *combobox, XmiMsimGuiDis
   gtk_entry_set_text(GTK_ENTRY(dialog->scale_parameter_entry), "");
   g_signal_handler_unblock(G_OBJECT(dialog->scale_parameter_entry), dialog->scale_parameter_changed);
 
-  if (active == XMI_DISCRETE_MONOCHROMATIC) {
+  if (active == XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
     gtk_widget_hide(dialog->scale_parameter_box);
   }
-  else if (active == XMI_DISCRETE_GAUSSIAN){
+  else if (active == XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN){
     gtk_widget_set_sensitive(dialog->scale_parameter_entry, TRUE);
     gtk_label_set_text(GTK_LABEL(dialog->scale_parameter_label), "Standard deviation (keV)");
     gtk_widget_show_all(dialog->scale_parameter_box);
   }
-  else if (active == XMI_DISCRETE_LORENTZIAN){
+  else if (active == XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN){
     gtk_widget_set_sensitive(dialog->scale_parameter_entry, TRUE);
     gtk_label_set_text(GTK_LABEL(dialog->scale_parameter_label),"Scale parameter (keV)");
     gtk_widget_show_all(dialog->scale_parameter_box);
@@ -310,7 +310,7 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
   textPtr6 = gtk_entry_get_text(GTK_ENTRY(dialog->sigma_xp_entry));
   textPtr7 = gtk_entry_get_text(GTK_ENTRY(dialog->sigma_yp_entry));
 
-  if(gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->distribution_type_combo)) != XMI_DISCRETE_MONOCHROMATIC) {
+  if(gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->distribution_type_combo)) != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
     textPtr8 = gtk_entry_get_text(GTK_ENTRY(dialog->scale_parameter_entry));
   }
 
@@ -366,7 +366,7 @@ static void entry_value_changed(GtkWidget *widget, XmiMsimGuiDiscreteEnergyDialo
   energy_short2(6, dialog->sigma_xp_entry)
   energy_short2(7, dialog->sigma_yp_entry)
 
-  if(gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->distribution_type_combo)) != XMI_DISCRETE_MONOCHROMATIC) {
+  if(gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->distribution_type_combo)) != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
     energy_short1(8, dialog->scale_parameter_entry)
   }
   else {
@@ -461,7 +461,7 @@ void xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XmiMsimGuiDiscreteE
   g_free(buffer);
 
   gtk_combo_box_set_active(GTK_COMBO_BOX(dialog->distribution_type_combo), discrete_energy->distribution_type);
-  if (discrete_energy->distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+  if (discrete_energy->distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
     buffer = g_strdup_printf("%g", discrete_energy->scale_parameter);
     gtk_entry_set_text(GTK_ENTRY(dialog->scale_parameter_entry), buffer);
     g_free(buffer);

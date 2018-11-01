@@ -390,7 +390,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].sigma_y =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].sigma_yp =
 		0.0;
-		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].scale_parameter= 0.0;
 	}
 	for (i = 0 ; i < rnd->nGammas ; i++) {
@@ -411,7 +411,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].sigma_y =
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].sigma_yp =
 		0.0;
-		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 		excitation_nuclide->discrete[excitation_nuclide->n_discrete-1].scale_parameter= 0.0;
 	}
 	FreeRadioNuclideData(rnd);

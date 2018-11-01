@@ -157,7 +157,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, xmi_input *input
 				}
 				blb *= exp(-1.0*mu*input->absorbers->exc_layers[j].density*input->absorbers->exc_layers[j].thickness);
 			}
-			fprintf(filePtr, "%g %g %g %g\n", input->excitation->discrete[i].energy, (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) ? input->excitation->discrete[i].scale_parameter : 0.0, blb*input->excitation->discrete[i].horizontal_intensity, blb*input->excitation->discrete[i].vertical_intensity);
+			fprintf(filePtr, "%g %g %g %g\n", input->excitation->discrete[i].energy, (input->excitation->discrete[i].distribution_type == XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN) ? input->excitation->discrete[i].scale_parameter : 0.0, blb*input->excitation->discrete[i].horizontal_intensity, blb*input->excitation->discrete[i].vertical_intensity);
 		}
 	}
 	if (input->excitation->n_continuous > 0) {

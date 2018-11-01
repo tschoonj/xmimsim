@@ -682,7 +682,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitat
 	double sigma_yp;
 	xmi_energy_discrete xed;
 	xmi_energy_continuous xec;
-	int distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+	int distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 	double scale_parameter = 0.0;
 
 	xmi_excitation *excitation_rv = g_malloc(sizeof(xmi_excitation));
@@ -697,7 +697,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitat
 	while (subnode != NULL) {
 		if (!xmlStrcmp(subnode->name,(const xmlChar*) "discrete")) {
 			subsubnode = xmlFirstElementChild(subnode);
-			distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+			distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 			scale_parameter = 0.0;
 			while (subsubnode != NULL) {
 				if (!xmlStrcmp(subsubnode->name,(const xmlChar*) "energy")) {
@@ -770,11 +770,11 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitat
 						if (!xmlStrcmp(attr->name,(const xmlChar *) "distribution_type")) {
 							txt = xmlNodeGetContent(attr->children);
 							if (xmlStrcmp(txt, BAD_CAST "monochromatic") == 0) {
-								distribution_type = XMI_DISCRETE_MONOCHROMATIC;
+								distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 								xmlFree(txt);
 							}
 							else if (xmlStrcmp(txt, BAD_CAST "gaussian") == 0) {
-								distribution_type = XMI_DISCRETE_GAUSSIAN;
+								distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN;
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeGetContent(subsubnode->children);
@@ -786,7 +786,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitat
 								xmlFree(txt);
 							}
 							else if (xmlStrcmp(txt, BAD_CAST "lorentzian") == 0) {
-								distribution_type = XMI_DISCRETE_LORENTZIAN;
+								distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN;
 								xmlFree(txt);
 								//read scale_parameter value
 								txt = xmlNodeGetContent(subsubnode->children);
@@ -1678,12 +1678,12 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input
 			xmi_new_child_printf(nodePtr2, BAD_CAST "sigma_yp", "%g", input->excitation->discrete[i].sigma_yp);
 			//only write scale_parameter if distribution type is not monochromatic
 			//this is done to keep the file backwards compatible
-			if (input->excitation->discrete[i].distribution_type != XMI_DISCRETE_MONOCHROMATIC) {
+			if (input->excitation->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
 				nodePtr3 = xmi_new_child_printf(nodePtr2, BAD_CAST "scale_parameter", "%g", input->excitation->discrete[i].scale_parameter);
-				if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_GAUSSIAN) {
+				if (input->excitation->discrete[i].distribution_type == XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN) {
 					xmi_new_prop_printf(nodePtr3, BAD_CAST "distribution_type", "%s", "gaussian");
 				}
-				else if (input->excitation->discrete[i].distribution_type == XMI_DISCRETE_LORENTZIAN) {
+				else if (input->excitation->discrete[i].distribution_type == XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN) {
 					xmi_new_prop_printf(nodePtr3, BAD_CAST "distribution_type", "%s", "lorentzian");
 				}
 			}

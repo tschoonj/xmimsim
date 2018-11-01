@@ -185,30 +185,7 @@ xmi_marshal.c: $(marshal_input)
 		--body \
 		$(marshal_input) ) > $(srcdir)/xmi_marshal.c
 
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h xmi_type_builtins.c xmi_type_builtins.h
-
-mkenum_sources = ../include/xmi_job.h
-
-xmi_type_builtins.h: $(mkenum_sources) xmi_type_builtins.c
-
-xmi_type_builtins.c: $(mkenum_sources) 
-	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#ifndef __XMIMSIM_TYPE_BUILTINS_H__\n#define __XMIMSIM_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n#include <glib.h>\n\nG_BEGIN_DECLS\n\n" \
-		--fprod "/* enumerations from \"@filename@\" */\n" \
-		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
-		--ftail "\nG_END_DECLS\n#endif /* __XMIMSIM_TYPE_BUILTINS_H__ */" \
-		--identifier-prefix "XmiMsim" \
-		--symbol-prefix "xmi_msim" \
-		$(mkenum_sources) ) > $(srcdir)/xmi_type_builtins.h
-	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#include \"xmi_type_builtins.h\"\n#include \"xmi_job.h\"\n" \
-		--fprod "\n/* enumerations from \"@filename@\" */" \
-		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
-		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
-		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
-		--identifier-prefix "XmiMsim" \
-		--symbol-prefix "xmi_msim" \
-		$(mkenum_sources) ) > $(srcdir)/xmi_type_builtins.c
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h
 
 xmimsim_main.mod: libxmimsim.la
 
