@@ -125,7 +125,7 @@ struct _xmi_geometry {
 
 xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientation[3], double p_detector_window[3], double n_detector_orientation[3], double area_detector, double collimator_height, double collimator_diameter, double d_source_slit, double slit_size_x, double slit_size_y);
 void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B);
-void xmi_geometry_free(xmi_geometry *A);
+void xmi_geometry_free(xmi_geometry *geometry);
 
 /**
  * XmiEnergyDiscreteDistribution:
@@ -142,6 +142,20 @@ typedef enum {
 } XmiEnergyDiscreteDistribution;
 
 typedef struct _xmi_energy_discrete xmi_energy_discrete;
+/**
+ * xmi_energy_discrete:
+ * @energy: The energy of the X-ray line (keV).
+ * @horizontal_intensity: The horizontally polarized X-ray intensity (photons/sec)
+ * @vertical_intensity: The vertically polarized X-ray intensity (photons/sec)
+ * @sigma_x: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_xp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @sigma_y: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_yp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @distribution_type: The distribution type that can be assumed by the line.
+ * @scale_parameter: If the distribution_type is not XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC, than this value will be used as scale parameter for sampling energies from the distribution.
+ *
+ * This struct contains a description of a single X-ray line from the exciting spectrum.
+ */
 struct _xmi_energy_discrete {
 	double energy;
 	double horizontal_intensity;
@@ -154,7 +168,23 @@ struct _xmi_energy_discrete {
 	double scale_parameter;
 };
 
+xmi_energy_discrete* xmi_energy_discrete_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp, XmiEnergyDiscreteDistribution distribution_type, double scale_parameter);
+void xmi_energy_discrete_copy(xmi_energy_discrete *A, xmi_energy_discrete **B);
+void xmi_energy_discrete_free(xmi_energy_discrete *A);
+
 typedef struct _xmi_energy_continuous xmi_energy_continuous;
+/**
+ * xmi_energy_continuous:
+ * @energy: The energy at this sampling point in the X-ray exciting continuum (keV).
+ * @horizontal_intensity: The horizontally polarized X-ray intensity density (photons/sec/keV)
+ * @vertical_intensity: The vertically polarized X-ray intensity density (photons/sec/keV)
+ * @sigma_x: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_xp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @sigma_y: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_yp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ *
+ * This struct contains a description of a single X-ray sampling point within the continuous part of the exciting X-ray spectrum.
+ */
 struct _xmi_energy_continuous {
 	double energy;
 	double horizontal_intensity;
@@ -165,13 +195,33 @@ struct _xmi_energy_continuous {
 	double sigma_yp;
 };
 
+xmi_energy_continuous* xmi_energy_continuous_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp);
+void xmi_energy_continuous_copy(xmi_energy_continuous *A, xmi_energy_continuous **B);
+void xmi_energy_continuous_free(xmi_energy_continuous *A);
+
 typedef struct _xmi_excitation xmi_excitation;
+/**
+ * xmi_excitation:
+ * @n_discrete: the number of discrete exciting X-ray lines in the exciting spectrum.
+ * @discrete: (array length=n_discrete): an array containing the discrete components of the exciting spectrum.
+ * @n_continuous: the number of sampling points within the continuous part of the exciting spectrum.
+ * @continuous: (array length=n_continuous): an array containing the continuous components of the exciting spectrum.
+ *
+ * This struct contains a description of the excitation spectrum.
+ */
 struct _xmi_excitation {
 	int n_discrete;
 	xmi_energy_discrete *discrete;
 	int n_continuous;
 	xmi_energy_continuous *continuous;
 };
+
+xmi_excitation* xmi_excitation_new(int n_discrete, xmi_energy_discrete *discrete, int n_continuous, xmi_energy_continuous *continuous);
+void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B);
+void xmi_excitation_free(xmi_excitation *excitation);
+
+xmi_energy_discrete* xmi_excitation_get_energy_discrete(xmi_excitation *excitation, int index);
+xmi_energy_continuous* xmi_excitation_get_energy_continuous(xmi_excitation *excitation, int index);
 
 typedef struct _xmi_absorbers xmi_absorbers;
 struct _xmi_absorbers {
@@ -387,12 +437,10 @@ void xmi_output_copy(xmi_output *A, xmi_output **B);
 double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
 void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
-void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B);
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 
 void xmi_detector_free(xmi_detector *A);
-void xmi_excitation_free(xmi_excitation *A);
 void xmi_exc_absorbers_free(xmi_absorbers *A);
 void xmi_det_absorbers_free(xmi_absorbers *A);
 

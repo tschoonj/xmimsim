@@ -600,8 +600,8 @@ void xmi_composition_free(xmi_composition *composition) {
 
 /**
  * xmi_composition_copy:
- * @A: the original  #xmi_composition_copy struct
- * @B: (out):the destination to copy to
+ * @A: the original  #xmi_composition struct
+ * @B: (out): the destination to copy to
  *
  * Copies a #xmi_composition struct
  */
@@ -786,13 +786,19 @@ void xmi_det_absorbers_free(xmi_absorbers *A) {
 	A->det_layers = NULL;
 }
 
-void xmi_absorbers_free(xmi_absorbers *A) {
-	if (A == NULL)
+/**
+ * xmi_absorbers_free:
+ * @absorbers: a #xmi_absorbers struct
+ *
+ * Frees the resources allocated by xmi_absorbers_new().
+ */
+void xmi_absorbers_free(xmi_absorbers *absorbers) {
+	if (absorbers == NULL)
 		return;
-	xmi_exc_absorbers_free(A);
-	xmi_det_absorbers_free(A);
+	xmi_exc_absorbers_free(absorbers);
+	xmi_det_absorbers_free(absorbers);
 
-	g_free(A);
+	g_free(absorbers);
 }
 
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B) {
@@ -817,6 +823,13 @@ void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B) {
 	}
 }
 
+/**
+ * xmi_absorbers_copy:
+ * @A: the original  #xmi_absorbers struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_absorbers struct
+ */
 void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B) {
 	//allocate space for B
 	*B = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
@@ -825,6 +838,9 @@ void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B) {
 	xmi_det_absorbers_copy(A, *B);
 }
 
+/**
+ * xmi_copy_abs_or_crystal2composition: (skip):
+ */
 void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition) {
 	int i;
 
@@ -840,6 +856,9 @@ void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_co
 
 }
 
+/**
+ * xmi_copy_composition2abs_or_crystal: (skip):
+ */
 void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer **layers, int *n_layers) {
 	int i;
 
@@ -1172,6 +1191,9 @@ after_detector:
 	return rv;
 }
 
+/**
+ * xmi_layer_print: (skip):
+ */
 void xmi_layer_print(xmi_layer *layer, FILE *fPtr) {
 
 	int i;
@@ -1183,6 +1205,9 @@ void xmi_layer_print(xmi_layer *layer, FILE *fPtr) {
 	fprintf(fPtr, "thickness: %g\n",layer->thickness);
 }
 
+/**
+ * xmi_input_print: (skip):
+ */
 void xmi_input_print(xmi_input *input, FILE *fPtr) {
 	int i;
 
@@ -1634,15 +1659,41 @@ xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientati
 /**
  * xmi_geometry_copy:
  * @A: the original  #xmi_geometry struct
- * @B: (out):the destination to copy to
+ * @B: (out): the destination to copy to
  *
  * Copies a #xmi_geometry struct
  */
 void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B) {
 	//allocate space for B
-	*B = (xmi_geometry *) g_memdup(A,sizeof(xmi_geometry));
+	*B = (xmi_geometry *) g_memdup(A, sizeof(xmi_geometry));
 }
 
+/**
+ * xmi_excitation_new: (constructor):
+ * @n_discrete: the number of discrete exciting X-ray lines in the exciting spectrum.
+ * @discrete: (array length=n_discrete): an array containing the discrete components of the exciting spectrum.
+ * @n_continuous: the number of sampling points within the continuous part of the exciting spectrum.
+ * @continuous: (array length=n_continuous): an array containing the continuous components of the exciting spectrum.
+ *
+ * Returns: freshly allocated and initialized excitation struct.
+ */
+xmi_excitation* xmi_excitation_new(int n_discrete, xmi_energy_discrete *discrete, int n_continuous, xmi_energy_continuous *continuous) {
+	xmi_excitation *rv = g_malloc0(sizeof(xmi_excitation));
+	rv->n_discrete = n_discrete;
+	rv->discrete = g_memdup(discrete, sizeof(xmi_energy_discrete) * n_discrete);
+	rv->n_continuous = n_continuous;
+	rv->continuous = g_memdup(continuous, sizeof(xmi_energy_continuous) * n_continuous);
+
+	return rv;
+}
+
+/**
+ * xmi_excitation_copy:
+ * @A: the original  #xmi_excitation struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_geometry struct
+ */
 void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B) {
 	if (A == NULL) {
 		*B = NULL;
@@ -1692,21 +1743,167 @@ void xmi_detector_free(xmi_detector *A) {
 	g_free(A);
 }
 
-void xmi_geometry_free(xmi_geometry *A) {
-	if (A == NULL)
+/**
+ * xmi_geometry_free:
+ * @geometry: a #xmi_geometry struct
+ *
+ * Frees the resources allocated by xmi_geometry_new().
+ */
+void xmi_geometry_free(xmi_geometry *geometry) {
+	if (geometry == NULL)
 		return;
+	g_free(geometry);
+}
+
+/**
+ * xmi_excitation_free:
+ * @excitation: a #xmi_excitation struct
+ *
+ * Frees the resources allocated by xmi_excitation_new().
+ */
+void xmi_excitation_free(xmi_excitation *excitation) {
+	if (excitation == NULL)
+		return;
+	if (excitation->n_discrete > 0)
+		g_free(excitation->discrete);
+
+	if (excitation->n_continuous > 0)
+		g_free(excitation->continuous);
+
+	g_free(excitation);
+}
+
+/**
+ * xmi_excitation_get_energy_discrete:
+ * @excitation: #XmiMsimExcitation instance
+ * @index: index of the required energy struct
+ *
+ * Returns: (transfer full): a copy of the energy_discrete struct within this excitation instance, or %NULL if not available
+ */
+xmi_energy_discrete* xmi_excitation_get_energy_discrete(xmi_excitation *excitation, int index) {
+	g_return_val_if_fail(excitation != NULL, NULL);
+	g_return_val_if_fail(excitation->n_discrete > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < excitation->n_discrete, NULL);
+
+	return g_memdup(&excitation->discrete[index], sizeof(xmi_energy_discrete));
+}
+
+/**
+ * xmi_excitation_get_energy_continuous:
+ * @excitation: #XmiMsimExcitation instance
+ * @index: index of the required energy struct
+ *
+ * Returns: (transfer full): a copy of the energy_continuous struct within this excitation instance, or %NULL if not available
+ */
+xmi_energy_continuous* xmi_excitation_get_energy_continuous(xmi_excitation *excitation, int index) {
+	g_return_val_if_fail(excitation != NULL, NULL);
+	g_return_val_if_fail(excitation->n_continuous > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < excitation->n_continuous, NULL);
+
+	return g_memdup(&excitation->continuous[index], sizeof(xmi_energy_continuous));
+}
+
+/**
+ * xmi_energy_discrete_new: (constructor):
+ * @energy: The energy of the X-ray line (keV).
+ * @horizontal_intensity: The horizontally polarized X-ray intensity (photons/sec)
+ * @vertical_intensity: The vertically polarized X-ray intensity (photons/sec)
+ * @sigma_x: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_xp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @sigma_y: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_yp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @distribution_type: The distribution type that can be assumed by the line.
+ * @scale_parameter: If the distribution_type is not XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC, than this value will be used as scale parameter for sampling energies from the distribution.
+ *
+ * Returns: a freshly allocated and initialized #xmi_energy_discrete instance.
+ */
+xmi_energy_discrete* xmi_energy_discrete_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp, XmiEnergyDiscreteDistribution distribution_type, double scale_parameter) {
+	xmi_energy_discrete *rv = g_malloc0(sizeof(xmi_energy_discrete));
+	rv->energy = energy;
+	rv->horizontal_intensity = horizontal_intensity;
+	rv->vertical_intensity = vertical_intensity;
+	rv->sigma_x = sigma_x;
+	rv->sigma_y = sigma_y;
+	rv->sigma_xp = sigma_xp;
+	rv->sigma_yp = sigma_yp;
+	rv->distribution_type = distribution_type;
+	rv->scale_parameter = scale_parameter;
+
+	return rv;
+}
+
+/**
+ * xmi_energy_discrete_copy:
+ * @A: the original  #xmi_energy_discrete struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_energy_discrete struct
+ */
+void xmi_energy_discrete_copy(xmi_energy_discrete *A, xmi_energy_discrete **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
+	*B = g_memdup(A, sizeof(xmi_energy_discrete));
+}
+
+/**
+ * xmi_energy_discrete_free:
+ * @A: a #xmi_energy_discrete struct
+ *
+ * Frees the resources allocated by xmi_energy_discrete_new().
+ */
+void xmi_energy_discrete_free(xmi_energy_discrete *A) {
 	g_free(A);
 }
 
-void xmi_excitation_free(xmi_excitation *A) {
-	if (A == NULL)
+/**
+ * xmi_energy_continuous_new: (constructor):
+ * @energy: The energy at this sampling point in the X-ray exciting continuum (keV).
+ * @horizontal_intensity: The horizontally polarized X-ray intensity density (photons/sec/keV)
+ * @vertical_intensity: The vertically polarized X-ray intensity density (photons/sec/keV)
+ * @sigma_x: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_xp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ * @sigma_y: If both sigma_x and sigma_y are non-zero, the photon starting position will be sampled from bi-Gaussian distribution based on these values. Otherwise a point source will be assumed.
+ * @sigma_yp: If both sigma_xp and sigma_yp are non-zero, and the source is Gaussian, then the Source-slits distance takes on a new role as it becomes the distance between the actual focus and the source position. In this way a convergent beam can be defined, emitted by a Gaussian source at the origin. For the specific case of focusing on the sample the Sample-source distance should be set to the Source-slits distance.
+ *
+ * Returns: a freshly allocated and initialized #xmi_energy_continuous instance.
+ */
+xmi_energy_continuous* xmi_energy_continuous_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp) {
+	xmi_energy_continuous *rv = g_malloc0(sizeof(xmi_energy_continuous));
+	rv->energy = energy;
+	rv->horizontal_intensity = horizontal_intensity;
+	rv->vertical_intensity = vertical_intensity;
+	rv->sigma_x = sigma_x;
+	rv->sigma_y = sigma_y;
+	rv->sigma_xp = sigma_xp;
+	rv->sigma_yp = sigma_yp;
+
+	return rv;
+}
+
+/**
+ * xmi_energy_continuous_copy:
+ * @A: the original  #xmi_energy_continuous struct
+ * @B: (out):the destination to copy to
+ *
+ * Copies a #xmi_energy_continuous struct
+ */
+void xmi_energy_continuous_copy(xmi_energy_continuous *A, xmi_energy_continuous **B) {
+	if (A == NULL) {
+		*B = NULL;
 		return;
-	if (A->n_discrete > 0)
-		g_free(A->discrete);
+	}
+	*B = g_memdup(A, sizeof(xmi_energy_continuous));
+}
 
-	if (A->n_continuous > 0)
-		g_free(A->continuous);
-
+/**
+ * xmi_energy_continuous_free:
+ * @A: a #xmi_energy_continuous struct
+ *
+ * Frees the resources allocated by xmi_energy_continuous_new().
+ */
+void xmi_energy_continuous_free(xmi_energy_continuous *A) {
 	g_free(A);
 }
 

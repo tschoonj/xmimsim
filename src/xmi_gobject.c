@@ -56,6 +56,8 @@ XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimGeneral, general);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimGeometry, geometry);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimAbsorbers, absorbers);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimDetector, detector);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimEnergyDiscrete, energy_discrete);
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimEnergyContinuous, energy_continuous);
 
 // xmi_layer_free is special so it needs special treatment...
 static gpointer xmi_msim_layer_copy(gpointer boxed) {
