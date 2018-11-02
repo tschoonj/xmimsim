@@ -56,6 +56,12 @@ GType xmi_msim_detector_get_type(void) G_GNUC_CONST;
 #define XMI_MSIM_TYPE_LAYER (xmi_msim_layer_get_type ())
 GType xmi_msim_layer_get_type(void) G_GNUC_CONST;
 
+#define XMI_MSIM_TYPE_ENERGY_DISCRETE (xmi_msim_energy_discrete_get_type ())
+GType xmi_msim_energy_discrete_get_type(void) G_GNUC_CONST;
+
+#define XMI_MSIM_TYPE_ENERGY_CONTINUOUS (xmi_msim_energy_continuous_get_type ())
+GType xmi_msim_energy_continuous_get_type(void) G_GNUC_CONST;
+
 
 G_END_DECLS
 
