@@ -758,6 +758,88 @@ xmi_input *xmi_input_init_empty(void) {
 
 }
 
+/**
+ * xmi_absorbers_new: (constructor):
+ * @n_exc_layers: the number of absorbing layers in the excitation channel (between source and sample). 0 is allowed!
+ * @exc_layers: (array length=n_exc_layers) (transfer none) (nullable): an array containing the excitation channel absorbing layers.
+ * @n_det_layers: the number of absorbing layers in the detection channel (between sample and detector). 0 is allowed!
+ * @det_layers: (array length=n_det_layers) (transfer none) (nullable): an array containing the detection channel absorbing layers.
+ *
+ * Allocates a new xmi_absorption struct and populates it with the provided arguments
+ */
+xmi_absorbers* xmi_absorbers_new(int n_exc_layers, xmi_layer *exc_layers, int n_det_layers, xmi_layer *det_layers) {
+	if (n_exc_layers < 0) {
+		g_warning("xmi_absorbers_new: n_exc_layers must be greater than or equal to zero");
+		return NULL;
+	}
+	if (n_det_layers < 0) {
+		g_warning("xmi_absorbers_new: n_det_layers must be greater than or equal to zero");
+		return NULL;
+	}
+	if ((n_exc_layers == 0 && exc_layers != NULL) || (n_exc_layers > 0 && exc_layers == NULL)) {
+		g_warning("xmi_absorbers_new: n_exc_layers and exc_layers inconsistency");
+	}
+	if ((n_det_layers == 0 && det_layers != NULL) || (n_det_layers > 0 && det_layers == NULL)) {
+		g_warning("xmi_absorbers_new: n_det_layers and det_layers inconsistency");
+	}
+
+	xmi_absorbers *rv = g_malloc0(sizeof(xmi_absorbers));
+	rv->n_exc_layers = n_exc_layers;
+	if (n_exc_layers > 0) {
+		rv->exc_layers = g_malloc0(sizeof(xmi_layer) * n_exc_layers);
+		int i;
+		for (i = 0 ; i < n_exc_layers ; i++) {
+			xmi_layer_copy2(&exc_layers[i], &rv->exc_layers[i]);
+		}
+	}
+	rv->n_det_layers = n_det_layers;
+	if (n_det_layers > 0) {
+		rv->det_layers = g_malloc0(sizeof(xmi_layer) * n_det_layers);
+		int i;
+		for (i = 0 ; i < n_det_layers ; i++) {
+			xmi_layer_copy2(&det_layers[i], &rv->det_layers[i]);
+		}
+	}
+	
+	return rv;
+}
+
+/**
+ * xmi_absorbers_get_exc_layer:
+ * @absorbers: #XmiMsimAbsorbers instance
+ * @index: index of the required layer
+ *
+ * Returns: (transfer full): a copy of the excitation channel layer, or %NULL if not available
+ */
+xmi_layer* xmi_absorbers_get_exc_layer(xmi_absorbers *absorbers, int index) {
+	g_return_val_if_fail(absorbers != NULL, NULL);
+	g_return_val_if_fail(absorbers->n_exc_layers > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < absorbers->n_exc_layers, NULL);
+
+	xmi_layer *rv;
+	xmi_layer_copy(&absorbers->exc_layers[index], &rv);
+
+	return rv;
+}
+
+/**
+ * xmi_absorbers_get_det_layer:
+ * @absorbers: #XmiMsimAbsorbers instance
+ * @index: index of the required layer
+ *
+ * Returns: (transfer full): a copy of the detector channel layer, or %NULL if not available
+ */
+xmi_layer* xmi_absorbers_get_det_layer(xmi_absorbers *absorbers, int index) {
+	g_return_val_if_fail(absorbers != NULL, NULL);
+	g_return_val_if_fail(absorbers->n_det_layers > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < absorbers->n_det_layers, NULL);
+
+	xmi_layer *rv;
+	xmi_layer_copy(&absorbers->det_layers[index], &rv);
+
+	return rv;
+}
+
 void xmi_exc_absorbers_free(xmi_absorbers *A) {
 	if (A == NULL)
 		return;

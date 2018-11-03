@@ -224,12 +224,27 @@ xmi_energy_discrete* xmi_excitation_get_energy_discrete(xmi_excitation *excitati
 xmi_energy_continuous* xmi_excitation_get_energy_continuous(xmi_excitation *excitation, int index);
 
 typedef struct _xmi_absorbers xmi_absorbers;
+/**
+ * xmi_absorbers:
+ * @n_exc_layers: the number of absorbing layers in the excitation channel (between source and sample).
+ * @exc_layers: (array length=n_exc_layers): an array containing the excitation channel absorbing layers.
+ * @n_det_layers: the number of absorbing layers in the detection channel (between sample and detector).
+ * @det_layers: (array length=n_det_layers): an array containing the detection channel absorbing layers.
+ *
+ * This struct contains a description of the absorbers in the simulation.
+ */
 struct _xmi_absorbers {
 	int n_exc_layers;
 	xmi_layer *exc_layers;
 	int n_det_layers;
 	xmi_layer *det_layers;
 };
+
+xmi_absorbers* xmi_absorbers_new(int n_exc_layers, xmi_layer *exc_layers, int n_det_layers, xmi_layer *det_layers);
+void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B);
+void xmi_absorbers_free(xmi_absorbers *absorbers);
+xmi_layer* xmi_absorbers_get_exc_layer(xmi_absorbers *absorbers, int index);
+xmi_layer* xmi_absorbers_get_det_layer(xmi_absorbers *absorbers, int index);
 
 #define XMI_DETECTOR_SILI 0
 #define XMI_DETECTOR_GE 1
@@ -398,9 +413,6 @@ void xmi_input_copy(xmi_input *A, xmi_input **B);
 
 xmi_input *xmi_input_init_empty(void);
 
-void xmi_absorbers_free(xmi_absorbers *absorbers);
-
-void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B);
 
 void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition);
 
