@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_DATA_STRUCTS_H
 
 #include <stdio.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -246,13 +247,39 @@ void xmi_absorbers_free(xmi_absorbers *absorbers);
 xmi_layer* xmi_absorbers_get_exc_layer(xmi_absorbers *absorbers, int index);
 xmi_layer* xmi_absorbers_get_det_layer(xmi_absorbers *absorbers, int index);
 
-#define XMI_DETECTOR_SILI 0
-#define XMI_DETECTOR_GE 1
-#define XMI_DETECTOR_SI_SDD 2
+/**
+ * XmiDetectorConvolutionProfile:
+ * @XMI_DETECTOR_CONVOLUTION_PROFILE_SILI: for SiLi detectors
+ * @XMI_DETECTOR_CONVOLUTION_PROFILE_GE: for Ge detectors
+ * @XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD: for silicon drift detectors
+ *
+ * An enum covering the different convolution profiles supported by the detector response function.
+ * If the available profiles are not suitable, consider writing a custom detector response function.
+ */
+typedef enum {
+	XMI_DETECTOR_CONVOLUTION_PROFILE_SILI,
+	XMI_DETECTOR_CONVOLUTION_PROFILE_GE,
+	XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD,
+} XmiDetectorConvolutionProfile;
 
 typedef struct _xmi_detector xmi_detector;
+/**
+ * xmi_detector:
+ * @detector_type: sets which builtin detector convolution profile should be used in the detector response function.
+ * @live_time: the total amount of time that photons were detected. This is equal to the real time corrected with the dead time.
+ * @pulse_width: the time that is necessary for one incoming photon to be processed by the detector. Will only be taken into account when the simulation is started with pile-up support.
+ * @gain: the channels width (keV/channel)
+ * @zero: the spectrum offset, AKA the energy corresponding to the first channel (keV)
+ * @fano: the Fano factor for the detector material.
+ * @noise: electronic noise (keV)
+ * @nchannels: number of channels of the generated spectrum.
+ * @n_crystal_layers: number of layers in the detector crystal. This should always be one...
+ * @crystal_layers: (array length=n_crystal_layers): an array containing the different layers of the detectory crystal.
+ *
+ * This struct contains a description of the detector and its associated electronics..
+ */
 struct _xmi_detector {
-	int detector_type;
+	XmiDetectorConvolutionProfile detector_type;
 	double live_time;
 	double pulse_width;
 	double gain;
@@ -264,6 +291,11 @@ struct _xmi_detector {
 	xmi_layer *crystal_layers;
 };
 
+xmi_detector* xmi_detector_new(XmiDetectorConvolutionProfile detector_type, double live_time, double pulse_width, double gain, double zero, double fano, double noise, int nchannels, int n_crystal_layers, xmi_layer *crystal_layers);
+void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
+void xmi_detector_free(xmi_detector *detector);
+
+
 typedef struct _xmi_input xmi_input;
 struct _xmi_input {
 	xmi_general *general;
@@ -273,6 +305,11 @@ struct _xmi_input {
 	xmi_absorbers *absorbers;
 	xmi_detector *detector;
 };
+
+void xmi_input_free(xmi_input *input);
+void xmi_input_copy(xmi_input *A, xmi_input **B);
+xmi_input *xmi_input_init_empty(void);
+xmi_input *xmi_input_new(xmi_general *general, xmi_composition *composition, xmi_geometry *geometry, xmi_excitation *excitation, xmi_absorbers *absorbers, xmi_detector *detector);
 
 typedef struct _xmi_counts xmi_counts;
 struct _xmi_counts {
@@ -376,58 +413,88 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B);
 
 //typedefs are clearer then using void *...
 //these correspond in a more transparent way with the Fortran variables
+/**
+ * xmi_inputFPtr: (skip):
+ */
 typedef void* xmi_inputFPtr;
 
 
 
-#define XMI_CONFLICT_GENERAL 1
-#define XMI_CONFLICT_COMPOSITION 2
-#define XMI_CONFLICT_GEOMETRY 4
-#define XMI_CONFLICT_EXCITATION 8
-#define XMI_CONFLICT_ABSORBERS 16
-#define XMI_CONFLICT_DETECTOR 32
+typedef enum {
+	XMI_INPUT_GENERAL = 1,
+	XMI_INPUT_COMPOSITION = 2,
+	XMI_INPUT_GEOMETRY = 4,
+	XMI_INPUT_EXCITATION = 8,
+	XMI_INPUT_ABSORBERS = 16,
+	XMI_INPUT_DETECTOR = 32,
+} XmiInputFlags;
 
 #define XMI_COMPARE_THRESHOLD 1E-10
 
-void xmi_input_free(xmi_input *input);
 
-//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros if not identical
-int xmi_input_compare(xmi_input *A, xmi_input *B);
+//returns 0 when identical, returns a number larger than 0 consisting of OR-ed XMI_INPUT_* macros if not identical
+XmiInputFlags xmi_input_compare(xmi_input *A, xmi_input *B);
 
-//returns 0 when identical, returns 1 if not identical
-int xmi_output_compare(xmi_output *A, xmi_output *B);
+//returns TRUE when identical, returns FALSE if not identical
+gboolean xmi_input_equals(xmi_input *A, xmi_input *B);
 
-//returns 0 when identical, returns 1 if not identical
-int xmi_archive_compare(xmi_archive *A, xmi_archive *B);
+//returns TRUE when identical, returns FALSE if not identical
+gboolean xmi_output_equals(xmi_output *A, xmi_output *B);
 
-//returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_CONFLICT_* macros for every section where there is an error
-int xmi_input_validate(xmi_input *input);
+//returns TRUE when identical, returns FALSE if not identical
+gboolean xmi_archive_equals(xmi_archive *A, xmi_archive *B);
+
+//returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_INPUT_* macros for every section where there is an error
+XmiInputFlags xmi_input_validate(xmi_input *input);
 
 // returns 1 when equal, 0 otherwise
+/** 
+ * xmi_energy_discrete_equal: (skip):
+ *
+ */
 int xmi_energy_discrete_equal(xmi_energy_discrete *a, xmi_energy_discrete *b);
 
 // returns 1 when equal, 0 otherwise
+/** 
+ * xmi_energy_continuous_equal: (skip):
+ *
+ */
 int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous *b);
 
-void xmi_input_copy(xmi_input *A, xmi_input **B);
-
-xmi_input *xmi_input_init_empty(void);
-
-
+/** 
+ * xmi_copy_abs_or_crystal2composition: (skip):
+ *
+ */
 void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition);
 
+/** 
+ * xmi_copy_composition2abs_or_crystal: (skip):
+ *
+ */
 void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer **layers, int *n_layers);
 
 
 //Fortran function that copies a C xmi_input structure to the corresponding Fortran TYPE variable. The function returns a pointer to the memory locatie of the Fortran variable
+/**
+ * xmi_input_C2F: (skip):
+ */
 void xmi_input_C2F(xmi_input *xmi_inputC, xmi_inputFPtr *Ptr);
+/**
+ * xmi_input_F2C: (skip):
+ */
 void xmi_input_F2C(xmi_inputFPtr Ptr, xmi_input **xmi_inputC);
 
 //Fortran function that frees a Fortran xmi_input TYPE variable. The value of the pointer shall be set to NULL afterwards.
+/**
+ * xmi_free_input_F: (skip):
+ */
 void xmi_free_input_F(xmi_inputFPtr *inputFPtr);
 
 
 //Fortran function that further initializes the input
+/**
+ * xmi_init_input: (skip):
+ */
 int xmi_init_input(xmi_inputFPtr *inputFPtr);
 
 //prints the contents of the structure... useful when debugging
@@ -448,11 +515,9 @@ void xmi_output_copy(xmi_output *A, xmi_output **B);
 
 double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
-void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 
-void xmi_detector_free(xmi_detector *A);
 void xmi_exc_absorbers_free(xmi_absorbers *A);
 void xmi_det_absorbers_free(xmi_absorbers *A);
 

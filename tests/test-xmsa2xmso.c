@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
-    g_assert(xmi_output_compare(output, archive->output[i][0]) == 0);
+    g_assert_true(xmi_output_equals(output, archive->output[i][0]));
     xmi_output_free(output);
     unlink(filename);
     g_free(filename);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
         return 1;
       }
       g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
-      g_assert(xmi_output_compare(output, archive->output[i][j]) == 0);
+      g_assert_true(xmi_output_equals(output, archive->output[i][j]));
       xmi_output_free(output);
       unlink(filename);
       g_free(filename);

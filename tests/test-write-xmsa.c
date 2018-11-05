@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	g_assert_true(xmi_archive_equals(archive, archive_copy));
 
 	xmi_archive_free(archive);
 	xmi_archive_free(archive_copy);
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_2, &archive_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	g_assert_true(xmi_archive_equals(archive, archive_copy));
 
 	xmi_archive_free(archive_copy);
 

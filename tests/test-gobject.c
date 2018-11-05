@@ -357,7 +357,7 @@ static void test_archive(SetupDataArchive *data, gconstpointer user_data) {
 	g_value_init(&value, XMI_MSIM_TYPE_ARCHIVE);
 	g_value_set_boxed(&value, data->archive);
 	g_assert(data->archive != g_value_get_boxed(&value));
-	g_assert(xmi_archive_compare(data->archive, g_value_get_boxed(&value)) == 0);
+	g_assert_true(xmi_archive_equals(data->archive, g_value_get_boxed(&value)));
 	g_value_unset(&value);
 }
 

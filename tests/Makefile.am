@@ -58,85 +58,85 @@ TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
 	libxmimsim-test.c
-libxmimsim_test_la_CFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
+libxmimsim_test_la_CPPFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
 			    @xraylib_CFLAGS@ \
 			    -DCATALOGPATH=\"$(abs_top_srcdir)/xml/\"
 libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libsoup_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c
-test_read_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_read_xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_read_xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_read_xmso_SOURCES = test-read-xmso.c
-test_read_xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_read_xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_read_xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_read_xmsa_SOURCES = test-read-xmsa.c
-test_read_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_read_xmsa_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_read_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmsi_SOURCES = test-write-xmsi.c
-test_write_xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_write_xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_write_xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmso_SOURCES = test-write-xmso.c
-test_write_xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_write_xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_write_xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_write_xmsa_SOURCES = test-write-xmsa.c
-test_write_xmsa_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_write_xmsa_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_write_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2csv_SOURCES = test-xmso2csv.c
-test_xmso2csv_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmso2csv_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2xmsi_SOURCES = test-xmso2xmsi.c
-test_xmso2xmsi_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmso2xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_xmso2xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmsa2xmso_SOURCES = test-xmsa2xmso.c
-test_xmsa2xmso_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmsa2xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@
 test_xmsa2xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2svg_SOURCES = test-xmso2svg.c
-test_xmso2svg_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmso2svg_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
 test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtkmm3_LIBS@ @glib2_LIBS@ 
 
 test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.c
-test_gui_utils_get_solid_angle_from_slits_CFLAGS = -I${srcdir} -I${top_srcdir}/bin \
+test_gui_utils_get_solid_angle_from_slits_CPPFLAGS = -I${srcdir} -I${top_srcdir}/bin \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
 test_gui_utils_get_solid_angle_from_slits_LDADD = ../bin/libxmimsim-gui.la libxmimsim-test.la
 
 test_xmso2htm_SOURCES = test-xmso2htm.c
-test_xmso2htm_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmso2htm_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2htm_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2spe_SOURCES = test-xmso2spe.c
-test_xmso2spe_CFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+test_xmso2spe_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2spe_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 

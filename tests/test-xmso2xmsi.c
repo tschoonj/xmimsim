@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
   
   g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
 
-  g_assert(xmi_input_compare(input, output->input) == XMI_CONFLICT_GENERAL);
+  g_assert(xmi_input_compare(input, output->input) == XMI_INPUT_GENERAL);
  
   g_assert_cmpstr(input->general->outputfile, ==, "new-outputfile.xmso");
 

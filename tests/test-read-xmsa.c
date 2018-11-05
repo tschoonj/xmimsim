@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
 	//make a copy
 	xmi_archive_copy(archive, &archive_copy);
-	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	g_assert_true(xmi_archive_equals(archive, archive_copy));
 	xmi_archive_free(archive);
 	xmi_archive_free(archive_copy);
 
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 
 	//make a copy
 	xmi_archive_copy(archive, &archive_copy);
-	g_assert(xmi_archive_compare(archive, archive_copy) == 0);
+	g_assert_true(xmi_archive_equals(archive, archive_copy));
 	xmi_archive_free(archive);
 	xmi_archive_free(archive_copy);
 

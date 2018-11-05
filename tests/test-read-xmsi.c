@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 	g_assert(fabs(0.002 - input->absorbers->det_layers[0].thickness) < 1E-10);
 
 	//detector
-	g_assert_cmpint(XMI_DETECTOR_SILI, ==, input->detector->detector_type);
+	g_assert_cmpint(XMI_DETECTOR_CONVOLUTION_PROFILE_SILI, ==, input->detector->detector_type);
 	g_assert(fabs(1. - input->detector->live_time) < 1E-10);
 	g_assert(fabs(1e-05 - input->detector->pulse_width) < 1E-10);
 	g_assert_cmpint(2048, ==, input->detector->nchannels);
