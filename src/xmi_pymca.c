@@ -448,10 +448,10 @@ static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 
 
 	if (g_strcmp0("Si",type) == 0) {
-		(*detector)->detector_type = XMI_DETECTOR_SILI;
+		(*detector)->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_SILI;
 	}
 	else if (g_strcmp0("Ge",type) == 0) {
-		(*detector)->detector_type = XMI_DETECTOR_GE;
+		(*detector)->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_GE;
 	}
 	else {
 		fprintf(stderr,"Unsupported detector element detected. Choose either Si or Ge... Fatal error\n");

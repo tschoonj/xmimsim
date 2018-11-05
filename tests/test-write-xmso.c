@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_read_output_xml(TEST_XMSO_COPY, &output_copy, NULL) == 1);
 
 	//ensure they are identical
-	g_assert(xmi_output_compare(output, output_copy) == 0);
+	g_assert_true(xmi_output_equals(output, output_copy));
 
 	xmi_output_free(output_copy);
 

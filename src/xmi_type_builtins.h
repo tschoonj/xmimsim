@@ -14,6 +14,10 @@ GType xmi_msim_job_special_event_get_type (void);
 #define XMI_MSIM_TYPE_JOB_SPECIAL_EVENT (xmi_msim_job_special_event_get_type())
 GType xmi_msim_energy_discrete_distribution_get_type (void);
 #define XMI_MSIM_TYPE_ENERGY_DISCRETE_DISTRIBUTION (xmi_msim_energy_discrete_distribution_get_type())
+GType xmi_msim_detector_convolution_profile_get_type (void);
+#define XMI_MSIM_TYPE_DETECTOR_CONVOLUTION_DISTRIBUTION (xmi_msim_detector_convolution_profile_get_type())
+GType xmi_msim_input_flags_get_type (void);
+#define XMI_MSIM_TYPE_INPUT_FLAGS (xmi_msim_input_flags_get_type())
 
 G_END_DECLS
 #endif /* __XMIMSIM_TYPE_BUILTINS_H__ */

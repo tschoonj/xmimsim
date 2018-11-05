@@ -1066,13 +1066,13 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, xmi_detector 
 		if (!xmlStrcmp(subnode->name,(const xmlChar *) "detector_type")) {
 			txt = xmlNodeGetContent(subnode->children);
 			if (!xmlStrcmp(txt,(const xmlChar *) "SiLi")) {
-				(*detector)->detector_type = XMI_DETECTOR_SILI;
+				(*detector)->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_SILI;
 			}
 			else if (!xmlStrcmp(txt,(const xmlChar *) "Ge")) {
-				(*detector)->detector_type = XMI_DETECTOR_GE;
+				(*detector)->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_GE;
 			}
 			else if (!xmlStrcmp(txt,(const xmlChar *) "Si_SDD")) {
-				(*detector)->detector_type = XMI_DETECTOR_SI_SDD;
+				(*detector)->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD;
 			}
 			else {
 				fprintf(stderr,"Unknown detector type\n");
@@ -1719,11 +1719,11 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input
 
 	//detector
 	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "detector", NULL);
-	if (input->detector->detector_type == XMI_DETECTOR_SILI)
+	if (input->detector->detector_type == XMI_DETECTOR_CONVOLUTION_PROFILE_SILI)
 		detector_type = g_strdup("SiLi");
-	else if (input->detector->detector_type == XMI_DETECTOR_GE)
+	else if (input->detector->detector_type == XMI_DETECTOR_CONVOLUTION_PROFILE_GE)
 		detector_type = g_strdup("Ge");
-	else if (input->detector->detector_type == XMI_DETECTOR_SI_SDD)
+	else if (input->detector->detector_type == XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD)
 		detector_type = g_strdup("Si_SDD");
 
 	xmlNewChild(nodePtr1, NULL, BAD_CAST "detector_type", BAD_CAST detector_type);

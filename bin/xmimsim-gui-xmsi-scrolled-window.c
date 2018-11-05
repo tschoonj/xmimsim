@@ -898,19 +898,19 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 		-1
 	);
 	switch (input->detector->detector_type) {
-		case XMI_DETECTOR_SILI:
+		case XMI_DETECTOR_CONVOLUTION_PROFILE_SILI:
 			gtk_tree_store_set(model, &iter2,
 				INPUT_VALUE_COLUMN, "SiLi",
 				-1
 			);
 			break;
-		case XMI_DETECTOR_GE:
+		case XMI_DETECTOR_CONVOLUTION_PROFILE_GE:
 			gtk_tree_store_set(model, &iter2,
 				INPUT_VALUE_COLUMN, "Ge",
 				-1
 			);
 			break;
-		case XMI_DETECTOR_SI_SDD:
+		case XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD:
 			gtk_tree_store_set(model, &iter2,
 				INPUT_VALUE_COLUMN, "Si Drift Detector",
 				-1

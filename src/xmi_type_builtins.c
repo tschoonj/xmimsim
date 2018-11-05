@@ -30,6 +30,23 @@
 	  return g_define_id__volatile; \
 }
 
+#define XMI_DEFINE_FLAGS_TYPE(TypeName,type_name,values) \
+	GType \
+	type_name ## _get_type (void) \
+{ \
+	  static volatile gsize g_define_id__volatile = 0; \
+	  if (g_once_init_enter (&g_define_id__volatile)) \
+	    { \
+		          static const GFlagsValue v[] = { \
+				          values \
+				          { 0, NULL, NULL }, \
+				        }; \
+		          GType g_define_id = g_flags_register_static (g_intern_static_string (#TypeName), v); \
+		          g_once_init_leave (&g_define_id__volatile, g_define_id); \
+		        } \
+	  return g_define_id__volatile; \
+}
+
 XMI_DEFINE_ENUM_TYPE(XmiMsimJobError, xmi_msim_job_error,
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_ERROR_INVALID_INPUT, "invalid-input")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_ERROR_UNAVAILABLE, "unavailable")
@@ -48,6 +65,18 @@ XMI_DEFINE_ENUM_TYPE(XmiEnergyDiscreteDistribution, xmi_msim_energy_discrete_dis
 	XMI_DEFINE_ENUM_VALUE(XMI_ENERGY_DISCRETE_DISTRIBUTION_GAUSSIAN, "gaussian")
 	XMI_DEFINE_ENUM_VALUE(XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN, "lorentzian"))
 
+XMI_DEFINE_ENUM_TYPE(XmiDetectorConvolutionProfile, xmi_msim_detector_convolution_profile,
+	XMI_DEFINE_ENUM_VALUE(XMI_DETECTOR_CONVOLUTION_PROFILE_SILI, "SiLi")
+	XMI_DEFINE_ENUM_VALUE(XMI_DETECTOR_CONVOLUTION_PROFILE_GE, "Ge")
+	XMI_DEFINE_ENUM_VALUE(XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD, "SiSDD"))
+
+XMI_DEFINE_FLAGS_TYPE(XmiInputFlags, xmi_msim_input_flags, 
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_GENERAL, "general")
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_COMPOSITION, "composition")
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_GEOMETRY, "geometry")
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_EXCITATION, "excitation")
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_ABSORBERS, "absorbers")
+	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_DETECTOR, "detector"))
 
 
 

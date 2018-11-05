@@ -29,7 +29,7 @@
 G_BEGIN_DECLS
 
 int test_download_file(char *file);
-int test_init();
+int test_init(void);
 
 struct spe_data {
   unsigned int channel_first;

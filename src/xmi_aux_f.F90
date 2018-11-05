@@ -200,6 +200,14 @@ ENUM, BIND(C)
         ENUMERATOR :: XMI_ENERGY_DISCRETE_DISTRIBUTION_LORENTZIAN
 ENDENUM
 
+! XmiDetectorConvolutionProfile
+
+ENUM, BIND(C)
+        ENUMERATOR :: XMI_DETECTOR_CONVOLUTION_PROFILE_SILI
+        ENUMERATOR :: XMI_DETECTOR_CONVOLUTION_PROFILE_GE
+        ENUMERATOR :: XMI_DETECTOR_CONVOLUTION_PROFILE_SI_SDD
+ENDENUM
+
 !  xmi_energy_discrete
 
 TYPE, BIND(C) :: xmi_energy_discrete
@@ -261,7 +269,7 @@ ENDTYPE
 !  xmi_detector
 
 TYPE, BIND(C) :: xmi_detectorC
-        INTEGER (C_INT) :: detector_type
+        INTEGER (KIND(XMI_DETECTOR_CONVOLUTION_PROFILE_SILI)) :: detector_type
         REAL (C_DOUBLE) :: live_time
         REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain
@@ -274,7 +282,7 @@ TYPE, BIND(C) :: xmi_detectorC
 ENDTYPE
 
 TYPE :: xmi_detector
-        INTEGER (C_INT) :: detector_type
+        INTEGER (KIND(XMI_DETECTOR_CONVOLUTION_PROFILE_SILI)) :: detector_type
         REAL (C_DOUBLE) :: live_time
         REAL (C_DOUBLE) :: pulse_width
         REAL (C_DOUBLE) :: gain

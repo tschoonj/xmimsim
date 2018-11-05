@@ -16,7 +16,7 @@
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_builddir}/src
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -I${top_builddir}/src $(glib2_CFLAGS)
 
 plugindir = $(libdir)/xmimsim
 

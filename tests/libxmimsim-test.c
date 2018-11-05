@@ -36,7 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib-object.h>
 #endif
 
-int test_init () {
+int test_init (void) {
 	LIBXML_TEST_VERSION
 
 	// load our xml catalog
