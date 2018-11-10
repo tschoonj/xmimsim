@@ -55,7 +55,7 @@ class TestGoogleAnalyticsTracker(unittest.TestCase):
         tracker.connect('after-event', self.after_event_cb)
         self.assertTrue(tracker.send_event("MAKE-CHECK-TEST-GI", "LOCAL TRACKER FIXED UUID"))
 
-	self.main_loop.run()
+        self.main_loop.run()
         del tracker
 
     def test_send_from_global_tracker_fixed_uuid(self):
@@ -65,7 +65,7 @@ class TestGoogleAnalyticsTracker(unittest.TestCase):
         tracker.connect('after-event', self.after_event_cb)
         self.assertTrue(tracker.send_event("MAKE-CHECK-TEST-GI", "GLOBAL TRACKER FIXED UUID"))
 
-	self.main_loop.run()
+        self.main_loop.run()
         XmiMsim.GoogleAnalyticsTracker.free_global()
         self.assertIsNone(XmiMsim.GoogleAnalyticsTracker.get_global())
 
@@ -197,7 +197,7 @@ class TestReadXMSI(unittest.TestCase):
             self.fail("Reading non-existent must throw an exception!")
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
-            print(err.message)
+            #print(err.message)
     
     @unittest.skipUnless(HAVE_LXML, "Install lxml to run this test")
     def test_invalid_tag(self):
