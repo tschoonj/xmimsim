@@ -340,6 +340,7 @@ AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CF
 AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=shadow],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=shadow"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=unused-function],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=unused-function"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=parentheses],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=parentheses"],,)
 
 AC_SUBST(WSTRICT_CFLAGS)
 
@@ -576,10 +577,14 @@ fi
 AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
 
 GOBJECT_INTROSPECTION_CHECK([1.30.0])
+PYTHON_FOUND=no
 if test "x$found_introspection" = xyes ; then
 	AM_PATH_PYTHON([2.7],,[:])
-	AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+	if test "$PYTHON" != : ; then
+		PYTHON_FOUND=yes
+	fi
 fi
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON_FOUND" = yes])
 
 AC_CONFIG_FILES([ 	Makefile
 			src/Makefile

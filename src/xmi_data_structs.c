@@ -2432,6 +2432,7 @@ static const xmi_main_options __default_main_options = {
         .use_default_seeds = 0
 };
 
+#ifndef QUICKLOOK
 /**
  * xmi_main_options_new: (constructor)
  *
@@ -2476,3 +2477,4 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 		return;
 	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
 }
+#endif

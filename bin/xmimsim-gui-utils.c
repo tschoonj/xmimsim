@@ -40,7 +40,7 @@ double xmi_msim_gui_utils_get_solid_angle_from_slits(xmi_geometry *geometry) {
 static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
 	GError *error = NULL;
 	xmi_archive *archive = NULL;
-	if (archive = xmi_archive_read_from_xml_file(task_data, &error)) {
+	if ((archive = xmi_archive_read_from_xml_file(task_data, &error)) == NULL) {
 		g_task_return_error(task, error);
 		g_object_unref(task);
 		return;
