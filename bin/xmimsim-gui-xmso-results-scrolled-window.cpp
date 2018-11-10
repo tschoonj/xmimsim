@@ -767,7 +767,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 	xmi_output *output;
 
 	// before doing anything else, ensure that the file can be read properly
-	if (xmi_read_output_xml(xmsofile, &output, error) == 0)
+	if ((output = xmi_output_read_from_xml_file(xmsofile, error)) == NULL)
 		return FALSE;
 
 	// if we get here, then the file could be read...

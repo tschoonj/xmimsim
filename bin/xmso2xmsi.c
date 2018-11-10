@@ -58,7 +58,8 @@ XMI_MAIN
 	}
 
 	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
+	if (xmi_xmlLoadCatalog(&error) == 0) {
+		fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
 		return 1;
 	}
 

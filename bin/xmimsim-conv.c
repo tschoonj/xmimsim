@@ -112,7 +112,8 @@ XMI_MAIN
 	}
 
 	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
+	if (xmi_xmlLoadCatalog(&error) == 0) {
+		g_fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
 		return 1;
 	}
 
@@ -128,13 +129,13 @@ XMI_MAIN
 	xmi_output *xmso_in, *xmso_out;
 	xmi_input *xmsi_in;
 
-	if (xmi_read_output_xml(xmsofile, &xmso_in, NULL) == 0) {
-		fprintf(stderr,"%s could not be read\n", xmsofile);
+	if ((xmso_in = xmi_output_read_from_xml_file(xmsofile, &error)) == NULL) {
+		fprintf(stderr,"%s could not be read: %s\n", xmsofile, error->message);
 		return 1;
 	}
 
-	if (xmi_read_input_xml(xmsifile, &xmsi_in, NULL) == 0) {
-		fprintf(stderr,"%s could not be read\n", xmsifile);
+	if ((xmsi_in = xmi_input_read_from_xml_file(xmsifile, &error)) == NULL) {
+		fprintf(stderr,"%s could not be read: %s\n", xmsifile, error->message);
 		return 1;
 	}
 
@@ -168,10 +169,12 @@ XMI_MAIN
 				g_fprintf(stdout,"Precalculating escape peak ratios\n");
 			//doesn't exist yet
 			//convert input to string
-			if (xmi_write_input_xml_to_string(&xmi_input_string,xmso_in->input, NULL) == 0) {
+			if (!xmi_input_write_to_xml_string(xmso_in->input, &xmi_input_string, &error)) {
+				g_fprintf(stderr, "Could not convert to XML string: %s\n", error->message);
 				return 1;
 			}
 			xmi_escape_ratios_calculation(xmso_in->input, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
+			g_free(xmi_input_string);
 			//update hdf5 file
 			if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 				return 1;
@@ -237,7 +240,8 @@ XMI_MAIN
 	xmso_out->channels_unconv = xmso_in->channels_unconv;
 	xmso_out->use_zero_interactions = xmso_in->use_zero_interactions;
 
-	if (xmi_write_output_xml(new_xmsofile, xmso_out, NULL) == 0) {
+	if (!xmi_output_write_to_xml_file(xmso_out, new_xmsofile, &error)) {
+		g_fprintf(stderr, "Could not write to %s: %s\n", new_xmsofile, error->message);
 		return 1;
 	}
 	else if (options->verbose)

@@ -4,6 +4,7 @@
 #include "xmi_type_builtins.h"
 #include "xmi_job.h"
 #include "xmi_data_structs.h"
+#include "xmi_error.h"
 
 /* inspired by https://github.com/endlessm/xapian-glib/blob/master/xapian-glib/xapian-enums.cc#L22 */
 
@@ -78,6 +79,9 @@ XMI_DEFINE_FLAGS_TYPE(XmiInputFlags, xmi_msim_input_flags,
 	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_ABSORBERS, "absorbers")
 	XMI_DEFINE_ENUM_VALUE(XMI_INPUT_DETECTOR, "detector"))
 
+XMI_DEFINE_ENUM_TYPE(XmiMsimError, xmi_msim_error,
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_ERROR_XML, "XML")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY, "transmission-efficiency"))
 
 
 

@@ -52,29 +52,24 @@ xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density,
 	rv->thickness = thickness;
 
 	return rv;
-
 }
 
 /**
  * xmi_input_new: (constructor):
- * @general: (not nullable):
- * @composition: (not nullable):
- * @geometry: (not nullable):
- * @excitation: (not nullable):
- * @absorbers: (not nullable):
- * @detector: (not nullable):
+ * @general: (nullable):
+ * @composition: (nullable):
+ * @geometry: (nullable):
+ * @excitation: (nullable):
+ * @absorbers: (nullable):
+ * @detector: (nullable):
  *
  * Returns: a newly allocated xmi_input struct, initialized with the provided arguments
  */
 xmi_input *xmi_input_new(xmi_general *general, xmi_composition *composition, xmi_geometry *geometry, xmi_excitation *excitation, xmi_absorbers *absorbers, xmi_detector *detector) {
-	g_return_val_if_fail(general != NULL, NULL);
-	g_return_val_if_fail(composition != NULL, NULL);
-	g_return_val_if_fail(geometry != NULL, NULL);
-	g_return_val_if_fail(excitation != NULL, NULL);
-	g_return_val_if_fail(absorbers != NULL, NULL);
-	g_return_val_if_fail(detector != NULL, NULL);
 
 	xmi_input *rv = g_malloc0(sizeof(xmi_input));
+	if (rv == NULL)
+		return NULL; // this is highly unlikely!
 	xmi_general_copy(general, &rv->general);
 	xmi_composition_copy(composition, &rv->composition);
 	xmi_geometry_copy(geometry, &rv->geometry);
@@ -178,7 +173,7 @@ void xmi_general_free(xmi_general *A) {
  */
 void xmi_input_copy(xmi_input *A, xmi_input **B) {
 	//allocate space for B
-	*B = (xmi_input *) g_malloc(sizeof(xmi_input));
+	*B = g_malloc0(sizeof(xmi_input));
 
 	//general
 	xmi_general_copy(A->general, &((*B)->general));
@@ -251,7 +246,7 @@ int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous 
  * Returns: %TRUE if both are equal, %FALSE otherwise. Use xmi_input_compare if more detailed information is required.
  */
 gboolean xmi_input_equals(xmi_input *A, xmi_input *B) {
-	return xmi_input_equals(A, B) == 0;
+	return xmi_input_compare(A, B) == 0;
 }
 
 /**
@@ -669,7 +664,7 @@ void xmi_composition_copy(xmi_composition *A, xmi_composition **B) {
 	int i;
 
 	//allocate space for B
-	*B = (xmi_composition *) g_malloc(sizeof(xmi_composition));
+	*B = g_malloc0(sizeof(xmi_composition));
 	(*B)->n_layers = A->n_layers;
 	(*B)->reference_layer = A->reference_layer;
 	(*B)->layers = (xmi_layer *) g_memdup((A)->layers,((A)->n_layers)*sizeof(xmi_layer));
@@ -692,7 +687,7 @@ void xmi_layer_copy(xmi_layer *A, xmi_layer **B) {
 		return;
 	}
 	//allocate space for B
-	*B = (xmi_layer *) g_malloc(sizeof(xmi_layer));
+	*B = g_malloc0(sizeof(xmi_layer));
 	(*B)->n_elements = A->n_elements;
 	(*B)->density = A->density;
 	(*B)->thickness = A->thickness;
@@ -720,10 +715,10 @@ xmi_input *xmi_input_init_empty(void) {
 
 	xmi_input *rv;
 
-	rv = g_malloc(sizeof(xmi_input));
+	rv = g_malloc0(sizeof(xmi_input));
 
 	//general
-	rv->general = g_malloc(sizeof(xmi_general));
+	rv->general = g_malloc0(sizeof(xmi_general));
 	rv->general->version = g_ascii_strtod(VERSION, NULL);
 	rv->general->outputfile = g_strdup("");
 	rv->general->comments= g_strdup("");
@@ -732,13 +727,13 @@ xmi_input *xmi_input_init_empty(void) {
 	rv->general->n_interactions_trajectory = 4;
 
 	//layer
-	rv->composition = (xmi_composition *) g_malloc(sizeof(xmi_composition));
+	rv->composition = g_malloc0(sizeof(xmi_composition));
 	rv->composition->n_layers = 0;
 	rv->composition->layers = NULL;
 	rv->composition->reference_layer = -1;
 
 	//geometry
-	rv->geometry = (xmi_geometry *) g_malloc(sizeof(xmi_geometry));
+	rv->geometry = g_malloc0(sizeof(xmi_geometry));
 	rv->geometry->d_sample_source=100.0;
 	rv->geometry->n_sample_orientation[0] = 0.0;
 	rv->geometry->n_sample_orientation[1] = -1.0*sqrt(2.0)/2.0;
@@ -758,11 +753,11 @@ xmi_input *xmi_input_init_empty(void) {
 	rv->geometry->slit_size_y = 0.001;
 
 	//excitation
-	rv->excitation = (xmi_excitation *) g_malloc(sizeof(xmi_excitation));
+	rv->excitation = g_malloc0(sizeof(xmi_excitation));
 	rv->excitation->n_discrete = 1;
 	rv->excitation->n_continuous = 0;
 	rv->excitation->continuous = NULL;
-	rv->excitation->discrete = (xmi_energy_discrete *) g_malloc(sizeof(xmi_energy_discrete));
+	rv->excitation->discrete = g_malloc0(sizeof(xmi_energy_discrete));
 	rv->excitation->discrete[0].energy = 28.0;
 	rv->excitation->discrete[0].horizontal_intensity= 1E12;
 	rv->excitation->discrete[0].vertical_intensity= 1E9;
@@ -774,21 +769,21 @@ xmi_input *xmi_input_init_empty(void) {
 	rv->excitation->discrete[0].distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 
 	//absorbers
-	rv->absorbers = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
+	rv->absorbers = g_malloc0(sizeof(xmi_absorbers));
 	rv->absorbers->n_exc_layers = 0;
 	rv->absorbers->exc_layers = NULL;
 	rv->absorbers->n_det_layers = 1;
-	rv->absorbers->det_layers = g_malloc(sizeof(xmi_layer));
+	rv->absorbers->det_layers = g_malloc0(sizeof(xmi_layer));
 	rv->absorbers->det_layers[0].n_elements = 1;
-	rv->absorbers->det_layers[0].Z = (int *) g_malloc(sizeof(int));
-	rv->absorbers->det_layers[0].weight = (double *) g_malloc(sizeof(double));
+	rv->absorbers->det_layers[0].Z = g_malloc0(sizeof(int));
+	rv->absorbers->det_layers[0].weight = g_malloc0(sizeof(double));
 	rv->absorbers->det_layers[0].Z[0] = 4;
 	rv->absorbers->det_layers[0].weight[0] = 1.0;
 	rv->absorbers->det_layers[0].density = 1.85;
 	rv->absorbers->det_layers[0].thickness = 0.002;
 
 	//detector
-	rv->detector = (xmi_detector *) g_malloc(sizeof(xmi_detector));
+	rv->detector = g_malloc0(sizeof(xmi_detector));
 	rv->detector->detector_type = XMI_DETECTOR_CONVOLUTION_PROFILE_SILI;
 	rv->detector->live_time = 1;
 	rv->detector->pulse_width= 10E-6;
@@ -798,10 +793,10 @@ xmi_input *xmi_input_init_empty(void) {
 	rv->detector->noise = 0.1;
 	rv->detector->nchannels = 2048;
 	rv->detector->n_crystal_layers = 1;
-	rv->detector->crystal_layers = g_malloc(sizeof(xmi_layer));
+	rv->detector->crystal_layers = g_malloc0(sizeof(xmi_layer));
 	rv->detector->crystal_layers[0].n_elements = 1;
-	rv->detector->crystal_layers[0].Z = (int *) g_malloc(sizeof(int));
-	rv->detector->crystal_layers[0].weight = (double *) g_malloc(sizeof(double));
+	rv->detector->crystal_layers[0].Z = g_malloc0(sizeof(int));
+	rv->detector->crystal_layers[0].weight = g_malloc0(sizeof(double));
 	rv->detector->crystal_layers[0].Z[0] = 14;
 	rv->detector->crystal_layers[0].weight[0] = 1.0;
 	rv->detector->crystal_layers[0].density = 2.33;
@@ -970,23 +965,25 @@ void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B) {
  * Copies a #xmi_absorbers struct
  */
 void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
+
 	//allocate space for B
-	*B = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
+	*B = g_malloc0(sizeof(xmi_absorbers));
 
 	xmi_exc_absorbers_copy(A, *B);
 	xmi_det_absorbers_copy(A, *B);
 }
 
-/**
- * xmi_copy_abs_or_crystal2composition: (skip):
- */
 void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition) {
 	int i;
 
-	*composition = (xmi_composition *) g_malloc(sizeof(xmi_composition));
+	*composition = g_malloc0(sizeof(xmi_composition));
 	(*composition)->n_layers = n_layers;
 	if (n_layers > 0) {
-		(*composition)->layers = (xmi_layer *) g_malloc(sizeof(xmi_layer)*n_layers);
+		(*composition)->layers = g_malloc0(sizeof(xmi_layer)*n_layers);
 		for (i = 0 ; i < n_layers ; i++)
 			xmi_layer_copy2(layers+i,(*composition)->layers+i);
 	}
@@ -995,9 +992,6 @@ void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_co
 
 }
 
-/**
- * xmi_copy_composition2abs_or_crystal: (skip):
- */
 void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer **layers, int *n_layers) {
 	int i;
 
@@ -1010,7 +1004,7 @@ void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer
 	*n_layers = composition->n_layers;
 
 	if (*n_layers > 0) {
-		*layers	= (xmi_layer *) g_malloc(sizeof(xmi_layer)**n_layers);
+		*layers	= g_malloc0(sizeof(xmi_layer)**n_layers);
 		for (i = 0 ; i < *n_layers ; i++) {
 			xmi_layer_copy2(composition->layers+i, (*layers)+i);
 		}
@@ -1022,19 +1016,23 @@ void xmi_copy_composition2abs_or_crystal(xmi_composition *composition, xmi_layer
 }
 
 /**
- * xmi_input_validate: (method):
+ * xmi_input_validate:
  * @input: xmi_input struct to validate.
  *
  * Returns: 0 if valid, an OR-ed XmiInputFlags otherwise
  */
 XmiInputFlags xmi_input_validate(xmi_input *input) {
+	g_return_val_if_fail(input != NULL, XMI_INPUT_GENERAL | XMI_INPUT_COMPOSITION | XMI_INPUT_GEOMETRY | XMI_INPUT_EXCITATION | XMI_INPUT_ABSORBERS | XMI_INPUT_DETECTOR);
 	unsigned int i,j;
 	int rv = 0;
 	double sum;
 
-
-
 	//validate general
+	if (!input->general) {
+		rv |= XMI_INPUT_GENERAL;
+		goto after_general;
+	}
+
 	if (input->general->n_photons_interval <= 0) {
 		rv |= XMI_INPUT_GENERAL;
 		goto after_general;
@@ -1058,6 +1056,11 @@ XmiInputFlags xmi_input_validate(xmi_input *input) {
 after_general:
 
 	//composition
+	if (!input->composition) {
+		rv |= XMI_INPUT_COMPOSITION;
+		goto after_composition;
+	}
+
 	if (input->composition->n_layers < 1) {
 		rv |= XMI_INPUT_COMPOSITION;
 		goto after_composition;
@@ -1098,6 +1101,11 @@ after_general:
 after_composition:
 
 	//geometry
+	if (!input->geometry) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+
 	if (input->geometry->d_sample_source <= 0.0) {
 		rv |= XMI_INPUT_GEOMETRY;
 		goto after_geometry;
@@ -1116,6 +1124,12 @@ after_composition:
 	}
 
 after_geometry:
+
+	// excitation
+	if (!input->excitation) {
+		rv |= XMI_INPUT_EXCITATION;
+		goto after_excitation;
+	}
 
 	if (input->excitation->n_discrete == 0 && input->excitation->n_continuous < 2) {
 		rv |= XMI_INPUT_EXCITATION;
@@ -1216,6 +1230,11 @@ after_excitation:
 
 
 	//absorbers
+	if (!input->absorbers) {
+		rv |= XMI_INPUT_ABSORBERS;
+		goto after_absorbers;
+	}
+
 	for (i = 0 ; i < input->absorbers->n_exc_layers ; i++) {
 		sum = 0.0;
 		for (j = 0 ; j < input->absorbers->exc_layers[i].n_elements ; j++) {
@@ -1273,6 +1292,11 @@ after_excitation:
 after_absorbers:
 
 	//crystal
+	if (!input->detector) {
+		rv |= XMI_INPUT_DETECTOR;
+		goto after_detector;
+	}
+
 	if (input->detector->live_time <= 0.0) {
 		rv |= XMI_INPUT_DETECTOR;
 		goto after_detector;
@@ -1452,7 +1476,7 @@ void xmi_input_print(xmi_input *input, FILE *fPtr) {
 #ifndef QUICKLOOK
 xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions ) {
 
-	xmi_output* output = g_malloc(sizeof(xmi_output));
+	xmi_output* output = g_malloc0(sizeof(xmi_output));
 	int i,j,k;
 	int nchannels = input->detector->nchannels;
 
@@ -1463,8 +1487,8 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 	output->inputfile = g_strdup(inputfile);
 	output->outputfile = g_strdup(input->general->outputfile);
 	output->use_zero_interactions = use_zero_interactions;
-	output->channels_conv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
-	output->channels_unconv = g_malloc(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->channels_conv = g_malloc0(sizeof(double *)*(input->general->n_interactions_trajectory+1));
+	output->channels_unconv = g_malloc0(sizeof(double *)*(input->general->n_interactions_trajectory+1));
 	output->ninteractions = input->general->n_interactions_trajectory;
 
 	for (i = 0 ; i <= input->general->n_interactions_trajectory ; i++) {
@@ -1628,12 +1652,19 @@ void xmi_output_free(xmi_output *output) {
 
 	int i;
 
-	for (i = 0 ; i <= output->input->general->n_interactions_trajectory ; i++) {
-		g_free(output->channels_conv[i]);
-		g_free(output->channels_unconv[i]);
+	if (output->channels_conv) {
+		for (i = 0 ; i <= output->input->general->n_interactions_trajectory ; i++) {
+			g_free(output->channels_conv[i]);
+		}
+		g_free(output->channels_conv);
 	}
-	g_free(output->channels_conv);
-	g_free(output->channels_unconv);
+	if (output->channels_unconv) {
+		for (i = 0 ; i <= output->input->general->n_interactions_trajectory ; i++) {
+			g_free(output->channels_unconv[i]);
+		}
+		g_free(output->channels_unconv);
+	}
+
 	xmi_fluorescence_line_counts_free(output->brute_force_history, output->nbrute_force_history);
 	xmi_fluorescence_line_counts_free(output->var_red_history, output->nvar_red_history);
 
@@ -1646,18 +1677,18 @@ void xmi_archive_copy(xmi_archive *A, xmi_archive **B) {
 	C->xpath1 = g_strdup(A->xpath1);
 	C->xpath2 = g_strdup(A->xpath2);
 	
-	C->output = g_malloc(sizeof(xmi_output **) * (C->nsteps1 + 1));
-	C->input = g_malloc(sizeof(xmi_input **) * (C->nsteps1 + 1));
-	C->inputfiles = g_malloc(sizeof(char **) * (C->nsteps1 + 1));
-	C->outputfiles = g_malloc(sizeof(char **) * (C->nsteps1 + 1));
+	C->output = g_malloc0(sizeof(xmi_output **) * (C->nsteps1 + 1));
+	C->input = g_malloc0(sizeof(xmi_input **) * (C->nsteps1 + 1));
+	C->inputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
+	C->outputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
 
 	int i, j;
 
 	for (i = 0 ; i <= C->nsteps1 ; i++) {
-		C->output[i] = g_malloc(sizeof(xmi_output *) * (C->nsteps2 + 1));
-		C->input[i] = g_malloc(sizeof(xmi_input *) * (C->nsteps2 + 1));
-		C->inputfiles[i] = g_malloc(sizeof(char *) * (C->nsteps2 + 1));
-		C->outputfiles[i] = g_malloc(sizeof(char *) * (C->nsteps2 + 1));
+		C->output[i] = g_malloc0(sizeof(xmi_output *) * (C->nsteps2 + 1));
+		C->input[i] = g_malloc0(sizeof(xmi_input *) * (C->nsteps2 + 1));
+		C->inputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
+		C->outputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
 		for (j = 0 ; j <= C->nsteps2 ; j++) {
 			xmi_output_copy(A->output[i][j], &C->output[i][j]);
 			C->input[i][j] = C->output[i][j]->input;
@@ -1694,7 +1725,7 @@ void xmi_archive_free(xmi_archive *archive) {
 }
 
 xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
-	xmi_archive *archive = g_malloc(sizeof(xmi_archive));
+	xmi_archive *archive = g_malloc0(sizeof(xmi_archive));
 	archive->version = g_ascii_strtod(VERSION, NULL);
 	archive->start_value1 = start_value1;
 	archive->end_value1 = end_value1;
@@ -1707,18 +1738,18 @@ xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, d
 		archive->xpath2 = g_strdup(xpath2);
 	else
 		archive->xpath2 = NULL;
-	archive->output = g_malloc(sizeof(xmi_output **)*(nsteps1+1));
-	archive->input = g_malloc(sizeof(xmi_input **)*(nsteps1+1));
-	archive->inputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
-	archive->outputfiles = g_malloc(sizeof(char **)*(nsteps1+1));
+	archive->output = g_malloc0(sizeof(xmi_output **)*(nsteps1+1));
+	archive->input = g_malloc0(sizeof(xmi_input **)*(nsteps1+1));
+	archive->inputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
+	archive->outputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
 
 	int i, j;
 
 	for (i = 0 ; i <= nsteps1 ; i++) {
-		archive->output[i] = g_malloc(sizeof(xmi_output *)*(nsteps2+1));
-		archive->input[i] = g_malloc(sizeof(xmi_input *)*(nsteps2+1));
-		archive->inputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
-		archive->outputfiles[i] = g_malloc(sizeof(char *)*(nsteps2+1));
+		archive->output[i] = g_malloc0(sizeof(xmi_output *)*(nsteps2+1));
+		archive->input[i] = g_malloc0(sizeof(xmi_input *)*(nsteps2+1));
+		archive->inputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
+		archive->outputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
 		for (j = 0 ; j <= nsteps2 ; j++) {
 			xmi_output_copy(output[i][j], &archive->output[i][j]);
 			archive->input[i][j] = archive->output[i][j]->input;
@@ -1731,7 +1762,7 @@ xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, d
 }
 
 void xmi_output_copy(xmi_output *A, xmi_output **B) {
-	xmi_output *C = g_malloc(sizeof(xmi_output));
+	xmi_output *C = g_malloc0(sizeof(xmi_output));
 	C->version = A->version;
 	C->inputfile = g_strdup(A->inputfile);
 	C->outputfile = g_strdup(A->outputfile);
@@ -1741,8 +1772,8 @@ void xmi_output_copy(xmi_output *A, xmi_output **B) {
 	C->ninteractions = A->ninteractions;
 	C->use_zero_interactions = A->use_zero_interactions;
 	int i, j;
-	C->channels_conv = g_malloc(sizeof(double *) * (C->ninteractions+1));
-	C->channels_unconv = g_malloc(sizeof(double *) * (C->ninteractions+1));
+	C->channels_conv = g_malloc0(sizeof(double *) * (C->ninteractions+1));
+	C->channels_unconv = g_malloc0(sizeof(double *) * (C->ninteractions+1));
 	for (i = 0 ; i <= C->ninteractions ; i++) {
 		 C->channels_conv[i] = g_memdup(A->channels_conv[i], sizeof(double)*A->input->detector->nchannels);
 		 C->channels_unconv[i] = g_memdup(A->channels_unconv[i], sizeof(double)*A->input->detector->nchannels);
@@ -1809,8 +1840,12 @@ xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientati
  * Copies a #xmi_geometry struct
  */
 void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
 	//allocate space for B
-	*B = (xmi_geometry *) g_memdup(A, sizeof(xmi_geometry));
+	*B = g_memdup(A, sizeof(xmi_geometry));
 }
 
 /**
@@ -1845,17 +1880,17 @@ void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B) {
 		return;
 	}
 
-	*B = (xmi_excitation *) g_malloc(sizeof(xmi_excitation));
+	*B = g_malloc0(sizeof(xmi_excitation));
 	(*B)->n_discrete = A->n_discrete;
 	(*B)->n_continuous = A->n_continuous;
 
 	if ((*B)->n_discrete > 0) {
-		(*B)->discrete = (xmi_energy_discrete *) g_memdup(A->discrete,A->n_discrete*sizeof(xmi_energy_discrete));
+		(*B)->discrete = g_memdup(A->discrete, A->n_discrete * sizeof(xmi_energy_discrete));
 	}
 	else
 		(*B)->discrete = NULL;
 	if ((*B)->n_continuous > 0) {
-		(*B)->continuous = (xmi_energy_continuous *) g_memdup(A->continuous,A->n_continuous*sizeof(xmi_energy_continuous));
+		(*B)->continuous = g_memdup(A->continuous, A->n_continuous * sizeof(xmi_energy_continuous));
 
 	}
 	else
@@ -1907,6 +1942,24 @@ xmi_detector* xmi_detector_new(XmiDetectorConvolutionProfile detector_type, doub
 }
 
 /**
+ * xmi_detector_get_crystal_layer:
+ * @detector: #XmiMsimDetector instance
+ * @index: index of the required layer
+ *
+ * Returns: (transfer full): a copy of the detector crystal layer, or %NULL if not available
+ */
+xmi_layer* xmi_detector_get_crystal_layer(xmi_detector *detector, int index) {
+	g_return_val_if_fail(detector != NULL, NULL);
+	g_return_val_if_fail(detector->n_crystal_layers > 0, NULL);
+	g_return_val_if_fail(index >= 0 && index < detector->n_crystal_layers, NULL);
+
+	xmi_layer *rv;
+	xmi_layer_copy(&detector->crystal_layers[index], &rv);
+
+	return rv;
+}
+
+/**
  * xmi_detector_copy:
  * @A: the original  #xmi_detector struct
  * @B: (out): the destination to copy to
@@ -1914,13 +1967,18 @@ xmi_detector* xmi_detector_new(XmiDetectorConvolutionProfile detector_type, doub
  * Copies a #xmi_detector struct
  */
 void xmi_detector_copy(xmi_detector *A, xmi_detector **B) {
+	if (A == NULL) {
+		*B = NULL;
+		return;
+	}
+
 	int i;
 
-	*B= (xmi_detector *) g_memdup(A,sizeof(xmi_detector));
-	(*B)->crystal_layers = (xmi_layer *) g_memdup(A->crystal_layers,(A->n_crystal_layers)*sizeof(xmi_layer));
+	*B = g_memdup(A, sizeof(xmi_detector));
+	(*B)->crystal_layers = g_memdup(A->crystal_layers,(A->n_crystal_layers) * sizeof(xmi_layer));
 	for (i = 0 ; i < A->n_crystal_layers ; i++) {
-		(*B)->crystal_layers[i].Z = (int *) g_memdup(A->crystal_layers[i].Z,(A->crystal_layers[i].n_elements)*sizeof(int));
-		(*B)->crystal_layers[i].weight = (double *) g_memdup(A->crystal_layers[i].weight,(A->crystal_layers[i].n_elements)*sizeof(double));
+		(*B)->crystal_layers[i].Z = g_memdup(A->crystal_layers[i].Z, (A->crystal_layers[i].n_elements) * sizeof(int));
+		(*B)->crystal_layers[i].weight = g_memdup(A->crystal_layers[i].weight, (A->crystal_layers[i].n_elements) * sizeof(double));
 	}
 }
 

@@ -78,35 +78,38 @@ static void handle_error(GError **error) {
 	}
 }
 
-static int xmi_xmlCatalogAdd(const gchar *path) {
+static gboolean xmi_xmlCatalogAdd(const gchar *path, GError **error) {
 	const xmlChar uriStartString[] = "http://www.xmi.UGent.be/xml/";
-	char *rewritePrefix = g_filename_to_uri(path, NULL, NULL);
+	char *rewritePrefix = g_filename_to_uri(path, NULL, error);
 
-	if (xmlCatalogAdd(BAD_CAST "catalog",NULL,NULL) == -1) {
-		fprintf(stderr, "xmlCatalogAdd error: catalog\n");
-		return 0;
+	if (rewritePrefix == NULL)
+		return FALSE;
+
+	if (xmlCatalogAdd(BAD_CAST "catalog", NULL, NULL) == -1) {
+		handle_error(error);
+		return FALSE;
 	}
 
 	if (xmlCatalogAdd(BAD_CAST "rewriteURI", BAD_CAST uriStartString, BAD_CAST rewritePrefix) == -1) {
-		fprintf(stderr, "xmlCatalogAdd error: rewriteURI\n");
-		return 0;
+		handle_error(error);
+		return FALSE;
 	}
 
 	g_free(rewritePrefix);
 
-	return 1;
+	return TRUE;
 }
 
-int xmi_xmlLoadCatalog() {
-	int rv = 0;
+gboolean xmi_xmlLoadCatalog(GError **error) {
+	gboolean rv = FALSE;
 
 	if (xml_catalog_loaded)
-		return 1;
+		return TRUE;
 
 	// look first for environment variable
 	const gchar *xmi_catalog_path = g_getenv("XMI_CATALOG_PATH");
 	if (xmi_catalog_path != NULL) {
-		return xmi_xmlCatalogAdd(xmi_catalog_path);
+		return xmi_xmlCatalogAdd(xmi_catalog_path, error);
 	}
 
 #ifdef G_OS_WIN32
@@ -114,24 +117,26 @@ int xmi_xmlLoadCatalog() {
 	char *share;
 
 	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SHARE, &share) == 0) {
-		return 0;
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Could not get Share folder location from registry");
+		return FALSE;
 	}
 
-	rv = xmi_xmlCatalogAdd(share);
+	rv = xmi_xmlCatalogAdd(share, error);
 	g_free(share);
 
 #elif defined(MAC_INTEGRATION)
 
 	gchar *resource_path = xmi_application_get_resource_path();
 	if (resource_path == NULL) {
-		return 0;
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "Could not get resource path from bunle");
+		return FALSE;
 	}
 
 	GString *resource_path_string = g_string_new(resource_path);
 	g_free(resource_path);
 	g_string_append(resource_path_string, "/");
 
-	rv = xmi_xmlCatalogAdd(resource_path_string->str);
+	rv = xmi_xmlCatalogAdd(resource_path_string->str, error);
 
 	g_string_free(resource_path_string, TRUE);
 
@@ -141,15 +146,15 @@ int xmi_xmlLoadCatalog() {
 	char catalog[] = XMI_CATALOG;
 
 	if (xmlLoadCatalog(catalog) != 0) {
-		fprintf(stderr,"Could not load %s\n",catalog);
-		rv=0;
+		handle_error(error);
+		rv = FALSE;
 	}
 	else
-		rv=1;
+		rv = TRUE;
 
 #endif
 
-	if (rv == 1)
+	if (rv == TRUE)
 		xml_catalog_loaded = TRUE;
 
 	return rv;
@@ -174,9 +179,9 @@ static int xmi_read_output_spectrum(xmlDocPtr doc, xmlNodePtr spectrumPtr, xmi_o
 		return 0;
 	}
 
-	channels_loc = (double **) g_malloc(sizeof(double *)* (output->ninteractions+1));
+	channels_loc = g_malloc0(sizeof(double *)* (output->ninteractions+1));
 	for (i = 0 ; i <= output->ninteractions ; i++)
-		channels_loc[i] = (double *) g_malloc0(nchannels * sizeof(double));
+		channels_loc[i] = g_malloc0(nchannels * sizeof(double));
 
 	if (conv)
 		output->channels_conv = channels_loc;
@@ -239,7 +244,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_fluore
 	}
 
 	//malloc required memory
-	*history = (xmi_fluorescence_line_counts *) g_malloc(sizeof(xmi_fluorescence_line_counts)*(nchildren));
+	*history = (xmi_fluorescence_line_counts *) g_malloc0(sizeof(xmi_fluorescence_line_counts)*(nchildren));
 	history_loc = *history;
 	linePtr = xmlFirstElementChild(nodePtr);
 	*nhistory = nchildren;
@@ -275,7 +280,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_fluore
 		//determine number of children
 		nchildren = xmlChildElementCount(linePtr);
 		history_loc[counter].n_lines = nchildren;
-		history_loc[counter].lines = (xmi_fluorescence_line *) g_malloc(sizeof(xmi_fluorescence_line)*nchildren);
+		history_loc[counter].lines = (xmi_fluorescence_line *) g_malloc0(sizeof(xmi_fluorescence_line)*nchildren);
 
 		countsPtr = xmlFirstElementChild(linePtr);
 		counter2 = 0;
@@ -316,7 +321,7 @@ static int xmi_read_output_history(xmlDocPtr doc, xmlNodePtr nodePtr, xmi_fluore
 			counter3 = 0;
 			subcountsPtr = xmlFirstElementChild(countsPtr);
 			nchildren = xmlChildElementCount(countsPtr);
-			history_loc[counter].lines[counter2].interactions = (xmi_counts *) g_malloc(sizeof(xmi_counts)*nchildren);
+			history_loc[counter].lines[counter2].interactions = (xmi_counts *) g_malloc0(sizeof(xmi_counts)*nchildren);
 			history_loc[counter].lines[counter2].n_interactions = nchildren;
 			while (subcountsPtr) {
 				attr = subcountsPtr->properties;
@@ -360,7 +365,7 @@ static int xmi_read_input_general(xmlDocPtr doc, xmlNodePtr node, xmi_general **
 	xmlAttrPtr attr;
 
 	//allocate memory
-	*general = (xmi_general *) g_malloc(sizeof(xmi_general));
+	*general = (xmi_general *) g_malloc0(sizeof(xmi_general));
 
 
 
@@ -443,7 +448,7 @@ static int xmi_read_input_composition(xmlDocPtr doc, xmlNodePtr node, xmi_compos
 	xmlChar *txt;
 
 	//allocate memory
-	*composition = (xmi_composition *) g_malloc(sizeof(xmi_composition));
+	*composition = (xmi_composition *) g_malloc0(sizeof(xmi_composition));
 
 	(*composition)->n_layers = 0;
 	(*composition)->layers = NULL;
@@ -484,7 +489,7 @@ static int xmi_read_input_geometry(xmlDocPtr doc, xmlNodePtr node, xmi_geometry 
 
 
 	//allocate memory
-	*geometry= (xmi_geometry *) g_malloc(sizeof(xmi_geometry));
+	*geometry= (xmi_geometry *) g_malloc0(sizeof(xmi_geometry));
 
 	subnode = xmlFirstElementChild(node);
 
@@ -685,7 +690,7 @@ static int xmi_read_input_excitation(xmlDocPtr doc, xmlNodePtr node, xmi_excitat
 	int distribution_type = XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC;
 	double scale_parameter = 0.0;
 
-	xmi_excitation *excitation_rv = g_malloc(sizeof(xmi_excitation));
+	xmi_excitation *excitation_rv = g_malloc0(sizeof(xmi_excitation));
 
 	excitation_rv->n_discrete = 0;
 	excitation_rv->discrete = NULL;
@@ -1006,7 +1011,7 @@ static int xmi_read_input_absorbers(xmlDocPtr doc, xmlNodePtr node, xmi_absorber
 	xmlNodePtr subnode,subsubnode;
 
 
-	*absorbers = (xmi_absorbers *) g_malloc(sizeof(xmi_absorbers));
+	*absorbers = (xmi_absorbers *) g_malloc0(sizeof(xmi_absorbers));
 
 	(*absorbers)->n_exc_layers = 0;
 	(*absorbers)->exc_layers = NULL;
@@ -1054,7 +1059,7 @@ static int xmi_read_input_detector(xmlDocPtr doc, xmlNodePtr node, xmi_detector 
 	xmlNodePtr subnode,subsubnode;
 	xmlChar *txt;
 
-	*detector= (xmi_detector *) g_malloc(sizeof(xmi_detector));
+	*detector= (xmi_detector *) g_malloc0(sizeof(xmi_detector));
 
 	(*detector)->n_crystal_layers = 0;
 	(*detector)->crystal_layers = NULL;
@@ -1246,8 +1251,8 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, xmi_layer *layer
 	//sort!
 	sorted_Z_ind = xmi_sort_idl_int(Z, n_elements);
 	layer->n_elements = n_elements;
-	layer->Z = (int *) g_malloc(sizeof(int)*n_elements);
-	layer->weight = (double*) g_malloc(sizeof(double)*n_elements);
+	layer->Z = (int *) g_malloc0(sizeof(int)*n_elements);
+	layer->weight = (double*) g_malloc0(sizeof(double)*n_elements);
 	for (i = 0 ; i < n_elements ; i++) {
 		layer->Z[i] = Z[sorted_Z_ind[i]];
 		layer->weight[i] = weight[sorted_Z_ind[i]];
@@ -1267,8 +1272,16 @@ static int xmi_read_input_layer(xmlDocPtr doc, xmlNodePtr node, xmi_layer *layer
 	return 1;
 }
 
-
-int xmi_read_input_xml (const char *xmlfile, xmi_input **input, GError **error) {
+/**
+ * xmi_input_read_from_xml_file: (constructor):
+ * @xmsifile: XMI-MSIM input filename.
+ * @error: return location for a GError, or NULL
+ *
+ * Reads an existing file into an xmi_input struct, which will be allocated by the method.
+ *
+ * Returns: the xmi_input struct on success, NULL otherwise.
+ */
+xmi_input* xmi_input_read_from_xml_file(const char *xmsifile, GError **error) {
 
 	xmlDocPtr doc;
 	xmlNodePtr root;
@@ -1276,140 +1289,150 @@ int xmi_read_input_xml (const char *xmlfile, xmi_input **input, GError **error) 
 
 	LIBXML_TEST_VERSION
 
-
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
-		fprintf(stderr,"xmlNewParserCtxt error\n");
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
-	if ((doc = xmlCtxtReadFile(ctx,xmlfile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
-		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmlfile);
+	if ((doc = xmlCtxtReadFile(ctx, xmsifile, NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		xmlFreeParserCtxt(ctx);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (ctx->valid == 0) {
-		fprintf(stderr,"Error validating %s\n",xmlfile);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if ((root = xmlDocGetRootElement(doc)) == NULL) {
-		fprintf(stderr,"Error getting root element in file %s\n",xmlfile);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim") != 0) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim\n",xmlfile);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	//allocate memory for input
-	*input = (xmi_input *) g_malloc(sizeof(xmi_input));
+	xmi_input *input = g_malloc0(sizeof(xmi_input));
 
-	if (xmi_read_input_xml_body(doc, root, *input, error) == 0)
-		return 0;
+	if (xmi_read_input_xml_body(doc, root, input, error) == FALSE) {
+		xmi_input_free(input);
+		return NULL;
+	}
 
 #ifndef QUICKLOOK
-	if (xmi_input_validate(*input) != 0) {
+	if (xmi_input_validate(input) != 0) {
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
-		fprintf(stderr, "Error validating input data\n");
-		handle_error(error);
-		return 0;
+		xmi_input_free(input);
+		return NULL;
 	}
 #endif
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
-	return 1;
-
+	return input;
 }
 
 #ifndef QUICKLOOK
-int xmi_write_input_xml_to_string(char **xmlstring, xmi_input *input, GError **error) {
+/**
+ * xmi_input_write_to_xml_string:
+ * @input: an xmi_input instance.
+ * @xmlstring: (out): return location for the string containing the xml file.
+ * @error: return location for a GError, or NULL
+ *
+ * Writes an xmi_input struct to a string, while be allocated by the method.
+ *
+ * Returns: %TRUE on success, %FALSE otherwise.
+ */
+gboolean xmi_input_write_to_xml_string(xmi_input *input, char **xmlstring, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
 	int xmlstringlength;
 
-
-
 	LIBXML_TEST_VERSION
-
 
 	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
 		fprintf(stderr,"Error calling xmlNewDoc\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
 		fprintf(stderr,"Error creating DTD\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 
 	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim");
 	xmlDocSetRootElement(doc, root_node);
 
 	if (xmi_write_input_xml_body(doc, root_node, input, error) == 0)
-		return 0;
+		return FALSE;
 
 	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, &xmlstringlength);
 	xmlFreeDoc(doc);
 
-	return 1;
+	return TRUE;
 }
 
-int xmi_write_input_xml(const char *xmlfile, xmi_input *input, GError **error) {
+/**
+ * xmi_input_write_to_xml_file:
+ * @input: an xmi_input instance.
+ * @xmsifile: name of the file to write to.
+ * @error: return location for a GError, or NULL
+ *
+ * Writes an xmi_input struct to a file.
+ *
+ * Returns: %TRUE on success, %FALSE otherwise.
+ */
+gboolean xmi_input_write_to_xml_file(xmi_input *input, const char *xmsifile, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
 
-
 	LIBXML_TEST_VERSION
-
 
 	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
 		fprintf(stderr,"Error calling xmlNewDoc\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlThrDefIndentTreeOutput(2);
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
 		fprintf(stderr,"Error creating DTD\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 
 	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim");
 	xmlDocSetRootElement(doc, root_node);
 
 	if (xmi_write_default_comments(doc, root_node, error) == 0) {
-		return 0;
+		return FALSE;
 	}
 
 	if (xmi_write_input_xml_body(doc, root_node, input, error) == 0)
-		return 0;
+		return FALSE;
 
-	if (xmlSaveFormatFileEnc(xmlfile, doc, NULL, 1) == -1) {
-		fprintf(stderr,"Could not write to %s\n", xmlfile);
+	if (xmlSaveFormatFileEnc(xmsifile, doc, NULL, 1) == -1) {
+		fprintf(stderr,"Could not write to %s\n", xmsifile);
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlFreeDoc(doc);
 
-	return 1;
+	return TRUE;
 }
 
 
@@ -1533,7 +1556,7 @@ after_var_red_history:
 	nodePtr1 = xmlNewChild(subroot, NULL, BAD_CAST "svg_graphs", NULL);
 
         // calculate global channel max for conv
-	maxima = (double *) g_malloc(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
+	maxima = (double *) g_malloc0(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
 	maxima[0]=0.0;
 	for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
 		maxima[i]=xmi_maxval_double(output->channels_conv[i], output->input->detector->nchannels);
@@ -1543,7 +1566,7 @@ after_var_red_history:
 	maxima = NULL;
 
         // calculate global channel max for unconv
-	maxima = (double *) g_malloc(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
+	maxima = (double *) g_malloc0(sizeof(double)*(output->input->general->n_interactions_trajectory+1));
 	maxima[0]=0.0;
 	for (i = (output->use_zero_interactions == 1 ? 0 : 1) ; i <= output->input->general->n_interactions_trajectory ; i++) {
 		maxima[i]=xmi_maxval_double(output->channels_unconv[i], output->input->detector->nchannels);
@@ -1575,46 +1598,54 @@ after_svg:
 	return 1;
 }
 
-int xmi_write_output_xml(const char *xmlfile, xmi_output *output, GError **error) {
+/**
+ * xmi_output_write_to_xml_file:
+ * @output: an xmi_output instance.
+ * @xmsofile: name of the file to write to.
+ * @error: return location for a GError, or NULL
+ *
+ * Writes an xmi_output struct to a file.
+ *
+ * Returns: %TRUE on success, %FALSE otherwise.
+ */
+gboolean xmi_output_write_to_xml_file(xmi_output *output, const char *xmsofile, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
 
-
 	LIBXML_TEST_VERSION
-
 
 	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
 		fprintf(stderr,"Error calling xmlNewDoc\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlThrDefIndentTreeOutput(2);
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-results", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
 		fprintf(stderr,"Error creating DTD\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 
 	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim-results");
 	xmlDocSetRootElement(doc, root_node);
 
 	if (xmi_write_default_comments(doc, root_node, error) == 0) {
-		return 0;
+		return FALSE;
 	}
 
 	if(xmi_write_output_xml_body(doc, root_node, output, -1, -1, 1, error) == 0){
-		return 0;
+		return FALSE;
 	}
 
-	if (xmlSaveFormatFileEnc(xmlfile, doc, NULL, 1) == -1) {
-		fprintf(stderr,"Could not write to %s\n", xmlfile);
+	if (xmlSaveFormatFileEnc(xmsofile, doc, NULL, 1) == -1) {
+		fprintf(stderr,"Could not write to %s\n", xmsofile);
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlFreeDoc(doc);
 
-	return 1;
+	return TRUE;
 }
 
 
@@ -1744,138 +1775,106 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input
 }
 #endif
 
-int xmi_xmlfile_to_string(const char *xmlfile, char **xmlstring, int *xmlstringlength, GError **error) {
-
-	xmlDocPtr doc;
-	xmlNodePtr root;
-	xmlParserCtxtPtr ctx;
-
-	if ((ctx=xmlNewParserCtxt()) == NULL) {
-		fprintf(stderr,"xmlNewParserCtxt error\n");
-		handle_error(error);
-		return 0;
-	}
-
-	if ((doc = xmlCtxtReadFile(ctx,xmlfile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
-		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmlfile);
-		xmlFreeParserCtxt(ctx);
-		handle_error(error);
-		return 0;
-	}
-
-	if (ctx->valid == 0) {
-		fprintf(stderr,"Error validating %s\n",xmlfile);
-		xmlFreeParserCtxt(ctx);
-		xmlFreeDoc(doc);
-		handle_error(error);
-		return 0;
-	}
-
-	if ((root = xmlDocGetRootElement(doc)) == NULL) {
-		fprintf(stderr,"Error getting root element in file %s\n",xmlfile);
-		xmlFreeParserCtxt(ctx);
-		xmlFreeDoc(doc);
-		handle_error(error);
-		return 0;
-	}
-
-	xmlDocDumpMemory(doc,(xmlChar **) xmlstring, xmlstringlength);
-	xmlFreeDoc(doc);
-
-	return 1;
-}
-
-int xmi_read_input_xml_from_string(const char *xmlstring, xmi_input **input, GError **error) {
+/**
+ * xmi_input_read_from_xml_string: (constructor):
+ * @xmsistring: string containing XMI-MSIM inputfile.
+ * @error: return location for a GError, or NULL
+ *
+ * Reads an XMI-MSIM input-file in string format into an xmi_input struct, which whill be allocated by the method.
+ *
+ * Returns: The xmi_input struct if successful, NULL otherwise.
+ */
+xmi_input* xmi_input_read_from_xml_string(const char *xmsistring, GError **error) {
 	xmlDocPtr doc;
 	xmlNodePtr root, subroot;
 	xmlParserCtxtPtr ctx;
 
 	LIBXML_TEST_VERSION
 
-
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
-		fprintf(stderr,"xmlNewParserCtxt error\n");
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
-	if ((doc = xmlCtxtReadDoc(ctx, BAD_CAST xmlstring, "weirdness.xml" ,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
-		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmlstring);
+	if ((doc = xmlCtxtReadDoc(ctx, BAD_CAST xmsistring, "weirdness.xml" ,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		xmlFreeParserCtxt(ctx);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (ctx->valid == 0) {
-		fprintf(stderr,"Error validating %s\n",xmlstring);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if ((root = xmlDocGetRootElement(doc)) == NULL) {
-		fprintf(stderr,"Error getting root element in file %s\n",xmlstring);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim")) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim\n",xmlstring);
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 
 	subroot= xmlFirstElementChild(root);
 
 	//allocate memory for input
-	*input = (xmi_input *) g_malloc(sizeof(xmi_input));
+	xmi_input *input = g_malloc0(sizeof(xmi_input));
 
 	while (subroot != NULL) {
-		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
-			if (xmi_read_input_general(doc, subroot, &((**input).general), error) == 0) {
+		if (!xmlStrcmp(subroot->name, (const xmlChar *) "general")) {
+			if (xmi_read_input_general(doc, subroot, &input->general, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
-			if (xmi_read_input_composition(doc, subroot, &((**input).composition), error) == 0) {
+		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "composition")) {
+			if (xmi_read_input_composition(doc, subroot, &input->composition, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
-			if (xmi_read_input_geometry(doc, subroot, &((**input).geometry), error) == 0) {
+		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "geometry")) {
+			if (xmi_read_input_geometry(doc, subroot, &input->geometry, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
-			if (xmi_read_input_excitation(doc, subroot, &((**input).excitation), error) == 0) {
+		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "excitation")) {
+			if (xmi_read_input_excitation(doc, subroot, &input->excitation, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (xmi_read_input_absorbers(doc, subroot, &((**input).absorbers), error) == 0) {
+			if (xmi_read_input_absorbers(doc, subroot, &input->absorbers, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (xmi_read_input_detector(doc, subroot, &((**input).detector), error) == 0) {
+			if (xmi_read_input_detector(doc, subroot, &input->detector, error) == 0) {
 				xmlFreeParserCtxt(ctx);
 				xmlFreeDoc(doc);
-				return 0;
+				xmi_input_free(input);
+				return NULL;
 			}
 		}
 
@@ -1884,10 +1883,10 @@ int xmi_read_input_xml_from_string(const char *xmlstring, xmi_input **input, GEr
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
-	return 1;
 
-
+	return input;
 }
+
 #ifndef QUICKLOOK
 int xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input, char *name, int interaction,
 double *channels, double maximum2, GError **error) {
@@ -2033,60 +2032,64 @@ static float i2c(double intensity, double maximum_log, double minimum_log) {
 }
 #endif
 
-int xmi_read_output_xml(const char *xmsofile, xmi_output **output, GError **error) {
-
+/**
+ * xmi_output_read_from_xml_file: (constructor):
+ * @xmsofile: XMI-MSIM output filename.
+ * @error: return location for a GError, or NULL
+ *
+ * Reads an existing file into an xmi_output struct, which will be allocated by the method.
+ *
+ * Returns: an xmi_output struct on success, %NULL otherwise.
+ */
+xmi_output* xmi_output_read_from_xml_file(const char *xmsofile, GError **error) {
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	xmi_output *op = g_malloc(sizeof(xmi_output));
 
 	LIBXML_TEST_VERSION
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
-		fprintf(stderr,"xmlNewParserCtxt error\n");
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
-	if ((doc = xmlCtxtReadFile(ctx,xmsofile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
-		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsofile);
+	if ((doc = xmlCtxtReadFile(ctx, xmsofile, NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		xmlFreeParserCtxt(ctx);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (ctx->valid == 0) {
-		fprintf(stderr,"Error validating %s\n",xmsofile);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 	xmlFreeParserCtxt(ctx);
 
 	if ((root = xmlDocGetRootElement(doc)) == NULL) {
-		fprintf(stderr,"Error getting root element in file %s\n",xmsofile);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-results") != 0) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
 		xmlFreeDoc(doc);
-		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "XML document is %s of wrong type, expected xmimsim-results\n",xmsofile);
-		return 0;
+		g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "XML document is %s of wrong type, expected xmimsim-results\n", xmsofile);
+		return NULL;
 	}
 
-	if (xmi_read_output_xml_body(doc, root, op, NULL, NULL, error) == 0)
-		return 0;
+	xmi_output *op = g_malloc0(sizeof(xmi_output));
+
+	if (xmi_read_output_xml_body(doc, root, op, NULL, NULL, error) == 0) {
+		xmi_output_free(op);
+		return NULL;
+	}
 
 	op->outputfile = g_strdup(xmsofile);
 
 	xmlFreeDoc(doc);
 
-	*output = op;
-
-	return 1;
+	return op;
 }
 
 int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_input *input, GError **error) {
@@ -2220,11 +2223,13 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int
 		fprintf(stderr,"Error: unable to evaluate xpath expression xmimsim-input\n");
 		handle_error(error);
 		xmlXPathFreeContext(xpathCtx);
+		if (xpathObj)
+			xmlXPathFreeObject(xpathObj);
 		xmlFreeDoc(doc);
 		return 0;
 	}
 
-	op->input = (xmi_input *) g_malloc(sizeof(xmi_input));
+	op->input = g_malloc0(sizeof(xmi_input));
 
 	if (xmi_read_input_xml_body(doc, xpathObj->nodesetval->nodeTab[0], op->input, error) == 0)
 		return 0;
@@ -2232,6 +2237,8 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int
 #ifndef QUICKLOOK
 	if (xmi_input_validate(op->input) != 0) {
 		xmlFreeDoc(doc);
+		xmlXPathFreeContext(xpathCtx);
+		xmlXPathFreeObject(xpathObj);
 		fprintf(stderr, "Error validating input data\n");
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");
 		return 0;
@@ -2291,64 +2298,67 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int
 	return 1;
 }
 
-int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **error) {
-
+/**
+ * xmi_archive_read_from_xml_file: (constructor):
+ * @xmsafile: XMI-MSIM archive filename.
+ * @error: return location for a GError, or NULL
+ *
+ * Reads an existing file into an xmi_archive struct, which will be allocated by the method.
+ *
+ * Returns: the xmi_archive struct, or NULL on error.
+ */
+xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error) {
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	xmi_archive *ar = g_malloc(sizeof(xmi_archive));
 	int step1, step2;
 	int files_read = 0;
 
 	LIBXML_TEST_VERSION
 
 	if ((ctx=xmlNewParserCtxt()) == NULL) {
-		fprintf(stderr,"xmlNewParserCtxt error\n");
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
-	if ((doc = xmlCtxtReadFile(ctx,xmsafile,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
-		fprintf(stderr,"xmlCtxtReadFile error for %s\n",xmsafile);
+	if ((doc = xmlCtxtReadFile(ctx, xmsafile, NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		handle_error(error);
 		xmlFreeParserCtxt(ctx);
-		return 0;
+		return NULL;
 	}
 
 	if (ctx->valid == 0) {
-		fprintf(stderr,"Error validating %s\n",xmsafile);
 		handle_error(error);
 		xmlFreeDoc(doc);
-		return 0;
+		return NULL;
 	}
 	xmlFreeParserCtxt(ctx);
 
 	if ((root = xmlDocGetRootElement(doc)) == NULL) {
-		fprintf(stderr,"Error getting root element in file %s\n",xmsafile);
 		xmlFreeDoc(doc);
 		handle_error(error);
-		return 0;
+		return NULL;
 	}
 
 	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim-archive") != 0) {
-		fprintf(stderr,"XML document is %s of wrong type, expected xmimsim-archive\n",xmsafile);
 		xmlFreeDoc(doc);
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "wrong type, expected xmimsim-archive");
-		return 0;
+		return NULL;
 	}
 
 	xmlAttrPtr attr = root->properties;
 	xmlChar *txt;
 
+	xmi_archive *ar = g_malloc0(sizeof(xmi_archive));
 	//in case it's not there, make sure the version is 0
 	ar->version = 0.0;
 	while (attr != NULL) {
 		if (!xmlStrcmp(attr->name,(const xmlChar *) "version")) {
 			txt =xmlNodeGetContent(attr->children);
 			if(sscanf((const char *)txt,"%f",&ar->version) != 1) {
-				fprintf(stderr,"error reading in version of xml file\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
@@ -2359,45 +2369,38 @@ int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **e
 
 	subroot = xmlFirstElementChild(root);
 
-	ar->input = NULL;
-	ar->output = NULL;
-	ar->inputfiles = NULL;
-	ar->outputfiles = NULL;
-	ar->nsteps2 = 0;
-	ar->xpath2 = NULL;
-
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value1")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read start_value1\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value1");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value1")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read end_value1\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value1");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps1")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps1\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps1");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 			//allocate memory
-			ar->output = g_malloc(sizeof(xmi_output**)*(ar->nsteps1+1));
-			ar->input = g_malloc(sizeof(xmi_input**)*(ar->nsteps1+1));
-			ar->inputfiles = g_malloc(sizeof(char**)*(ar->nsteps1+1));
-			ar->outputfiles = g_malloc(sizeof(char**)*(ar->nsteps1+1));
+			ar->output = g_malloc0(sizeof(xmi_output**)*(ar->nsteps1+1));
+			ar->input = g_malloc0(sizeof(xmi_input**)*(ar->nsteps1+1));
+			ar->inputfiles = g_malloc0(sizeof(char**)*(ar->nsteps1+1));
+			ar->outputfiles = g_malloc0(sizeof(char**)*(ar->nsteps1+1));
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
 			txt = xmlNodeGetContent(subroot->children);
@@ -2426,27 +2429,27 @@ int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **e
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read start_value2\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value2");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value2")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read end_value2\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value2");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps2")) {
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
-				fprintf(stderr,"xmi_read_archive_xml: could not read nsteps2\n");
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps2");
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			xmlFree(txt);
 		}
@@ -2470,17 +2473,18 @@ int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **e
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
-			xmi_output *output = g_malloc(sizeof(xmi_output));
+			xmi_output *output = g_malloc0(sizeof(xmi_output));
 			step1 = step2 = 0;
 			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2, error) == 0) {
-				return 0;
+				xmi_archive_free(ar);
+				return NULL;
 			}
 			output->outputfile = g_strdup(output->input->general->outputfile);
 			if (step2 == 0) {
-				ar->output[step1] = g_malloc(sizeof(xmi_output*)*(ar->nsteps2+1));
-				ar->input[step1] = g_malloc(sizeof(xmi_input*)*(ar->nsteps2+1));
-				ar->inputfiles[step1] = g_malloc(sizeof(char*)*(ar->nsteps2+1));
-				ar->outputfiles[step1] = g_malloc(sizeof(char*)*(ar->nsteps2+1));
+				ar->output[step1] = g_malloc0(sizeof(xmi_output*)*(ar->nsteps2+1));
+				ar->input[step1] = g_malloc0(sizeof(xmi_input*)*(ar->nsteps2+1));
+				ar->inputfiles[step1] = g_malloc0(sizeof(char*)*(ar->nsteps2+1));
+				ar->outputfiles[step1] = g_malloc0(sizeof(char*)*(ar->nsteps2+1));
 			}
 			ar->output[step1][step2] = output;
 			//fix links
@@ -2495,19 +2499,26 @@ int xmi_read_archive_xml(const char *xmsafile, xmi_archive **archive, GError **e
 	xmlFreeDoc(doc);
 
 	if (files_read != (ar->nsteps1+1)*(ar->nsteps2+1)) {
-		fprintf(stderr,"xmi_read_archive_xml: nfiles/nsteps mismatch\n");
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "nfiles/nsteps mismatch");
-		return 0;
+		xmi_archive_free(ar);
+		return NULL;
 	}
 
-
-	*archive = ar;
-
-	return 1;
+	return ar;
 }
 
 #ifndef QUICKLOOK
-int xmi_write_archive_xml(const char *xmlfile, xmi_archive *archive, GError **error) {
+/**
+ * xmi_archive_write_to_xml_file:
+ * @archive: an xmi_archive instance.
+ * @xmsafile: name of the file to write to.
+ * @error: return location for a GError, or NULL
+ *
+ * Writes an xmi_archive struct to a file.
+ *
+ * Returns: %TRUE on success, %FALSE otherwise.
+ */
+gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafile, GError **error) {
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root_node = NULL;
 	xmlDtdPtr dtd = NULL;
@@ -2517,24 +2528,22 @@ int xmi_write_archive_xml(const char *xmlfile, xmi_archive *archive, GError **er
 	LIBXML_TEST_VERSION
 
 	if ((doc = xmlNewDoc(BAD_CAST "1.0")) == NULL) {
-		fprintf(stderr,"Error calling xmlNewDoc\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlThrDefIndentTreeOutput(2);
 	xmlSetDocCompressMode(doc, 9);
 
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
-		fprintf(stderr,"Error creating DTD\n");
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 
 	root_node = xmlNewNode(NULL, BAD_CAST "xmimsim-archive");
 	xmlDocSetRootElement(doc, root_node);
 
 	if (xmi_write_default_comments(doc, root_node, error) == 0) {
-		return 0;
+		return FALSE;
 	}
 
 	//body
@@ -2554,19 +2563,18 @@ int xmi_write_archive_xml(const char *xmlfile, xmi_archive *archive, GError **er
 		for (j = 0 ; j <= archive->nsteps2 ; j++) {
 			nodePtr1 = xmlNewChild(root_node, NULL, BAD_CAST "xmimsim-results", NULL);
 			if (xmi_write_output_xml_body(doc, nodePtr1, archive->output[i][j], i, j, 0, error) == 0) {
-				return 0;
+				return FALSE;
 			}
 		}
 	}
 
-	if (xmlSaveFileEnc(xmlfile,doc,NULL) == -1) {
-		fprintf(stderr,"Could not write to %s\n",xmlfile);
+	if (xmlSaveFileEnc(xmsafile, doc, NULL) == -1) {
 		handle_error(error);
-		return 0;
+		return FALSE;
 	}
 	xmlFreeDoc(doc);
 
-	return 1;
+	return TRUE;
 }
 
 int xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_layer *layers, int n_layers, GError **error) {

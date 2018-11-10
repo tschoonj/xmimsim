@@ -14,14 +14,17 @@ int main(int argc, char *argv[]) {
 	//init test
 	g_assert(test_init() == 1);
 
+	//download file
+	g_assert(test_download_file(TEST_XMSI_URL) == 1);
+
 	//read the file
-	g_assert(xmi_read_input_xml(TEST_XMSI, &input, NULL) == 1);
+	g_assert_nonnull(input = xmi_input_read_from_xml_file(TEST_XMSI, NULL));
 
 	//copy to a new file
-	g_assert(xmi_write_input_xml(TEST_XMSI_COPY, input, NULL) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(input, TEST_XMSI_COPY, NULL));
 
 	//read the copy
-	g_assert(xmi_read_input_xml(TEST_XMSI_COPY, &input_copy, NULL) == 1);
+	g_assert_nonnull(input_copy = xmi_input_read_from_xml_file(TEST_XMSI_COPY, NULL));
 
 	//ensure they are identical
 	g_assert(xmi_input_compare(input, input_copy) == 0);
@@ -33,7 +36,7 @@ int main(int argc, char *argv[]) {
 
 	// this test should fail
 	GError *error = NULL;
-	g_assert(xmi_write_input_xml("non-existent-folder" G_DIR_SEPARATOR_S TEST_XMSI_COPY, input, &error) == 0);
+	g_assert_false(xmi_input_write_to_xml_file(input, "non-existent-folder" G_DIR_SEPARATOR_S TEST_XMSI_COPY, &error));
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
 	g_error_free(error);

@@ -315,7 +315,7 @@ static herr_t xmi_read_single_escape_ratios( hid_t g_id, const char *name, const
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
+	if ((temp_input = xmi_input_read_from_xml_string(xmi_input_string, NULL)) == NULL)
 		return -1;
 
 	if (xmi_check_escape_ratios_match(temp_input, data->input) == 1) {

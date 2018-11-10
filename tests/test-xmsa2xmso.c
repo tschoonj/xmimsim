@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   // file should be present already
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_1, "temp.xmso", 0, -1) == 1);
   xmi_output *output = NULL;
-  g_assert(xmi_read_output_xml("temp.xmso", &output, NULL) == 1);
+  g_assert_nonnull(output = xmi_output_read_from_xml_file("temp.xmso", NULL));
   xmi_output_free(output);
   unlink("temp.xmso");
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 
   xmi_archive *archive = NULL;
 
-  g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive, NULL) == 1);
+  g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_1, NULL));
 
   for (i = 0 ; i < 21 ; i++) {
     gchar *filename = g_strdup_printf("temp_%d.xmso", i);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "%s does not exist!", filename);
       return 1;
     }
-    g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
+    g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
     g_assert_true(xmi_output_equals(output, archive->output[i][0]));
     xmi_output_free(output);
     unlink(filename);
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   xmi_archive_free(archive);
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 0, 0) == 1);
-  g_assert(xmi_read_output_xml("temp.xmso", &output, NULL) == 1);
+  g_assert_nonnull(output = xmi_output_read_from_xml_file("temp.xmso", NULL));
   xmi_output_free(output);
   unlink("temp.xmso");
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 10, 10) == 1);
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 11, 11) == 0);
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp", -1, -1) == 1);
-  g_assert(xmi_read_archive_xml(TEST_XMSA_2, &archive, NULL) == 1);
+  g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_2, NULL));
 
   for (i = 0 ; i < 11 ; i++) {
     for (j = 0 ; j < 11 ; j++) {
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s does not exist!", filename);
         return 1;
       }
-      g_assert(xmi_read_output_xml(filename, &output, NULL) == 1);
+      g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
       g_assert_true(xmi_output_equals(output, archive->output[i][j]));
       xmi_output_free(output);
       unlink(filename);

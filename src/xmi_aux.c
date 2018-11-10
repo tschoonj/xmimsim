@@ -316,7 +316,7 @@ static herr_t xmi_read_single_hdf5_group2(hid_t g_id, const char *name, const H5
 
 	xmi_input *temp_input;
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
+	if ((temp_input = xmi_input_read_from_xml_string(xmi_input_string, NULL)) == NULL)
 		return -1;
 
 	herr_t rv = 0;
@@ -388,7 +388,7 @@ static herr_t xmi_read_single_hdf5_group(hid_t g_id, const char *name, const H5L
 
 	xmi_input *temp_input;
 
-	if (xmi_read_input_xml_from_string(xmi_input_string, &temp_input, NULL) == 0)
+	if ((temp_input = xmi_input_read_from_xml_string(xmi_input_string, NULL)) == NULL)
 		return -1;
 
 	chd->temp_input = temp_input;

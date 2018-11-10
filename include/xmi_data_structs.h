@@ -292,6 +292,7 @@ struct _xmi_detector {
 };
 
 xmi_detector* xmi_detector_new(XmiDetectorConvolutionProfile detector_type, double live_time, double pulse_width, double gain, double zero, double fano, double noise, int nchannels, int n_crystal_layers, xmi_layer *crystal_layers);
+xmi_layer* xmi_detector_get_crystal_layer(xmi_detector *detector, int index);
 void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
 void xmi_detector_free(xmi_detector *detector);
 

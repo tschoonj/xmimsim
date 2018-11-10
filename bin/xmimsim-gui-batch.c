@@ -1097,7 +1097,7 @@ static void play_button_clicked(GtkButton *button, struct batch_window_data *bwd
 		if (bwd->filenames_xmso != NULL) {
 			int step1 = file_index / (bwd->nsteps2+1);
 			int step2 = file_index % (bwd->nsteps2+1);
-			if (xmi_read_output_xml(bwd->filenames_xmso[file_index], &bwd->output[step1][step2], &error) == 0) {
+			if ((bwd->output[step1][step2] = xmi_output_read_from_xml_file(bwd->filenames_xmso[file_index], &error)) == NULL) {
 				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(bwd->batch_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading output-file %s. Aborting batch mode", bwd->filenames_xmso[file_index]);
 				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
 				g_error_free(error);
@@ -1431,8 +1431,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 
 	GError *error = NULL;
 
-	if (xmi_write_archive_xml(sad->aod->xmsa_file, archive, &error) == 0) {
-		xmi_archive_free(archive);
+	if ((archive = xmi_archive_read_from_xml_file(sad->aod->xmsa_file, &error)) == NULL) {
 		g_task_return_error(task, error);
 		return;
 	}
@@ -1541,7 +1540,7 @@ void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {
 		gchar *xpath1, *xpath2;
 		xmi_input *input;
 		GError *error = NULL;
-		if (xmi_read_input_xml((gchar *) g_slist_nth_data(filenames, 0), &input, &error) == 0) {
+		if ((input = xmi_input_read_from_xml_file((gchar *) g_slist_nth_data(filenames, 0), &error)) == NULL) {
 			//error reading inputfile
 			dialog = gtk_message_dialog_new(GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error reading input-file %s. Aborting batch mode", (gchar *) g_slist_nth_data(filenames, 0));
 			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);

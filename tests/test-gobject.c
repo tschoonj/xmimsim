@@ -178,11 +178,11 @@ static void setup_data_excitation(SetupDataExcitation *data, gconstpointer user_
 }
 
 static void setup_data_input(SetupDataInput *data, gconstpointer user_data) {
-	g_assert(xmi_read_input_xml(TEST_XMSI, &data->input, NULL) == 1);
+	g_assert_nonnull(data->input = xmi_input_read_from_xml_file(TEST_XMSI, NULL));
 }
 
 static void setup_data_archive(SetupDataArchive *data, gconstpointer user_data) {
-	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &data->archive, NULL) == 1);
+	g_assert_nonnull(data->archive = xmi_archive_read_from_xml_file(TEST_XMSA_1, NULL));
 }
 
 static void setup_data_main_options(SetupDataMainOptions *data, gconstpointer user_data) {

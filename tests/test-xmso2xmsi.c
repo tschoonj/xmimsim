@@ -18,10 +18,10 @@ int main(int argc, char *argv[]) {
   g_assert(xmi_xmso_to_xmsi_xslt(TEST_XMSO, "temp.xmsi", NULL) == 1);
 
   xmi_output *output = NULL;
-  g_assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
+  g_assert_nonnull(output = xmi_output_read_from_xml_file(TEST_XMSO, NULL));
 
   xmi_input *input = NULL;
-  g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
+  g_assert_nonnull(input = xmi_input_read_from_xml_file("temp.xmsi", NULL));
 
   g_assert(xmi_input_compare(input, output->input) == 0);
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   // 2. change outputfile
   g_assert(xmi_xmso_to_xmsi_xslt(TEST_XMSO, "temp.xmsi", "new-outputfile.xmso") == 1);
   
-  g_assert(xmi_read_input_xml("temp.xmsi", &input, NULL) == 1);
+  g_assert_nonnull(input = xmi_input_read_from_xml_file("temp.xmsi", NULL));
 
   g_assert(xmi_input_compare(input, output->input) == XMI_INPUT_GENERAL);
  

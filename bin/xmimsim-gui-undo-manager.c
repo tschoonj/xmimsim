@@ -1080,7 +1080,7 @@ gboolean xmi_msim_gui_undo_manager_load_file(XmiMsimGuiUndoManager *manager, con
 
 	xmi_input *input = NULL;
 
-	if (xmi_read_input_xml(filename, &input, error) == 0)
+	if ((input = xmi_input_read_from_xml_file(filename, error)) == NULL)
 		return FALSE;
 
 	xmi_msim_gui_undo_manager_reset(manager, input);
@@ -1211,7 +1211,7 @@ gboolean xmi_msim_gui_undo_manager_save_file(XmiMsimGuiUndoManager *manager, GEr
 	// get current xmi_input
 	XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
 	xmi_input *current_input = stack_data->input;
-	if (xmi_write_input_xml(manager->inputfile, current_input, error) == 0)
+	if (!xmi_input_write_to_xml_file(current_input, manager->inputfile, error))
 		return FALSE;
 
 	// update last_saved_input
@@ -1234,7 +1234,7 @@ gboolean xmi_msim_gui_undo_manager_saveas_file(XmiMsimGuiUndoManager *manager, c
 	// get current xmi_input
 	XmiMsimGuiUndoManagerStackData *stack_data = g_ptr_array_index(manager->undo_stack, manager->current_index);
 	xmi_input *current_input = stack_data->input;
-	if (xmi_write_input_xml(filename, current_input, error) == 0)
+	if (!xmi_input_write_to_xml_file(current_input, filename, error))
 		return FALSE;
 
 	// update last_saved_input

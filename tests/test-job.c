@@ -151,7 +151,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	// file is valid now, let's make it invalid...
 	data->input->composition->reference_layer = 5;
 	g_assert(xmi_input_validate(data->input) != 0);
-	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
@@ -204,7 +204,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
@@ -256,7 +256,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
@@ -318,7 +318,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
@@ -381,7 +381,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 
 	data->input->general->outputfile = g_strdup(COMPOUND "-test.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert(xmi_write_input_xml(COMPOUND "-test.xmsi", data->input, &error) == 1);
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(

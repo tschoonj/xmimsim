@@ -27,7 +27,6 @@ XMI_MAIN
 
 	xmi_input *input;
 	int version = 0;
-	int rv;
 
 	GOptionContext *context;
 	gchar *input_file = NULL;
@@ -122,14 +121,16 @@ XMI_MAIN
 
 
 	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
+	if (xmi_xmlLoadCatalog(&error) == 0) {
+		fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
 		return 1;
 	}
 
 	//read in the inputfile
-	rv = xmi_read_input_xml(argv[1],&input, NULL);
+	input = xmi_input_read_from_xml_file(argv[1], &error);
 
-	if (rv != 1) {
+	if (input == NULL) {
+		fprintf(stderr, "Could not read %s: %s\n", argv[1], error->message);
 		return 1;
 	}
 

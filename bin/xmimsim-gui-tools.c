@@ -156,7 +156,7 @@ static void xmso_full_open_button_clicked_cb(GtkButton *button, gpointer data) {
 		xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 		//read the file
 		GError *error = NULL;
-		if (xmi_read_output_xml(filename, &output, &error) == 0) {
+		if ((output = xmi_output_read_from_xml_file(filename, &error)) == NULL) {
 			GtkWidget *message_dialog = gtk_message_dialog_new(
 				GTK_WINDOW(xt->window),
 				GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -368,9 +368,9 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	//read in the inputfile
 	xmi_input *input;
 	GError *error = NULL;
-	int rv = xmi_read_input_xml(xmsi_file, &input, &error);
+	input = xmi_input_read_from_xml_file(xmsi_file, &error);
 
-	if (rv != 1) {
+	if (input == NULL) {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 	       		GTK_MESSAGE_ERROR,
