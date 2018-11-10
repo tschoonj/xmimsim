@@ -74,11 +74,11 @@ OSStatus GeneratePreviewForURL(void *thisInterface, QLPreviewRequestRef preview,
 
     g_setenv("XMI_CATALOG_PATH", resourcesPath, TRUE);
     g_free(resourcesPath);
-    if (xmi_xmlLoadCatalog() == 0)
+    if (xmi_xmlLoadCatalog(NULL) == 0)
         return noErr;
     
     xmi_output *output = NULL;
-    if (xmi_read_output_xml(path, &output, NULL) == 0)
+    if ((output = xmi_output_read_from_xml_file(path, NULL)) == NULL)
         return noErr;
     
     CGSize size;
