@@ -99,8 +99,8 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
-xmimsim_cl_la_CFLAGS = @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ @WSTRICT_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
+xmimsim_cl_la_CFLAGS = @WSTRICT_CFLAGS@
+xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ 
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
@@ -218,10 +218,13 @@ introspection_sources = \
 	$(top_srcdir)/include/xmi_job.h \
 	$(top_srcdir)/include/xmi_gobject.h \
 	xmi_type_builtins.h \
+	$(top_srcdir)/include/xmi_xml.h \
+	$(top_srcdir)/include/xmi_error.h \
 	xmi_data_structs.c \
 	xmi_job.c \
 	xmi_gobject.c \
 	xmi_type_builtins.c \
+	xmi_xml.c \
 	$(NULL)
 
 if ENABLE_GOOGLE_ANALYTICS
@@ -229,7 +232,7 @@ introspection_sources += $(top_srcdir)/include/xmi_google_analytics.h xmi_google
 endif
 
 XmiMsim-1.0.gir: libxmimsim.la
-XmiMsim_1_0_gir_INCLUDES = GObject-2.0
+XmiMsim_1_0_gir_INCLUDES = GObject-2.0 libxml2-2.0
 XmiMsim_1_0_gir_CFLAGS = 
 XmiMsim_1_0_gir_LIBS = libxmimsim.la
 XmiMsim_1_0_gir_FILES = $(introspection_sources)

@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 	g_assert(test_download_file(TEST_XMSA_URL_1) == 1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive, NULL) == 1);
+	g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_1, NULL));
 
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 	g_assert(test_download_file(TEST_XMSA_URL_2) == 1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_2, &archive, NULL) == 1);
+	g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_2, NULL));
 
 	//some testing of the input and output
 	for (i = 0 ; i <= archive->nsteps1 ; i++) {
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;
-	g_assert(xmi_read_archive_xml("non-existent-file.xmsa", &archive, &error) == 0);
+	g_assert_null(archive = xmi_archive_read_from_xml_file("non-existent-file.xmsa", &error));
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
 	g_clear_error(&error);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 	unlink(TEST_XMSA_COPY_1);*/
 
 	g_assert(remove_xml_tags(TEST_XMSA_1, TEST_XMSA_COPY_1, "/xmimsim-archive/end_value1") == 1);
-	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive, &error) == 0);
+	g_assert_null(archive = xmi_archive_read_from_xml_file(TEST_XMSA_COPY_1, &error));
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
 	g_clear_error(&error);

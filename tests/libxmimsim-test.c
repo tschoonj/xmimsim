@@ -40,8 +40,7 @@ int test_init (void) {
 	LIBXML_TEST_VERSION
 
 	// load our xml catalog
-	assert(g_setenv("XMI_CATALOG_PATH", CATALOGPATH, TRUE) == TRUE);
-	assert(xmi_xmlLoadCatalog() == 1);
+	assert(xmi_xmlLoadCatalog(NULL));
 
 	return 1;
 }

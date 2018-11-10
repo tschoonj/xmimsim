@@ -21,6 +21,7 @@ AM_CXXFLAGS = -std=gnu++11
 if ENABLE_MAC_APP
 AM_LDFLAGS = -Wl,-headerpad_max_install_names -framework Cocoa
 endif
+AM_CFLAGS = $(WSTRICT_CFLAGS)
 
 NULL=
 
@@ -102,9 +103,6 @@ nodist_libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-resources.c \
 	$(NULL)
 
-libxmimsim_gui_la_CFLAGS = \
-	$(WSTRICT_CFLAGS) \
-	$(NULL)
 libxmimsim_gui_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -135,9 +133,6 @@ plugin_LTLIBRARIES = \
 	xmimsim-gui-source-radionuclide.la \
 	$(NULL)
 
-xmimsim_gui_source_tube_ebel_la_CFLAGS = \
-	$(WSTRICT_CFLAGS) \
-	$(NULL)
 xmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -154,9 +149,6 @@ xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	$(NULL)
 xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 
-xmimsim_gui_source_radionuclide_la_CFLAGS = \
-	$(WSTRICT_CFLAGS) \
-	$(NULL)
 xmimsim_gui_source_radionuclide_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -175,9 +167,6 @@ xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.
 		    
 noinst_LTLIBRARIES += \
 	xmimsim-gui-source-random.la
-xmimsim_gui_source_random_la_CFLAGS = \
-	$(WSTRICT_CFLAGS) \
-	$(NULL)
 xmimsim_gui_source_random_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -217,49 +206,49 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
+#noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
 endif
-xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
-xmimsim_gui_layer_box_test_CPPFLAGS = \
-	@xml2_CFLAGS@ \
-	@gtkmm3_CFLAGS@ \
-	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-	$(AM_CPPFLAGS) \
-	$(NULL)
-xmimsim_gui_layer_box_test_LDADD = \
-	libxmimsim-gui.la \
-	../src/libxmimsim.la \
-	@gtkmm3_LIBS@ \
-	@xml2_LIBS@ \
-	$(NULL)
+#xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
+#xmimsim_gui_layer_box_test_CPPFLAGS = \
+#	@xml2_CFLAGS@ \
+#	@gtkmm3_CFLAGS@ \
+#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+#	$(AM_CPPFLAGS) \
+#	$(NULL)
+#xmimsim_gui_layer_box_test_LDADD = \
+#	libxmimsim-gui.la \
+#	../src/libxmimsim.la \
+#	@gtkmm3_LIBS@ \
+#	@xml2_LIBS@ \
+#	$(NULL)
 
-xmimsim_gui_controls_scrolled_window_test_SOURCES = xmimsim-gui-controls-scrolled-window-test.c
-xmimsim_gui_controls_scrolled_window_test_CPPFLAGS = \
-	@xml2_CFLAGS@ \
-	@gtkmm3_CFLAGS@ \
-	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-	$(AM_CPPFLAGS) \
-	$(NULL)
-xmimsim_gui_controls_scrolled_window_test_LDADD = \
-	libxmimsim-gui.la \
-	../src/libxmimsim.la \
-	@gtkmm3_LIBS@ \
-	@xml2_LIBS@ \
-	$(NULL)
+#xmimsim_gui_controls_scrolled_window_test_SOURCES = xmimsim-gui-controls-scrolled-window-test.c
+#xmimsim_gui_controls_scrolled_window_test_CPPFLAGS = \
+#	@xml2_CFLAGS@ \
+#	@gtkmm3_CFLAGS@ \
+#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+#	$(AM_CPPFLAGS) \
+#	$(NULL)
+#xmimsim_gui_controls_scrolled_window_test_LDADD = \
+#	libxmimsim-gui.la \
+#	../src/libxmimsim.la \
+#	@gtkmm3_LIBS@ \
+#	@xml2_LIBS@ \
+#	$(NULL)
 
-xmimsim_gui_xmsi_config_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-config-scrolled-window-test.c
-xmimsim_gui_xmsi_config_scrolled_window_test_CPPFLAGS = \
-	@xml2_CFLAGS@ \
-	@gtkmm3_CFLAGS@ \
-	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-	$(AM_CPPFLAGS) \
-	$(NULL)
-xmimsim_gui_xmsi_config_scrolled_window_test_LDADD = \
-	libxmimsim-gui.la \
-	../src/libxmimsim.la \
-	@gtkmm3_LIBS@ \
-	@xml2_LIBS@ \
-	$(NULL)
+#xmimsim_gui_xmsi_config_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-config-scrolled-window-test.c
+#xmimsim_gui_xmsi_config_scrolled_window_test_CPPFLAGS = \
+#	@xml2_CFLAGS@ \
+#	@gtkmm3_CFLAGS@ \
+#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+#	$(AM_CPPFLAGS) \
+#	$(NULL)
+#xmimsim_gui_xmsi_config_scrolled_window_test_LDADD = \
+#	libxmimsim-gui.la \
+#	../src/libxmimsim.la \
+#	@gtkmm3_LIBS@ \
+#	@xml2_LIBS@ \
+#	$(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -283,7 +272,8 @@ endif
 xmimsim_hdf5dir = $(datadir)/xmimsim
 
 xmimsim_harvester_SOURCES = xmimsim-harvester.c
-xmimsim_harvester_CFLAGS =  @glib2_CFLAGS@ @PTHREAD_CFLAGS@
+xmimsim_harvester_CFLAGS =  @PTHREAD_CFLAGS@ $(AM_CFLAGS)
+xmimsim_harvester_CPPFLAGS =  @glib2_CFLAGS@ $(AM_CPPFLAGS)
 xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 			  @glib2_LIBS@
 
@@ -366,7 +356,7 @@ endif
 #xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
-xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
+xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 		 @xml2_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
@@ -374,7 +364,7 @@ xmimsim_CFLAGS = @OPENMPI_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
 		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
-		 @WSTRICT_CFLAGS@
+		 $(AM_CPPFLAGS)
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
@@ -390,12 +380,12 @@ xmimsim_LDFLAGS += -Wl,-subsystem,windows
 endif
 
 xmimsim_cli_SOURCES = $(xmimsim_SOURCES)
-xmimsim_cli_CFLAGS = $(xmimsim_CFLAGS)
+xmimsim_cli_CPPFLAGS = $(xmimsim_CPPFLAGS)
 xmimsim_cli_LDADD = $(xmimsim_LDADD)
 xmimsim_cli_LDFLAGS = @OPENMPI_LDFLAGS@
 
 xmimsim_conv_SOURCES = xmimsim-conv.c
-xmimsim_conv_CFLAGS = $(xmimsim_CFLAGS)
+xmimsim_conv_CPPFLAGS = $(xmimsim_CPPFLAGS)
 xmimsim_conv_LDADD = $(xmimsim_LDADD)
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
@@ -403,78 +393,86 @@ xmimsim_pymca_LDADD = ../src/libxmimsim.la \
 		      @GTK_MAC_LIBS@ \
 		      @xraylib_LIBS@ \
 		      @glib2_LIBS@
-xmimsim_pymca_CFLAGS = @glib2_CFLAGS@ \
+xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
-		       @WSTRICT_CFLAGS@
+		       $(AM_CPPFLAGS)
 
 xmsi2xrmc_SOURCES = xmsi2xrmc.c
 xmsi2xrmc_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
-xmsi2xrmc_CFLAGS = @glib2_CFLAGS@ \
+xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@
+		   @xraylib_CFLAGS@ \
+		   $(AM_CPPFLAGS)
 
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
-xmso2xmsi_CFLAGS = @glib2_CFLAGS@ \
+xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@
+		   @xraylib_CFLAGS@ \
+		   $(AM_CPPFLAGS)
 
 xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2svg_CFLAGS = @glib2_CFLAGS@ \
+xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@
+		  @xraylib_CFLAGS@ \
+		  $(AM_CPPFLAGS)
 
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2spe_CFLAGS = @glib2_CFLAGS@ \
+xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@
+		  @xraylib_CFLAGS@ \
+		  $(AM_CPPFLAGS)
 
 xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2csv_CFLAGS = @glib2_CFLAGS@ \
+xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@
+		  @xraylib_CFLAGS@ \
+		  $(AM_CPPFLAGS)
 
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmso2htm_CFLAGS = @glib2_CFLAGS@ \
+xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@
+		  @xraylib_CFLAGS@ \
+		  $(AM_CPPFLAGS)
 
 xmimsim_db_SOURCES = xmimsim-db.c
 xmimsim_db_LDADD = ../src/libxmimsim.la \
 		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
-xmimsim_db_CFLAGS = @glib2_CFLAGS@ \
+xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
-		    @xraylib_CFLAGS@
+		    @xraylib_CFLAGS@ \
+		    $(AM_CPPFLAGS)
 
 xmsa2xmso_SOURCES = xmsa2xmso.c
 xmsa2xmso_LDADD = ../src/libxmimsim.la \
 		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
-xmsa2xmso_CFLAGS = @glib2_CFLAGS@ \
+xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
-		   @xraylib_CFLAGS@
+		   @xraylib_CFLAGS@ \
+		   $(AM_CPPFLAGS)
 
 #xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
 #xmimsim_test_ebel_LDADD = ../src/libxmimsim.la

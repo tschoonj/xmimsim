@@ -26,7 +26,7 @@ check_PROGRAMS = \
 TEST_EXTENSIONS = .py
 PY_LOG_COMPILER = $(PYTHON)
 AM_PY_LOG_FLAGS =
-AM_TESTS_ENVIRONMENT = LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH ;
+AM_TESTS_ENVIRONMENT = XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH ;
 
 
 if HAVE_INTROSPECTION
@@ -60,8 +60,7 @@ libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.c
 libxmimsim_test_la_CPPFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
-			    @xraylib_CFLAGS@ \
-			    -DCATALOGPATH=\"$(abs_top_srcdir)/xml/\"
+			    @xraylib_CFLAGS@
 libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libsoup_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c

@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 
   //let's read both files in and compare...
   xmi_output *output = NULL;
-  g_assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
+  g_assert_nonnull(output = xmi_output_read_from_xml_file(TEST_XMSO, NULL));
 
   GFile *file = g_file_new_for_path(TEST_CSV);
   GFileInputStream *file_stream = g_file_read(file, NULL, NULL);

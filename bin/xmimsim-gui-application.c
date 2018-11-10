@@ -531,11 +531,6 @@ static void app_startup(GApplication *app) {
 
 	setbuf(stdout, NULL);
 
-	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
-		g_warning("Could not load XML catalog!!!");
-		return;
-	}
 	// populate action map
 	g_action_map_add_action_entries(G_ACTION_MAP(app), app_entries, G_N_ELEMENTS(app_entries), app);
 
@@ -569,6 +564,12 @@ static void app_startup(GApplication *app) {
 	g_idle_add((GSourceFunc) launch_google_analytics, app);
 #endif
 
+	//load xml catalog -> perhaps launch a dialog in case of an error??
+	GError *error = NULL;
+	if (xmi_xmlLoadCatalog(&error) == 0) {
+		g_warning("Could not load XML catalog: %s\n", error->message);
+		g_clear_error(&error);
+	}
 }
 
 static void app_activate(GApplication *app) {

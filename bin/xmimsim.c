@@ -214,7 +214,7 @@ XMI_MAIN
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_print ("option parsing failed: %s\n", error->message);
+		g_fprintf(stderr, "option parsing failed: %s\n", error->message);
 		return 1;
 	}
 
@@ -263,7 +263,8 @@ XMI_MAIN
 
 
 	//load xml catalog
-	if (xmi_xmlLoadCatalog() == 0) {
+	if (xmi_xmlLoadCatalog(&error) == 0) {
+		g_fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
 		return 1;
 	}
 	else if (options->verbose)
@@ -284,10 +285,10 @@ XMI_MAIN
 
 
 	//read in the inputfile
-	rv = xmi_read_input_xml(argv[1],&input, NULL);
+	input = xmi_input_read_from_xml_file(argv[1], &error);
 
-
-	if (rv != 1) {
+	if (input == NULL) {
+		g_fprintf(stderr, "Could not read %s: %s\n", argv[1], error->message);
 		return 1;
 	}
 	else if (options->verbose)
@@ -335,21 +336,23 @@ XMI_MAIN
 			return 1;
 		if (solid_angle_def == NULL) {
 			if (options->verbose)
-				g_fprintf(stdout,"Precalculating solid angle grid\n");
+				g_fprintf(stdout, "Precalculating solid angle grid\n");
 			//doesn't exist yet
 			//convert input to string
-			if (xmi_write_input_xml_to_string(&xmi_input_string, input, NULL) == 0) {
+			if (!xmi_input_write_to_xml_string(input, &xmi_input_string, &error)) {
+				g_fprintf(stderr, "Could not write input to XML string: %s\n", error->message);
 				return 1;
 			}
-			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string,options);
+			xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);
+			g_free(xmi_input_string);
 			//update hdf5 file
-			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles , solid_angle_def) == 0)
+			if( xmi_update_solid_angle_hdf5_file(xmimsim_hdf5_solid_angles, solid_angle_def) == 0)
 				return 1;
 			else if (options->verbose)
-				g_fprintf(stdout,"%s was successfully updated with new solid angle grid\n",xmimsim_hdf5_solid_angles);
+				g_fprintf(stdout, "%s was successfully updated with new solid angle grid\n", xmimsim_hdf5_solid_angles);
 		}
 		else if (options->verbose)
-			g_fprintf(stdout,"Solid angle grid already present in %s\n",xmimsim_hdf5_solid_angles);
+			g_fprintf(stdout,"Solid angle grid already present in %s\n", xmimsim_hdf5_solid_angles);
 
 	}
 	else if (options->verbose)
@@ -498,10 +501,12 @@ XMI_MAIN
 					g_fprintf(stdout,"Precalculating escape peak ratios\n");
 				//doesn't exist yet
 				//convert input to string
-				if (xmi_write_input_xml_to_string(&xmi_input_string, input, NULL) == 0) {
+				if (!xmi_input_write_to_xml_string(input, &xmi_input_string, &error)) {
+					g_fprintf(stderr, "Could not write input to XML string: %s\n", error->message);
 					return 1;
 				}
 				xmi_escape_ratios_calculation(input, &escape_ratios_def, xmi_input_string,hdf5_file,options, xmi_get_default_escape_ratios_options());
+				g_free(xmi_input_string);
 				//update hdf5 file
 				if( xmi_update_escape_ratios_hdf5_file(xmimsim_hdf5_escape_ratios , escape_ratios_def) == 0)
 					return 1;
@@ -665,7 +670,9 @@ XMI_MAIN
 
 		//write to xml outputfile
 		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
-		if (xmi_write_output_xml(input->general->outputfile, output, NULL) == 0) {
+		if (!xmi_output_write_to_xml_file(output, input->general->outputfile, &error)) {
+			g_fprintf(stderr, "Could not write input to XML file %s: %s\n", input->general->outputfile, error->message);
+
 			return 1;
 		}
 		else if (options->verbose)

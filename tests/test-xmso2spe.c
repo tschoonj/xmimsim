@@ -13,10 +13,10 @@ int main(int argc, char *argv[]) {
   struct spe_data *sd = NULL;
 
   //init test
-  assert(test_init() == 1);
+  g_assert(test_init() == 1);
 
   //read in the xmso file
-  assert(xmi_read_output_xml(TEST_XMSO, &output, NULL) == 1);
+  g_assert_nonnull(output = xmi_output_read_from_xml_file(TEST_XMSO, NULL));
 
   for (i = output->use_zero_interactions ? 0 : 1 ; i <= output->ninteractions ; i++) {
     //convoluted

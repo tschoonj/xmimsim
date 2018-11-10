@@ -600,16 +600,6 @@ FUNCTION xmi_get_random_numbers(numbers, n) BIND(C,NAME='xmi_get_random_numbers'
         INTEGER (C_INT) :: xmi_get_random_numbers
 ENDFUNCTION xmi_get_random_numbers
 
-FUNCTION xmi_xmlfile_to_string(xmlfile, xmlstring, xmlstringlength) &
-BIND(C,NAME='xmi_xmlfile_to_string') RESULT(rv)
-        USE, INTRINSIC :: ISO_C_BINDING
-        IMPLICIT NONE
-        TYPE (C_PTR), VALUE, INTENT(IN) :: xmlfile
-        TYPE (C_PTR), INTENT(INOUT) :: xmlstring
-        INTEGER (C_INT), INTENT(INOUT) :: xmlstringlength
-        INTEGER (C_INT) :: rv
-ENDFUNCTION xmi_xmlfile_to_string
-
 SUBROUTINE xmi_free(ptr) BIND(C,NAME='xmi_free')
         USE, INTRINSIC :: ISO_C_BINDING
         IMPLICIT NONE

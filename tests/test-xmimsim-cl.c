@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
 
 	// read the file
-	g_assert(xmi_read_input_xml(TEST_XMSI, &input, NULL) == 1);
+	g_assert_nonnull(input = xmi_input_read_from_xml_file(TEST_XMSI, NULL));
 
 	// copy to the corresponding fortran variable
 	xmi_input_C2F(input, &inputFPtr);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 	g_assert(solid_angle_def == NULL);
 
 	// convert input to string
-	g_assert(xmi_write_input_xml_to_string(&xmi_input_string, input, NULL) == 1);
+	g_assert_true(xmi_input_write_to_xml_string(input, &xmi_input_string, NULL));
 
 	// run the actual calculation
 	xmi_solid_angle_calculation(inputFPtr, &solid_angle_def, xmi_input_string, options);

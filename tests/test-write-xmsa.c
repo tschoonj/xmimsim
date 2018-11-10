@@ -15,13 +15,13 @@ int main(int argc, char *argv[]) {
 	g_assert(test_init() == 1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_1, &archive, NULL) == 1);
+	g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_1, NULL));
 
 	//copy to a new file
-	g_assert(xmi_write_archive_xml(TEST_XMSA_COPY_1, archive, NULL) == 1);
+	g_assert_true(xmi_archive_write_to_xml_file(archive, TEST_XMSA_COPY_1, NULL));
 
 	//read the copy
-	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_1, &archive_copy, NULL) == 1);
+	g_assert_nonnull(archive_copy = xmi_archive_read_from_xml_file(TEST_XMSA_COPY_1, NULL));
 
 	//ensure they are identical
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
@@ -33,13 +33,13 @@ int main(int argc, char *argv[]) {
 	unlink(TEST_XMSA_COPY_1);
 
 	//read the file
-	g_assert(xmi_read_archive_xml(TEST_XMSA_2, &archive, NULL) == 1);
+	g_assert_nonnull(archive = xmi_archive_read_from_xml_file(TEST_XMSA_2, NULL));
 
 	//copy to a new file
-	g_assert(xmi_write_archive_xml(TEST_XMSA_COPY_2, archive, NULL) == 1);
+	g_assert_true(xmi_archive_write_to_xml_file(archive, TEST_XMSA_COPY_2, NULL));
 
 	//read the copy
-	g_assert(xmi_read_archive_xml(TEST_XMSA_COPY_2, &archive_copy, NULL) == 1);
+	g_assert_nonnull(archive_copy = xmi_archive_read_from_xml_file(TEST_XMSA_COPY_2, NULL));
 
 	//ensure they are identical
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
 	// this test should fail
 	GError *error = NULL;
-	g_assert(xmi_write_archive_xml("non-existent-folder" G_DIR_SEPARATOR_S TEST_XMSA_COPY_1, archive, &error) == 0);
+	g_assert_false(xmi_archive_write_to_xml_file(archive, "non-existent-folder" G_DIR_SEPARATOR_S TEST_XMSA_COPY_1, &error));
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
 	g_error_free(error);
