@@ -55,13 +55,44 @@ xmi_layer* xmi_layer_new(int n_elements, int *Z, double *weight, double density,
 }
 
 /**
+ * xmi_layer_equals:
+ * @A: first xmi_layer struct to check for equality
+ * @B: second xmi_layer struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_layer_equals(xmi_layer *A, xmi_layer *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+
+	int j;
+	if (A->n_elements != B->n_elements) {
+		return FALSE;
+	}
+	for (j = 0 ; j < A->n_elements ; j++) {
+		if (A->Z[j] != B->Z[j]) {
+			return FALSE;
+		}
+		if (fabs(A->weight[j] - B->weight[j])/A->weight[j] > XMI_COMPARE_THRESHOLD) {
+			return FALSE;
+		}
+		if (fabs(A->density - B->density)/A->density > XMI_COMPARE_THRESHOLD) {
+			return FALSE;
+		}
+		if (fabs(A->thickness- B->thickness)/A->thickness > XMI_COMPARE_THRESHOLD) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+/**
  * xmi_input_new: (constructor):
- * @general: (nullable):
- * @composition: (nullable):
- * @geometry: (nullable):
- * @excitation: (nullable):
- * @absorbers: (nullable):
- * @detector: (nullable):
+ * @general:
+ * @composition:
+ * @geometry:
+ * @excitation:
+ * @absorbers:
+ * @detector:
  *
  * Returns: a newly allocated xmi_input struct, initialized with the provided arguments
  */
@@ -165,6 +196,43 @@ void xmi_general_free(xmi_general *A) {
 }
 
 /**
+ * xmi_general_equals:
+ * @A: first xmi_general struct to check for equality
+ * @B: second xmi_general  struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_general_equals(xmi_general *A, xmi_general *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+
+	//let's ignore the version check for now shall we...
+	/*if (A->general->version != B->general->version) {
+	 	return FALSE;
+	}*/
+	if (g_strcmp0(A->outputfile, B->outputfile) != 0) {
+		return FALSE;
+	}
+
+	if (A->n_photons_interval != B->n_photons_interval) {
+		return FALSE;
+	}
+
+	if (A->n_photons_line != B->n_photons_line) {
+		return FALSE;
+	}
+
+	if (A->n_interactions_trajectory != B->n_interactions_trajectory) {
+		return FALSE;
+	}
+
+	if (g_strcmp0(A->comments, B->comments) != 0) {
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
+/**
  * xmi_input_copy:
  * @A: the original  #xmi_input struct
  * @B: (out): the destination to copy to
@@ -196,46 +264,60 @@ void xmi_input_copy(xmi_input *A, xmi_input **B) {
 
 #ifndef QUICKLOOK
 
-int xmi_energy_discrete_equal(xmi_energy_discrete *a, xmi_energy_discrete *b) {
+/**
+ * xmi_energy_discrete_equals:
+ * @a: first xmi_energy_discrete struct to check for equality
+ * @b: second xmi_energy_discrete struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_energy_discrete_equals(xmi_energy_discrete *a, xmi_energy_discrete *b) {
 	if (fabs(a->energy - b->energy) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->horizontal_intensity - b->horizontal_intensity) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->vertical_intensity - b->vertical_intensity) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_x - b->sigma_x) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_xp - b->sigma_xp) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_y - b->sigma_y) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_yp - b->sigma_yp) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (a->distribution_type != b->distribution_type)
-		return 0;
+		return FALSE;
 	if (a->distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC && fabs(a->scale_parameter - b->scale_parameter) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
-int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous *b) {
+/**
+ * xmi_energy_continuous_equals:
+ * @a: first xmi_energy_continuous struct to check for equality
+ * @b: second xmi_energy_continuous struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_energy_continuous_equals(xmi_energy_continuous *a, xmi_energy_continuous *b) {
 	if (fabs(a->energy - b->energy) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->horizontal_intensity - b->horizontal_intensity) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->vertical_intensity - b->vertical_intensity) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_x - b->sigma_x) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_xp - b->sigma_xp) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_y - b->sigma_y) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 	if (fabs(a->sigma_yp - b->sigma_yp) > XMI_COMPARE_THRESHOLD)
-		return 0;
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 /**
@@ -263,315 +345,31 @@ XmiInputFlags xmi_input_compare(xmi_input *A, xmi_input *B) {
 	double *temparr1;
 	double *temparr2;
 
-	//Yes, I know every textbook on programming says not to use the goto construct but I'm going to do it anyway :-)
-	//Don't try this at home though!
-
 	rv = 0;
 
 	//general
-	//let's ignore the version check for now shall we...
-	/*if (A->general->version != B->general->version) {
+	if (xmi_general_equals(A->general, B->general) == FALSE)
 		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}*/
-
-	if (g_strcmp0(A->general->outputfile,B->general->outputfile) != 0) {
-		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}
-
-	if (A->general->n_photons_interval != B->general->n_photons_interval) {
-		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}
-
-	if (A->general->n_photons_line != B->general->n_photons_line) {
-		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}
-
-	if (A->general->n_interactions_trajectory != B->general->n_interactions_trajectory) {
-		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}
-
-	if (g_strcmp0(A->general->comments,B->general->comments) != 0) {
-		rv |= XMI_INPUT_GENERAL;
-		goto after_general;
-	}
-
-
-	after_general:
-
 
 	//composition
-	if (A->composition->n_layers != B->composition->n_layers) {
+	if (xmi_composition_equals(A->composition, B->composition) == FALSE)
 		rv |= XMI_INPUT_COMPOSITION;
-	}
-	else if (A->composition->reference_layer != B->composition->reference_layer) {
-		rv |= XMI_INPUT_COMPOSITION;
-	}
-	else {
-		for (i = 0 ; i < A->composition->n_layers ; i++) {
-			if (A->composition->layers[i].n_elements != B->composition->layers[i].n_elements) {
-				rv |= XMI_INPUT_COMPOSITION;
-				break;
-			}
-			else {
-				for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-					if (A->composition->layers[i].Z[j] != B->composition->layers[i].Z[j]) {
-						rv |= XMI_INPUT_COMPOSITION;
-						goto after_composition;
-					}
-					else if (fabs(A->composition->layers[i].weight[j]- B->composition->layers[i].weight[j])/A->composition->layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_COMPOSITION;
-						goto after_composition;
-					}
-				}
-				if (fabs(A->composition->layers[i].density - B->composition->layers[i].density)/A->composition->layers[i].density > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_INPUT_COMPOSITION;
-					break;
-				}
-				if (fabs(A->composition->layers[i].thickness- B->composition->layers[i].thickness)/A->composition->layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_INPUT_COMPOSITION;
-					break;
-				}
-			}
-		}
-	}
-
-	after_composition:
 
 	//geometry
-#define XMI_IF_COMPARE_GEOMETRY(a) if (fabs(A->geometry->a - B->geometry->a)/fabs(A->geometry->a) > XMI_COMPARE_THRESHOLD){\
-	rv |= XMI_INPUT_GEOMETRY;\
-	goto after_geometry;\
-	}
-#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabs(A->geometry->a - B->geometry->a) > XMI_COMPARE_THRESHOLD){\
-	rv |= XMI_INPUT_GEOMETRY;\
-	goto after_geometry;\
-	}
-
-#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabs(a - b) > XMI_COMPARE_THRESHOLD){\
-	rv |= XMI_INPUT_GEOMETRY;\
-	goto after_geometry;\
-	}
-
-	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
-	temparr1 = (double *) g_memdup(A->geometry->n_sample_orientation,sizeof(double)*3);
-	temparr2 = (double *) g_memdup(B->geometry->n_sample_orientation,sizeof(double)*3);
-	xmi_normalize_vector_double(temparr1, 3);
-	xmi_normalize_vector_double(temparr2, 3);
-
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[0],temparr2[0])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[1],temparr2[1])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
-	g_free(temparr1);
-	g_free(temparr2);
-
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
-
-	temparr1 = (double *) g_memdup(A->geometry->n_detector_orientation,sizeof(double)*3);
-	temparr2 = (double *) g_memdup(B->geometry->n_detector_orientation,sizeof(double)*3);
-	xmi_normalize_vector_double(temparr1, 3);
-	xmi_normalize_vector_double(temparr2, 3);
-
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[0],temparr2[0])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[1],temparr2[1])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[2],temparr2[2])
-	g_free(temparr1);
-	g_free(temparr2);
-
-	XMI_IF_COMPARE_GEOMETRY(area_detector)
-	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
-	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
-	XMI_IF_COMPARE_GEOMETRY2(d_source_slit)
-	XMI_IF_COMPARE_GEOMETRY2(slit_size_x)
-	XMI_IF_COMPARE_GEOMETRY2(slit_size_y)
-
-	after_geometry:
-
-#define XMI_IF_COMPARE_EXCITATION_DISCRETE(a) if (fabs(A->excitation->discrete[i].a-B->excitation->discrete[i].a)/A->excitation->discrete[i].a > XMI_COMPARE_THRESHOLD) {\
-					rv |= XMI_INPUT_EXCITATION;\
-					break;\
-				}
+	if (xmi_geometry_equals(A->geometry, B->geometry) == FALSE)
+		rv |= XMI_INPUT_GEOMETRY;
 
 	//excitation
-	if (A->excitation->n_discrete > 0 || B->excitation->n_discrete > 0) {
-		if (A->excitation->n_discrete != B->excitation->n_discrete) {
-			rv |= XMI_INPUT_EXCITATION;
-		}
-		else {
-			for (i = 0 ; i < A->excitation->n_discrete ; i++) {
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(energy)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(horizontal_intensity)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(vertical_intensity)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_x)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_xp)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_y)
-				XMI_IF_COMPARE_EXCITATION_DISCRETE(sigma_yp)
-				if (A->excitation->discrete[i].distribution_type != B->excitation->discrete[i].distribution_type) {
-					rv |= XMI_INPUT_EXCITATION;
-					break;
-				}
-				else if (A->excitation->discrete[i].distribution_type != XMI_ENERGY_DISCRETE_DISTRIBUTION_MONOCHROMATIC) {
-					XMI_IF_COMPARE_EXCITATION_DISCRETE(scale_parameter)
-				}
-			}
-		}
-	}
-
-#define XMI_IF_COMPARE_EXCITATION_CONTINUOUS(a) if (fabs(A->excitation->continuous[i].a-B->excitation->continuous[i].a)/A->excitation->continuous[i].a > XMI_COMPARE_THRESHOLD) {\
-					rv |= XMI_INPUT_EXCITATION;\
-					break;\
-				}
-	if (A->excitation->n_continuous > 0 || B->excitation->n_continuous > 0) {
-		if (A->excitation->n_continuous != B->excitation->n_continuous) {
-			rv |= XMI_INPUT_EXCITATION;
-		}
-		else {
-			for (i = 0 ; i < A->excitation->n_continuous ; i++) {
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(energy)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(horizontal_intensity)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(vertical_intensity)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_x)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_xp)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_y)
-				XMI_IF_COMPARE_EXCITATION_CONTINUOUS(sigma_yp)
-			}
-		}
-	}
+	if (xmi_excitation_equals(A->excitation, B->excitation) == FALSE)
+		rv |= XMI_INPUT_EXCITATION;
 
 	//absorbers
-	if (A->absorbers->n_exc_layers > 0 || B->absorbers->n_exc_layers > 0) {
-		if (A->absorbers->n_exc_layers != B->absorbers->n_exc_layers) {
-			rv |= XMI_INPUT_ABSORBERS;
-		}
-		else {
-			for (i = 0 ; i < A->absorbers->n_exc_layers ; i++) {
-				if (A->absorbers->exc_layers[i].n_elements != B->absorbers->exc_layers[i].n_elements) {
-					rv |= XMI_INPUT_ABSORBERS;
-					break;
-				}
-				else {
-					for (j = 0 ; j < A->absorbers->exc_layers[i].n_elements ; j++) {
-						if (A->absorbers->exc_layers[i].Z[j] != B->absorbers->exc_layers[i].Z[j]) {
-							rv |= XMI_INPUT_ABSORBERS;
-							goto after_absorbers;
-						}
-						else if (fabs(A->absorbers->exc_layers[i].weight[j]- B->absorbers->exc_layers[i].weight[j])/A->absorbers->exc_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
-							rv |= XMI_INPUT_ABSORBERS;
-							goto after_absorbers;
-						}
-					}
-					if (fabs(A->absorbers->exc_layers[i].density - B->absorbers->exc_layers[i].density)/A->absorbers->exc_layers[i].density > XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_ABSORBERS;
-						break;
-					}
-					if (fabs(A->absorbers->exc_layers[i].thickness- B->absorbers->exc_layers[i].thickness)/A->absorbers->exc_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_ABSORBERS;
-						break;
-					}
-				}
-			}
-		}
-	}
-	if (A->absorbers->n_det_layers > 0 || B->absorbers->n_det_layers > 0) {
-		if (A->absorbers->n_det_layers != B->absorbers->n_det_layers) {
-			rv |= XMI_INPUT_ABSORBERS;
-		}
-		else {
-			for (i = 0 ; i < A->absorbers->n_det_layers ; i++) {
-				if (A->absorbers->det_layers[i].n_elements != B->absorbers->det_layers[i].n_elements) {
-					rv |= XMI_INPUT_ABSORBERS;
-					break;
-				}
-				else {
-					for (j = 0 ; j < A->absorbers->det_layers[i].n_elements ; j++) {
-						if (A->absorbers->det_layers[i].Z[j] != B->absorbers->det_layers[i].Z[j]) {
-							rv |= XMI_INPUT_ABSORBERS;
-							goto after_absorbers;
-						}
-						else if (fabs(A->absorbers->det_layers[i].weight[j]- B->absorbers->det_layers[i].weight[j])/A->absorbers->det_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
-							rv |= XMI_INPUT_ABSORBERS;
-							goto after_absorbers;
-						}
-					}
-					if (fabs(A->absorbers->det_layers[i].density - B->absorbers->det_layers[i].density)/A->absorbers->det_layers[i].density > XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_ABSORBERS;
-						break;
-					}
-					if (fabs(A->absorbers->det_layers[i].thickness- B->absorbers->det_layers[i].thickness)/A->absorbers->det_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_ABSORBERS;
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	after_absorbers:
+	if (xmi_absorbers_equals(A->absorbers, B->absorbers) == FALSE)
+		rv |= XMI_INPUT_ABSORBERS;
 
 	//detector
-	if (A->detector->detector_type != B->detector->detector_type) {
+	if (xmi_detector_equals(A->detector, B->detector) == FALSE)
 		rv |= XMI_INPUT_DETECTOR;
-		goto after_detector;
-	}
-
-#define XMI_IF_COMPARE_DETECTOR(a) if (fabs(A->detector->a - B->detector->a) > XMI_COMPARE_THRESHOLD){\
-	rv |= XMI_INPUT_DETECTOR;\
-	goto after_detector;\
-	}
-
-	XMI_IF_COMPARE_DETECTOR(live_time)
-	XMI_IF_COMPARE_DETECTOR(pulse_width)
-	XMI_IF_COMPARE_DETECTOR(gain)
-	XMI_IF_COMPARE_DETECTOR(zero)
-	XMI_IF_COMPARE_DETECTOR(fano)
-	XMI_IF_COMPARE_DETECTOR(noise)
-
-	if (A->detector->nchannels != B->detector->nchannels) {
-		rv |= XMI_INPUT_DETECTOR;
-		goto after_detector;
-	}
-
-	if (A->detector->n_crystal_layers != B->detector->n_crystal_layers) {
-		rv |= XMI_INPUT_DETECTOR;
-	}
-	else {
-		for (i = 0 ; i < A->detector->n_crystal_layers ; i++) {
-			if (A->detector->crystal_layers[i].n_elements != B->detector->crystal_layers[i].n_elements) {
-				rv |= XMI_INPUT_DETECTOR;
-				break;
-			}
-			else {
-				for (j = 0 ; j < A->detector->crystal_layers[i].n_elements ; j++) {
-					if (A->detector->crystal_layers[i].Z[j] != B->detector->crystal_layers[i].Z[j]) {
-						rv |= XMI_INPUT_DETECTOR;
-						goto after_detector;
-					}
-					else if (fabs(A->detector->crystal_layers[i].weight[j]- B->detector->crystal_layers[i].weight[j])/A->detector->crystal_layers[i].weight[j] >XMI_COMPARE_THRESHOLD) {
-						rv |= XMI_INPUT_DETECTOR;
-						goto after_detector;
-					}
-				}
-				if (fabs(A->detector->crystal_layers[i].density - B->detector->crystal_layers[i].density)/A->detector->crystal_layers[i].density > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_INPUT_DETECTOR;
-					break;
-				}
-				if (fabs(A->detector->crystal_layers[i].thickness- B->detector->crystal_layers[i].thickness)/A->detector->crystal_layers[i].thickness > XMI_COMPARE_THRESHOLD) {
-					rv |= XMI_INPUT_DETECTOR;
-					break;
-				}
-			}
-		}
-	}
-
-
-
-	after_detector:
 
 	return rv;
 
@@ -672,6 +470,29 @@ void xmi_composition_copy(xmi_composition *A, xmi_composition **B) {
 		(*B)->layers[i].Z = (int *) g_memdup((A)->layers[i].Z,((A)->layers[i].n_elements)*sizeof(int));
 		(*B)->layers[i].weight = (double *) g_memdup((A)->layers[i].weight,((A)->layers[i].n_elements)*sizeof(double));
 	}
+}
+
+/**
+ * xmi_composition_equals:
+ * @A: first xmi_composition struct to check for equality
+ * @B: second xmi_composition struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_composition_equals(xmi_composition *A, xmi_composition *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+
+	int j;
+	if (A->n_layers != B->n_layers) {
+		return FALSE;
+	}
+	if (A->reference_layer != B->reference_layer)
+		return FALSE;
+	for (j = 0 ; j < A->n_layers; j++) {
+		if (xmi_layer_equals(&A->layers[j], &B->layers[j]) == FALSE)
+			return FALSE;
+	}
+	return TRUE;
 }
 
 /**
@@ -975,6 +796,44 @@ void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B) {
 
 	xmi_exc_absorbers_copy(A, *B);
 	xmi_det_absorbers_copy(A, *B);
+}
+
+/**
+ * xmi_absorbers_equals:
+ * @A: first xmi_absorbers struct to check for equality
+ * @B: second xmi_absorbers struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_absorbers_equals(xmi_absorbers *A, xmi_absorbers *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+	int i;
+
+	if (A->n_exc_layers == 0 && B->n_exc_layers == 0 && A->n_det_layers == 0 && B->n_det_layers == 0) {
+		return TRUE;
+	}
+
+	if (A->n_exc_layers != B->n_exc_layers) {
+		return FALSE;
+	}
+
+	for (i = 0 ; i < A->n_exc_layers ; i++) {
+		if (xmi_layer_equals(&A->exc_layers[i], &B->exc_layers[i]) == FALSE) {
+			return FALSE;
+		}
+	}
+
+	if (A->n_det_layers != B->n_det_layers) {
+		return FALSE;
+	}
+
+	for (i = 0 ; i < A->n_det_layers ; i++) {
+		if (xmi_layer_equals(&A->det_layers[i], &B->det_layers[i]) == FALSE) {
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 void xmi_copy_abs_or_crystal2composition(xmi_layer *layers, int n_layers, xmi_composition **composition) {
@@ -1847,13 +1706,69 @@ void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B) {
 	//allocate space for B
 	*B = g_memdup(A, sizeof(xmi_geometry));
 }
+/**
+ * xmi_geometry_equals:
+ * @A: first xmi_geometry struct to check for equality
+ * @B: second xmi_geometry struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_geometry_equals(xmi_geometry *A, xmi_geometry *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+
+#define XMI_IF_COMPARE_GEOMETRY(a) if (fabs(A->a - B->a)/fabs(A->a) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabs(A->a - B->a) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+
+#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabs(a - b) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+
+	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
+	double *temparr1 = g_memdup(A->n_sample_orientation,sizeof(double) * 3);
+	double *temparr2 = g_memdup(B->n_sample_orientation,sizeof(double) * 3);
+	xmi_normalize_vector_double(temparr1, 3);
+	xmi_normalize_vector_double(temparr2, 3);
+
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
+	g_free(temparr1);
+	g_free(temparr2);
+
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
+
+	temparr1 = g_memdup(A->n_detector_orientation,sizeof(double) * 3);
+	temparr2 = g_memdup(B->n_detector_orientation,sizeof(double) * 3);
+	xmi_normalize_vector_double(temparr1, 3);
+	xmi_normalize_vector_double(temparr2, 3);
+
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
+	g_free(temparr1);
+	g_free(temparr2);
+
+	XMI_IF_COMPARE_GEOMETRY(area_detector)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
+	XMI_IF_COMPARE_GEOMETRY2(d_source_slit)
+	XMI_IF_COMPARE_GEOMETRY2(slit_size_x)
+	XMI_IF_COMPARE_GEOMETRY2(slit_size_y)
+	return TRUE;
+}
 
 /**
  * xmi_excitation_new: (constructor):
  * @n_discrete: the number of discrete exciting X-ray lines in the exciting spectrum.
- * @discrete: (array length=n_discrete): an array containing the discrete components of the exciting spectrum.
+ * @discrete: (array length=n_discrete) (nullable): an array containing the discrete components of the exciting spectrum.
  * @n_continuous: the number of sampling points within the continuous part of the exciting spectrum.
- * @continuous: (array length=n_continuous): an array containing the continuous components of the exciting spectrum.
+ * @continuous: (array length=n_continuous) (nullable): an array containing the continuous components of the exciting spectrum.
  *
  * Returns: freshly allocated and initialized excitation struct.
  */
@@ -1895,6 +1810,40 @@ void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B) {
 	}
 	else
 		(*B)->continuous = NULL;
+}
+
+/**
+ * xmi_excitation_equals:
+ * @A: first xmi_excitation struct to check for equality
+ * @B: second xmi_excitation struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_excitation_equals(xmi_excitation *A, xmi_excitation *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+	int i;
+	if (A->n_discrete == 0 && B->n_discrete == 0 && A->n_continuous == 0 && B->n_continuous == 0) {
+		return TRUE;
+	}
+	if (A->n_discrete != B->n_discrete) {
+		return FALSE;
+	}
+	if (A->n_continuous != B->n_continuous) {
+		return FALSE;
+	}
+	if (A->n_discrete > 0) {
+		for (i = 0 ; i < A->n_discrete ; i++) {
+			if (xmi_energy_discrete_equals(&A->discrete[i], &B->discrete[i]) == FALSE)
+				return FALSE;
+		}
+	}
+	if (A->n_continuous > 0) {
+		for (i = 0 ; i < A->n_continuous ; i++) {
+			if (xmi_energy_continuous_equals(&A->continuous[i], &B->continuous[i]) == FALSE)
+				return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 /**
@@ -2001,6 +1950,48 @@ void xmi_detector_free(xmi_detector *detector) {
 	}
 
 	g_free(detector);
+}
+
+/**
+ * xmi_detector_equals:
+ * @A: first xmi_detector struct to check for equality
+ * @B: second xmi_detector struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_detector_equals(xmi_detector *A, xmi_detector *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+	int i;
+
+	if (A->detector_type != B->detector_type) {
+		return FALSE;
+	}
+
+#define XMI_IF_COMPARE_DETECTOR(a) if (fabs(A->a - B->a) > XMI_COMPARE_THRESHOLD){\
+	return FALSE; \
+	}
+
+	XMI_IF_COMPARE_DETECTOR(live_time)
+	XMI_IF_COMPARE_DETECTOR(pulse_width)
+	XMI_IF_COMPARE_DETECTOR(gain)
+	XMI_IF_COMPARE_DETECTOR(zero)
+	XMI_IF_COMPARE_DETECTOR(fano)
+	XMI_IF_COMPARE_DETECTOR(noise)
+
+	if (A->nchannels != B->nchannels) {
+		return FALSE;
+	}
+
+	if (A->n_crystal_layers != B->n_crystal_layers) {
+		return FALSE;
+	}
+
+	for (i = 0 ; i < A->n_crystal_layers ; i++) {
+		if (xmi_layer_equals(&A->crystal_layers[i], &B->crystal_layers[i]) == FALSE)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 /**

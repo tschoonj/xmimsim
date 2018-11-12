@@ -49,6 +49,7 @@ struct _xmi_general {
 xmi_general* xmi_general_new(const char *outputfile, long n_photons_interval, long n_photons_line, int n_interactions_trajectory, const char *comments);
 void xmi_general_copy(xmi_general *A, xmi_general **B);
 void xmi_general_free(xmi_general *A);
+gboolean xmi_general_equals(xmi_general *A, xmi_general *B);
 
 typedef struct _xmi_layer xmi_layer;
 /**
@@ -74,6 +75,7 @@ void xmi_layer_free(xmi_layer *layer);
 void xmi_layer_copy(xmi_layer *A, xmi_layer **B);
 void xmi_layer_copy2(xmi_layer *A, xmi_layer *B);
 void xmi_layer_print(xmi_layer *layer, FILE *fPtr);
+gboolean xmi_layer_equals(xmi_layer *A, xmi_layer *B);
 
 typedef struct _xmi_composition xmi_composition;
 /**
@@ -94,6 +96,7 @@ xmi_composition* xmi_composition_new(int n_layers, xmi_layer *layers, int refere
 xmi_layer* xmi_composition_get_layer(xmi_composition *composition, int index);
 void xmi_composition_free(xmi_composition *composition);
 void xmi_composition_copy(xmi_composition *A, xmi_composition **B);
+gboolean xmi_composition_equals(xmi_composition *A, xmi_composition *B);
 
 typedef struct _xmi_geometry xmi_geometry;
 /**
@@ -127,6 +130,7 @@ struct _xmi_geometry {
 xmi_geometry* xmi_geometry_new(double d_sample_source, double n_sample_orientation[3], double p_detector_window[3], double n_detector_orientation[3], double area_detector, double collimator_height, double collimator_diameter, double d_source_slit, double slit_size_x, double slit_size_y);
 void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B);
 void xmi_geometry_free(xmi_geometry *geometry);
+gboolean xmi_geometry_equals(xmi_geometry *A, xmi_geometry *B);
 
 /**
  * XmiEnergyDiscreteDistribution:
@@ -172,6 +176,7 @@ struct _xmi_energy_discrete {
 xmi_energy_discrete* xmi_energy_discrete_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp, XmiEnergyDiscreteDistribution distribution_type, double scale_parameter);
 void xmi_energy_discrete_copy(xmi_energy_discrete *A, xmi_energy_discrete **B);
 void xmi_energy_discrete_free(xmi_energy_discrete *A);
+gboolean xmi_energy_discrete_equals(xmi_energy_discrete *a, xmi_energy_discrete *b);
 
 typedef struct _xmi_energy_continuous xmi_energy_continuous;
 /**
@@ -199,6 +204,8 @@ struct _xmi_energy_continuous {
 xmi_energy_continuous* xmi_energy_continuous_new(double energy, double horizontal_intensity, double vertical_intensity, double sigma_x, double sigma_xp, double sigma_y, double sigma_yp);
 void xmi_energy_continuous_copy(xmi_energy_continuous *A, xmi_energy_continuous **B);
 void xmi_energy_continuous_free(xmi_energy_continuous *A);
+gboolean xmi_energy_continuous_equals(xmi_energy_continuous *a, xmi_energy_continuous *b);
+
 
 typedef struct _xmi_excitation xmi_excitation;
 /**
@@ -220,6 +227,7 @@ struct _xmi_excitation {
 xmi_excitation* xmi_excitation_new(int n_discrete, xmi_energy_discrete *discrete, int n_continuous, xmi_energy_continuous *continuous);
 void xmi_excitation_copy(xmi_excitation *A, xmi_excitation **B);
 void xmi_excitation_free(xmi_excitation *excitation);
+gboolean xmi_excitation_equals(xmi_excitation *A, xmi_excitation *B);
 
 xmi_energy_discrete* xmi_excitation_get_energy_discrete(xmi_excitation *excitation, int index);
 xmi_energy_continuous* xmi_excitation_get_energy_continuous(xmi_excitation *excitation, int index);
@@ -244,6 +252,7 @@ struct _xmi_absorbers {
 xmi_absorbers* xmi_absorbers_new(int n_exc_layers, xmi_layer *exc_layers, int n_det_layers, xmi_layer *det_layers);
 void xmi_absorbers_copy(xmi_absorbers *A, xmi_absorbers **B);
 void xmi_absorbers_free(xmi_absorbers *absorbers);
+gboolean xmi_absorbers_equals(xmi_absorbers *A, xmi_absorbers *B);
 xmi_layer* xmi_absorbers_get_exc_layer(xmi_absorbers *absorbers, int index);
 xmi_layer* xmi_absorbers_get_det_layer(xmi_absorbers *absorbers, int index);
 
@@ -295,6 +304,7 @@ xmi_detector* xmi_detector_new(XmiDetectorConvolutionProfile detector_type, doub
 xmi_layer* xmi_detector_get_crystal_layer(xmi_detector *detector, int index);
 void xmi_detector_copy(xmi_detector *A, xmi_detector **B);
 void xmi_detector_free(xmi_detector *detector);
+gboolean xmi_detector_equals(xmi_detector *A, xmi_detector *B);
 
 
 typedef struct _xmi_input xmi_input;
@@ -447,20 +457,6 @@ gboolean xmi_archive_equals(xmi_archive *A, xmi_archive *B);
 
 //returns 0 when validated, returns a number larger than 0 consisting of OR-ed XMI_INPUT_* macros for every section where there is an error
 XmiInputFlags xmi_input_validate(xmi_input *input);
-
-// returns 1 when equal, 0 otherwise
-/** 
- * xmi_energy_discrete_equal: (skip):
- *
- */
-int xmi_energy_discrete_equal(xmi_energy_discrete *a, xmi_energy_discrete *b);
-
-// returns 1 when equal, 0 otherwise
-/** 
- * xmi_energy_continuous_equal: (skip):
- *
- */
-int xmi_energy_continuous_equal(xmi_energy_continuous *a, xmi_energy_continuous *b);
 
 /** 
  * xmi_copy_abs_or_crystal2composition: (skip):
