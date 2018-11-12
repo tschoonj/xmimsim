@@ -156,6 +156,7 @@ class TestReadXMSI(unittest.TestCase):
         self.assertAlmostEqual(discrete.sigma_y, 0.0)
         self.assertAlmostEqual(discrete.sigma_xp, 0.0)
         self.assertAlmostEqual(discrete.sigma_yp, 0.0)
+        self.assertAlmostEqual(discrete.distribution_type, XmiMsim.EnergyDiscreteDistribution.MONOCHROMATIC)
 
         # absorbers
         absorbers = self.input.absorbers
@@ -232,7 +233,58 @@ class TestReadXMSI(unittest.TestCase):
             os.remove(TEST_XMSI_COPY)
 
     def test_new_constructor(self):
-        pass
+        # generate the contents of TEST_XMSI from python
+        # general
+        general = XmiMsim.General.new('test.xmso', n_photons_interval=10000, n_photons_line=1000000, n_interactions_trajectory=4)
+        self.assertTrue(general.equals(self.input.general))
+
+        # composition
+        layer0 = XmiMsim.Layer.new([7, 8, 18], [0.7, 0.29, 0.01], 0.001, 2)
+        layer1 = XmiMsim.Layer.new([8, 16, 29, 92], [0.276479, 0.100464, 0.199048, 0.424009], 2.5, 1)
+        composition = XmiMsim.Composition.new([layer0, layer1], reference_layer=2)
+        self.assertTrue(composition.equals(self.input.composition))
+
+        # geometry
+        geometry = XmiMsim.Geometry.new( \
+                d_sample_source=100.0,\
+                n_sample_orientation=[0.0, 1.0, 1.0],\
+                p_detector_window=[0.0, -1.0, 100],\
+                n_detector_orientation=[0, 1, 0],\
+                area_detector=0.3,\
+                collimator_height=0.0,\
+                collimator_diameter=0.0,\
+                d_source_slit=100.0,\
+                slit_size_x=0.001,\
+                slit_size_y=0.001\
+                )
+        self.assertTrue(geometry.equals(self.input.geometry))
+
+        # excitation
+        excitation = XmiMsim.Excitation.new(discrete=[XmiMsim.EnergyDiscrete.new(20.0, 1E9, 1E9, 0.0, 0.0, 0.0, 0.0, XmiMsim.EnergyDiscreteDistribution.MONOCHROMATIC, 0.0)])
+        self.assertTrue(excitation.equals(self.input.excitation))
+
+        # absorbers
+        absorbers = XmiMsim.Absorbers.new(det_layers=[XmiMsim.Layer.new(Z=[4], weight=[1.0], density=1.85, thickness=0.002)])
+        self.assertTrue(absorbers.equals(self.input.absorbers))
+
+        # detector
+        detector = XmiMsim.Detector.new(\
+                detector_type=XmiMsim.DetectorConvolutionProfile.SILI, \
+                live_time=1.0, \
+                pulse_width=1.0E-5, \
+                gain=0.02, \
+                zero=0, \
+                fano=0.12, \
+                noise=0.1, \
+                nchannels=2048, \
+                crystal_layers=[XmiMsim.Layer.new(Z=[14], weight=[1.0], density=2.33, thickness=0.5)] \
+                )
+        self.assertTrue(detector.equals(self.input.detector))
+
+        # input
+        input = XmiMsim.Input.new(general, composition, geometry, excitation, absorbers, detector)
+        self.assertEqual(input.validate(), 0)
+        self.assertTrue(input.equals(self.input))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
