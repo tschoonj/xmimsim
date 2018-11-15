@@ -237,7 +237,7 @@ gboolean xmi_general_equals(xmi_general *A, xmi_general *B) {
  * @A: the original  #xmi_input struct
  * @B: (out): the destination to copy to
  *
- * Copies a #xmi_input_copy struct
+ * Copies a #xmi_input struct
  */
 void xmi_input_copy(xmi_input *A, xmi_input **B) {
 	//allocate space for B
@@ -261,8 +261,6 @@ void xmi_input_copy(xmi_input *A, xmi_input **B) {
 	//detector
 	xmi_detector_copy(A->detector, &((*B)->detector));
 }
-
-#ifndef QUICKLOOK
 
 /**
  * xmi_energy_discrete_equals:
@@ -319,6 +317,8 @@ gboolean xmi_energy_continuous_equals(xmi_energy_continuous *a, xmi_energy_conti
 
 	return TRUE;
 }
+
+#ifndef QUICKLOOK
 
 /**
  * xmi_input_equals:
@@ -1620,6 +1620,13 @@ xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, d
 	return archive;
 }
 
+/**
+ * xmi_output_copy:
+ * @A: the original  #xmi_output struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_output struct
+ */
 void xmi_output_copy(xmi_output *A, xmi_output **B) {
 	xmi_output *C = g_malloc0(sizeof(xmi_output));
 	C->version = A->version;
@@ -1659,6 +1666,42 @@ void xmi_output_copy(xmi_output *A, xmi_output **B) {
 	}
 
 	*B = C;
+}
+
+/**
+ * xmi_output_get_spectrum_convoluted:
+ * @output: an #xmi_output instance.
+ * @after_interactions: specifies the requested spectrum by indicating how many interactions must have experienced.
+ *
+ * Returns: (element-type double) (transfer full): The requested convoluted spectrum in a GArray containing doubles.
+ */
+GArray* xmi_output_get_spectrum_convoluted(xmi_output *output, int after_interactions) {
+	g_return_val_if_fail(output != NULL, NULL);
+	g_return_val_if_fail(output->input != NULL, NULL);
+	g_return_val_if_fail(output->input->detector != NULL, NULL);
+	g_return_val_if_fail(after_interactions >= 0 && after_interactions <= output->ninteractions, NULL);
+
+	GArray *rv = g_array_sized_new(FALSE, FALSE, sizeof(double), output->input->detector->nchannels);
+	g_array_append_vals(rv, output->channels_conv[after_interactions], output->input->detector->nchannels);
+	return rv;
+}
+
+/**
+ * xmi_output_get_spectrum_unconvoluted:
+ * @output: an #xmi_output instance.
+ * @after_interactions: specifies the requested spectrum by indicating how many interactions must have experienced.
+ *
+ * Returns: (element-type double) (transfer full): The requested unconvoluted spectrum in a GArray containing doubles.
+ */
+GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_interactions) {
+	g_return_val_if_fail(output != NULL, NULL);
+	g_return_val_if_fail(output->input != NULL, NULL);
+	g_return_val_if_fail(output->input->detector != NULL, NULL);
+	g_return_val_if_fail(after_interactions >= 0 && after_interactions <= output->ninteractions, NULL);
+
+	GArray *rv = g_array_sized_new(FALSE, FALSE, sizeof(double), output->input->detector->nchannels);
+	g_array_append_vals(rv, output->channels_unconv[after_interactions], output->input->detector->nchannels);
+	return rv;
 }
 
 /**
@@ -1705,62 +1748,6 @@ void xmi_geometry_copy(xmi_geometry *A, xmi_geometry **B) {
 	}
 	//allocate space for B
 	*B = g_memdup(A, sizeof(xmi_geometry));
-}
-/**
- * xmi_geometry_equals:
- * @A: first xmi_geometry struct to check for equality
- * @B: second xmi_geometry struct to check for equality
- *
- * Returns: %TRUE if both are equal, %FALSE otherwise.
- */
-gboolean xmi_geometry_equals(xmi_geometry *A, xmi_geometry *B) {
-	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
-
-#define XMI_IF_COMPARE_GEOMETRY(a) if (fabs(A->a - B->a)/fabs(A->a) > XMI_COMPARE_THRESHOLD){\
-		return FALSE; \
-	}
-#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabs(A->a - B->a) > XMI_COMPARE_THRESHOLD){\
-		return FALSE; \
-	}
-
-#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabs(a - b) > XMI_COMPARE_THRESHOLD){\
-		return FALSE; \
-	}
-
-	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
-	double *temparr1 = g_memdup(A->n_sample_orientation,sizeof(double) * 3);
-	double *temparr2 = g_memdup(B->n_sample_orientation,sizeof(double) * 3);
-	xmi_normalize_vector_double(temparr1, 3);
-	xmi_normalize_vector_double(temparr2, 3);
-
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
-	g_free(temparr1);
-	g_free(temparr2);
-
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
-	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
-
-	temparr1 = g_memdup(A->n_detector_orientation,sizeof(double) * 3);
-	temparr2 = g_memdup(B->n_detector_orientation,sizeof(double) * 3);
-	xmi_normalize_vector_double(temparr1, 3);
-	xmi_normalize_vector_double(temparr2, 3);
-
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
-	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
-	g_free(temparr1);
-	g_free(temparr2);
-
-	XMI_IF_COMPARE_GEOMETRY(area_detector)
-	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
-	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
-	XMI_IF_COMPARE_GEOMETRY2(d_source_slit)
-	XMI_IF_COMPARE_GEOMETRY2(slit_size_x)
-	XMI_IF_COMPARE_GEOMETRY2(slit_size_y)
-	return TRUE;
 }
 
 /**
@@ -2159,6 +2146,63 @@ void xmi_energy_continuous_free(xmi_energy_continuous *A) {
 }
 
 #ifndef QUICKLOOK
+/**
+ * xmi_geometry_equals:
+ * @A: first xmi_geometry struct to check for equality
+ * @B: second xmi_geometry struct to check for equality
+ *
+ * Returns: %TRUE if both are equal, %FALSE otherwise.
+ */
+gboolean xmi_geometry_equals(xmi_geometry *A, xmi_geometry *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+
+#define XMI_IF_COMPARE_GEOMETRY(a) if (fabs(A->a - B->a)/fabs(A->a) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+#define XMI_IF_COMPARE_GEOMETRY2(a) if (fabs(A->a - B->a) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+
+#define XMI_IF_COMPARE_GEOMETRY3(a,b) if (fabs(a - b) > XMI_COMPARE_THRESHOLD){\
+		return FALSE; \
+	}
+
+	XMI_IF_COMPARE_GEOMETRY(d_sample_source)
+	double *temparr1 = g_memdup(A->n_sample_orientation,sizeof(double) * 3);
+	double *temparr2 = g_memdup(B->n_sample_orientation,sizeof(double) * 3);
+	xmi_normalize_vector_double(temparr1, 3);
+	xmi_normalize_vector_double(temparr2, 3);
+
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
+	g_free(temparr1);
+	g_free(temparr2);
+
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[0])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[1])
+	XMI_IF_COMPARE_GEOMETRY2(p_detector_window[2])
+
+	temparr1 = g_memdup(A->n_detector_orientation,sizeof(double) * 3);
+	temparr2 = g_memdup(B->n_detector_orientation,sizeof(double) * 3);
+	xmi_normalize_vector_double(temparr1, 3);
+	xmi_normalize_vector_double(temparr2, 3);
+
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[0], temparr2[0])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[1], temparr2[1])
+	XMI_IF_COMPARE_GEOMETRY3(temparr1[2], temparr2[2])
+	g_free(temparr1);
+	g_free(temparr2);
+
+	XMI_IF_COMPARE_GEOMETRY(area_detector)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_height)
+	XMI_IF_COMPARE_GEOMETRY2(collimator_diameter)
+	XMI_IF_COMPARE_GEOMETRY2(d_source_slit)
+	XMI_IF_COMPARE_GEOMETRY2(slit_size_x)
+	XMI_IF_COMPARE_GEOMETRY2(slit_size_y)
+	return TRUE;
+}
+
 /**
  * xmi_output_equals:
  * @A: first xmi_output struct to check for equality
