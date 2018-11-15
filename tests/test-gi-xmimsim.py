@@ -29,6 +29,10 @@ TEST_XMSI_URL = "https://github.com/tschoonj/xmimsim/wiki/test.xmsi"
 TEST_XMSI = "test.xmsi"
 TEST_XMSI_COPY = "test-copy.xmsi"
 
+TEST_XMSO_URL = "https://github.com/tschoonj/xmimsim/wiki/test.xmso"
+TEST_XMSO = "test.xmso"
+TEST_XMSO_COPY = "test-copy.xmso"
+
 SQRT_2 = math.sqrt(2.0)
 SQRT_2_2 = math.sqrt(2.0)/2.0
 
@@ -187,7 +191,7 @@ class TestReadXMSI(unittest.TestCase):
         self.assertAlmostEqual(layer.density, 2.33)
         self.assertAlmostEqual(layer.thickness, 0.5)
 
-    def test_copying(self):
+    def test_copy(self):
         input_copy = self.input.copy()
         self.assertTrue(input_copy.equals(self.input))
         self.assertIsNot(input_copy, self.input)
@@ -213,7 +217,6 @@ class TestReadXMSI(unittest.TestCase):
             self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
             self.assertEqual(err.message, "error reading in n_photons_interval of xml file")
         finally:
-            pass
             os.remove(TEST_XMSI_COPY)
 
     @unittest.skipUnless(HAVE_LXML, "Install lxml to run this test")
@@ -229,7 +232,6 @@ class TestReadXMSI(unittest.TestCase):
             self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
             self.assertTrue(err.message.startswith("Element general content does not follow the DTD, expecting"))
         finally:
-            pass
             os.remove(TEST_XMSI_COPY)
 
     def test_new_constructor(self):
@@ -283,8 +285,145 @@ class TestReadXMSI(unittest.TestCase):
 
         # input
         input = XmiMsim.Input.new(general, composition, geometry, excitation, absorbers, detector)
+        self.assertIsNot(input.general, general)
+        self.assertIsNot(input.composition, composition)
+        self.assertIsNot(input.geometry, geometry)
+        self.assertIsNot(input.excitation, excitation)
+        self.assertIsNot(input.absorbers, absorbers)
+        self.assertIsNot(input.detector, detector)
         self.assertEqual(input.validate(), 0)
         self.assertTrue(input.equals(self.input))
+
+class TestWriteXMSI(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # download XMSI file
+        urlretrieve(TEST_XMSI_URL, TEST_XMSI)
+
+    @classmethod
+    def tearDownClass(cls):
+        # remove the XMSI file
+        os.remove(TEST_XMSI)
+
+    def setUp(self):
+        self.input = XmiMsim.Input.read_from_xml_file(TEST_XMSI)
+
+    def test_write(self):
+        self.input.write_to_xml_file(TEST_XMSI_COPY)
+        input_copy = XmiMsim.Input.read_from_xml_file(TEST_XMSI_COPY)
+        self.assertTrue(input_copy, self.input)
+        os.remove(TEST_XMSI_COPY)
+
+    def test_write_to_nonexistent_folder(self):
+        try:
+            self.input.write_to_xml_file(os.path.join("non-existent-folder", TEST_XMSI_COPY))
+            self.fail("Writing an invalid file must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
+            self.assertTrue("No such file or directory" in err.message)
+        
+class TestReadXMSO(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # download XMSO file
+        urlretrieve(TEST_XMSO_URL, TEST_XMSO)
+
+    @classmethod
+    def tearDownClass(cls):
+        # remove the XMSO file
+        os.remove(TEST_XMSO)
+
+    def setUp(self):
+        self.output = XmiMsim.Output.read_from_xml_file(TEST_XMSO)
+
+    def test_validate_input(self):
+        self.assertEqual(self.output.input.validate(), 0)
+
+    def test_copy(self):
+        output_copy = self.output.copy()
+        self.assertEqual(output_copy.input.validate(), 0)
+        self.assertTrue(output_copy.input.equals(self.output.input))
+        self.assertTrue(output_copy.equals(self.output))
+
+    def test_reading_non_existent_file(self):
+        try:
+            XmiMsim.Output.read_from_xml_file("non-existent-file.xmso")
+            self.fail("Reading non-existent must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
+            #print(err.message)
+
+    @unittest.skipUnless(HAVE_LXML, "Install lxml to run this test")
+    def test_invalid_tag(self):
+        tree = etree.parse(TEST_XMSO)
+        item = tree.xpath("/xmimsim-results/spectrum_conv/channel[1]/counts[1]")[0]
+        item.text = "hsdhodhoosda"
+        etree.ElementTree(tree.getroot()).write(TEST_XMSO_COPY, xml_declaration=True, pretty_print=True)
+        try:
+            XmiMsim.Output.read_from_xml_file(TEST_XMSO_COPY)
+            self.fail("Reading invalid file must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
+            #print("message: {}".format(err.message))
+            self.assertEqual(err.message, "could not read counts")
+        finally:
+            os.remove(TEST_XMSO_COPY)
+
+    @unittest.skipUnless(HAVE_LXML, "Install lxml to run this test")
+    def test_missing_tag(self):
+        tree = etree.parse(TEST_XMSO)
+        item = tree.xpath("/xmimsim-results/brute_force_history")[0]
+        item.getparent().remove(item)
+        etree.ElementTree(tree.getroot()).write(TEST_XMSO_COPY, xml_declaration=True, pretty_print=True)
+        try:
+            XmiMsim.Output.read_from_xml_file(TEST_XMSO_COPY)
+            self.fail("Reading invalid file must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
+            #print("message: {}".format(err.message))
+            self.assertTrue(err.message.startswith("Element xmimsim-results content does not follow the DTD, expecting"))
+        finally:
+            os.remove(TEST_XMSO_COPY)
+
+    def test_conv_spectra(self):
+        spec0 = self.output.get_spectrum_convoluted(0)
+        self.assertFalse(any(spec0))
+        spec4 = self.output.get_spectrum_convoluted(4)
+        self.assertAlmostEqual(spec4[10], 175.588)
+
+    def test_unconv_spectra(self):
+        spec0 = self.output.get_spectrum_unconvoluted(0)
+        self.assertFalse(any(spec0))
+        spec4 = self.output.get_spectrum_unconvoluted(4)
+        self.assertAlmostEqual(spec4[1000], 352636.0)
+
+class TestWriteXMSO(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # download XMSO file
+        urlretrieve(TEST_XMSO_URL, TEST_XMSO)
+
+    @classmethod
+    def tearDownClass(cls):
+        # remove the XMSO file
+        os.remove(TEST_XMSO)
+
+    def setUp(self):
+        self.output = XmiMsim.Output.read_from_xml_file(TEST_XMSO)
+
+    def test_write(self):
+        self.output.write_to_xml_file(TEST_XMSO_COPY)
+        output_copy = XmiMsim.Output.read_from_xml_file(TEST_XMSO_COPY)
+        self.assertTrue(output_copy, self.output)
+        os.remove(TEST_XMSO_COPY)
+
+    def test_write_to_nonexistent_folder(self):
+        try:
+            self.output.write_to_xml_file(os.path.join("non-existent-folder", TEST_XMSO_COPY))
+            self.fail("Writing an invalid file must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
+            self.assertTrue("No such file or directory" in err.message)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

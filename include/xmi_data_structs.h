@@ -308,6 +308,17 @@ gboolean xmi_detector_equals(xmi_detector *A, xmi_detector *B);
 
 
 typedef struct _xmi_input xmi_input;
+/**
+ * xmi_input:
+ * @general: a pointer to an #xmi_general struct
+ * @composition: a pointer to an #xmi_composition struct
+ * @geometry: a pointer to an #xmi_geometry struct
+ * @excitation: a pointer to an #xmi_excitation struct
+ * @absorbers: a pointer to an #xmi_absorbers struct
+ * @detector: a pointer to an #xmi_detector struct
+ *
+ * This struct contains the description of all parameters that will determine the output of a simulation. Consult the structs within for more specific information.
+ */
 struct _xmi_input {
 	xmi_general *general;
 	xmi_composition *composition;
@@ -346,6 +357,23 @@ struct _xmi_fluorescence_line_counts {
 };
 
 typedef struct _xmi_output xmi_output;
+/**
+ * xmi_output:
+ * @version: the version of XMI-MSIM that was used to write this file.
+ * @inputfile: the name of the input-file that was used to generate this output.
+ * @outputfile: the name of the output-file that contains this output
+ * @input: an #xmi_input struct containing a description of the simulation parameters.
+ * @brute_force_history: (skip): 
+ * @var_red_history: (skip):
+ * @nbrute_force_history: (skip):
+ * @nvar_red_history: (skip):
+ * @channels_conv: (skip):
+ * @channels_unconv: (skip):
+ * @ninteractions: the maximum number of interactions a photon could experience during the simulation.
+ * @use_zero_interactions: if set to 1, this indicates that the simulation was ran in brute force mode and that it is possible that photons were recorded that experienced no interaction while moving through the sample, assuming the detector was positioned in the beampath.
+ *
+ * This struct contains the output of an XMI-MSIM simulation.
+ */
 struct _xmi_output {
 	float version;
 	char *inputfile;
@@ -509,6 +537,8 @@ void xmi_archive_free(xmi_archive *archive);
 xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
 
 void xmi_output_copy(xmi_output *A, xmi_output **B);
+GArray* xmi_output_get_spectrum_convoluted(xmi_output *output, int after_interactions);
+GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_interactions);
 
 double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 

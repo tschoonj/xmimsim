@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
 	xmi_output_copy(output, &output_copy);
 	g_assert(xmi_input_validate(output_copy->input) == 0);
 	g_assert(xmi_input_compare(output->input, output_copy->input) == 0);
+	g_assert_true(xmi_output_equals(output, output_copy));
 
 	xmi_output_free(output);
 	xmi_output_free(output_copy);
