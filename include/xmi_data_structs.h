@@ -333,6 +333,7 @@ void xmi_input_copy(xmi_input *A, xmi_input **B);
 xmi_input *xmi_input_init_empty(void);
 xmi_input *xmi_input_new(xmi_general *general, xmi_composition *composition, xmi_geometry *geometry, xmi_excitation *excitation, xmi_absorbers *absorbers, xmi_detector *detector);
 
+#ifndef __GI_SCANNER__
 typedef struct _xmi_counts xmi_counts;
 struct _xmi_counts {
 	double counts;
@@ -355,6 +356,7 @@ struct _xmi_fluorescence_line_counts {
 	int n_lines;
 	xmi_fluorescence_line *lines;
 };
+#endif
 
 typedef struct _xmi_output xmi_output;
 /**
@@ -379,8 +381,13 @@ struct _xmi_output {
 	char *inputfile;
 	char *outputfile; // this will be the file XMSO filename, not necessarily the same as input->general->outputfile
 	xmi_input *input;
+#ifndef __GI_SCANNER__
 	xmi_fluorescence_line_counts *brute_force_history;
 	xmi_fluorescence_line_counts *var_red_history;
+#else
+	void *brute_force_history;
+	void *var_red_history;
+#endif
 	int nbrute_force_history;
 	int nvar_red_history;
 	double **channels_conv;
@@ -388,6 +395,13 @@ struct _xmi_output {
 	int ninteractions;
 	int use_zero_interactions;
 };
+
+void xmi_output_free(xmi_output *output);
+void xmi_output_copy(xmi_output *A, xmi_output **B);
+GArray* xmi_output_get_spectrum_convoluted(xmi_output *output, int after_interactions);
+GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_interactions);
+GHashTable* xmi_output_get_history(xmi_output *output);
+double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
 typedef struct _xmi_archive xmi_archive;
 struct _xmi_archive {
@@ -457,8 +471,6 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B);
  */
 typedef void* xmi_inputFPtr;
 
-
-
 typedef enum {
 	XMI_INPUT_GENERAL = 1,
 	XMI_INPUT_COMPOSITION = 2,
@@ -527,20 +539,14 @@ void xmi_input_print(xmi_input *input, FILE *fPtr);
 
 xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, double *var_red_history,double **channels_conv, double *channels_unconv, char *inputfile, int use_zero_interactions );
 
+#ifndef __GI_SCANNER__
 void xmi_fluorescence_line_counts_free(xmi_fluorescence_line_counts *history, int nhistory);
-
-void xmi_output_free(xmi_output *output);
+#endif
 
 void xmi_archive_copy(xmi_archive *A, xmi_archive **B);
 void xmi_archive_free(xmi_archive *archive);
 
 xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
-
-void xmi_output_copy(xmi_output *A, xmi_output **B);
-GArray* xmi_output_get_spectrum_convoluted(xmi_output *output, int after_interactions);
-GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_interactions);
-
-double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
