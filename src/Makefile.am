@@ -202,6 +202,7 @@ xmimsim_detector.mod: libxmimsim.la
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
 INTROSPECTION_SCANNER_ARGS = \
+	-I$(top_builddir) \
 	--warn-all \
 	--identifier-filter-cmd="python $(srcdir)/identfilter.py" \
 	--symbol-filter-cmd="python $(srcdir)/symbolfilter.py" \
@@ -218,6 +219,7 @@ introspection_sources = \
 	$(top_srcdir)/include/xmi_job.h \
 	$(top_srcdir)/include/xmi_gobject.h \
 	xmi_type_builtins.h \
+	xmi_private.h \
 	$(top_srcdir)/include/xmi_xml.h \
 	$(top_srcdir)/include/xmi_error.h \
 	xmi_data_structs.c \

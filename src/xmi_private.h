@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,6 +26,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct _xmi_history_element_line xmi_history_element_line;
+/**
+ * xmi_history_element_line:
+ * @energy: line energy, expressed in keV.
+ * @total_counts: total number of counts for this line, for all interactions.
+ * @interactions: (element-type double): array containing counts per interaction for this line.
+ */
+struct _xmi_history_element_line {
+	//char *line_type;
+	double energy;
+	double total_counts;
+	//int n_interactions;
+	//xmi_counts *interactions;
+	GArray *interactions;
+	gint ref_count;
+};
+
+typedef struct _xmi_history_element xmi_history_element;
+/**
+ * xmi_history_element:
+ * @total_counts: total number of counts for this element, for all lines, for all interactions.
+ * @lines: (element-type utf8 XmiMsim.HistoryElementLine): hash containing line specific information.
+ */
+struct _xmi_history_element {
+	//int atomic_number;
+	double total_counts;
+	//int n_lines;
+	GHashTable *lines;
+	gint ref_count;
+};
+
+void xmi_history_element_line_free(xmi_history_element_line *line);
+void xmi_history_element_free(xmi_history_element *element);
+
+#ifndef __GI_SCANNER__
 
 #ifdef G_OS_WIN32
   #include <windows.h>
@@ -69,6 +105,9 @@ int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
 xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
 
 #endif
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif

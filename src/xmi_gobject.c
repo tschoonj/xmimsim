@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmi_gobject.h"
+#include "xmi_private.h"
 #include "xmi_data_structs.h"
 
 // taken more or less from ebassi's graphene-gobject.c
@@ -80,3 +81,29 @@ GType xmi_msim_layer_get_type(void) {
 	}
 	return xmi_msim_define_id__volatile;
 }
+
+static void xmi_history_element_line_copy(xmi_history_element_line *A, xmi_history_element_line **B) {
+	g_return_if_fail(A != NULL && B != NULL);
+	g_atomic_int_inc(&A->ref_count);
+	*B = A;
+}
+
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimHistoryElementLine, history_element_line);
+
+static void xmi_history_element_copy(xmi_history_element *A, xmi_history_element **B) {
+	g_return_if_fail(A != NULL && B != NULL);
+	g_atomic_int_inc(&A->ref_count);
+	/*gchar *line_type;
+	xmi_history_element_line *line;
+	GHashTableIter iter;
+	g_hash_table_iter_init(&iter, A->lines);
+	while (g_hash_table_iter_next(&iter, (gpointer *) &line_type, (gpointer *) &line)) {
+		xmi_history_element_line *line_copy;
+		xmi_history_element_line_copy(line, &line_copy);
+		g_hash_table_insert(rv->lines, g_strdup(line_type), line_copy);
+	}*/
+	*B = A;
+}
+
+XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimHistoryElement, history_element);
+

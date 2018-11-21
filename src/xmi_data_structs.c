@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_data_structs.h"
 #include "xmi_aux.h"
 #include "xmi_lines.h"
+#include "xmi_private.h"
 #include <math.h>
 #include <glib.h>
 #include <string.h>
@@ -1701,6 +1702,89 @@ GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_inter
 
 	GArray *rv = g_array_sized_new(FALSE, FALSE, sizeof(double), output->input->detector->nchannels);
 	g_array_append_vals(rv, output->channels_unconv[after_interactions], output->input->detector->nchannels);
+	return rv;
+}
+
+static void get_history(GHashTable *table, xmi_fluorescence_line_counts *history, int nhistory, int ninteractions) {
+	int i;
+
+	for (i = 0 ; i < nhistory ; i++) {
+		//int *Z = g_malloc(sizeof(int));
+		xmi_history_element *element = g_malloc0(sizeof(xmi_history_element));
+		element->ref_count = 1;
+		//fprintf(stderr, "Za: %d\n", history[i].atomic_number);
+		int Z = history[i].atomic_number;
+		//fprintf(stderr, "Zb: %d\n", *Z);
+		element->total_counts = history[i].total_counts;
+		element->lines = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, (GDestroyNotify) xmi_history_element_line_free);
+		g_hash_table_insert(table, GINT_TO_POINTER(Z), element);
+		int j;
+		for (j = 0 ; j < history[i].n_lines ; j++) {
+			gchar *line_type = g_strdup(history[i].lines[j].line_type);
+			xmi_history_element_line *line = g_malloc0(sizeof(xmi_history_element_line));
+			line->ref_count = 1;
+			line->energy = history[i].lines[j].energy;
+			line->total_counts = history[i].lines[j].total_counts;
+			line->interactions = g_array_sized_new(FALSE, TRUE, sizeof(double), ninteractions + 1);
+			g_hash_table_insert(element->lines, line_type, line);
+			int k;
+			for (k = 0 ; k <= ninteractions ; k++) {
+				double nil = 0.0;
+				g_array_append_val(line->interactions, nil);
+			}
+			for (k = 0 ; k < history[i].lines[j].n_interactions ; k++) {
+				int interaction = history[i].lines[j].interactions[k].interaction_number;
+				double counts = history[i].lines[j].interactions[k].counts;
+				g_array_index(line->interactions, double, interaction) =  counts;
+			}
+		}
+	}
+}
+
+void xmi_history_element_free(xmi_history_element *element) {
+	g_return_if_fail(element != NULL);
+	// until pygobject fixes support for GHashTables with boxed types as values, there should be no memory being freed here.
+	return;
+	if (g_atomic_int_dec_and_test(&element->ref_count)) {
+		g_hash_table_unref(element->lines);	
+		g_free(element);
+	}
+	/*xmi_history_element_line *line;
+	GHashTableIter iter;
+	g_hash_table_iter_init(&iter, element->lines);
+	while (g_hash_table_iter_next(&iter, NULL, &line)) {
+		g_hash_table_ref(line->interactions);
+	}*/
+}
+
+void xmi_history_element_line_free(xmi_history_element_line *line) {
+	g_return_if_fail(line != NULL);
+	// until pygobject fixes support for GHashTables with boxed types as values, there should be no memory being freed here.
+	return;
+	if (g_atomic_int_dec_and_test(&line->ref_count)) {
+		g_array_unref(line->interactions);	
+		g_free(line);
+	}
+}
+
+/**
+ * xmi_output_get_history:
+ * @output: an #xmi_output instance.
+ * 
+ * Returns: (element-type int XmiMsim.HistoryElement) (transfer full): a table with the simulation history an per element, per line and per interaction basis.
+ */
+GHashTable* xmi_output_get_history(xmi_output *output) {
+	g_return_val_if_fail(output != NULL, NULL);
+
+	GHashTable *rv = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) xmi_history_element_free);
+
+	if (output->nbrute_force_history > 0 ) {
+		get_history(rv, output->brute_force_history, output->nbrute_force_history, output->ninteractions);
+	}
+	else if (output->nvar_red_history > 0) {
+		get_history(rv, output->var_red_history, output->nvar_red_history, output->ninteractions);
+	
+	}
 	return rv;
 }
 

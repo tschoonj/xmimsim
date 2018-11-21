@@ -2,6 +2,7 @@
 #include "libxmimsim-test.h"
 #include "xmi_msim.h"
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include <glib.h>
 #include <math.h>
 #include <unistd.h>
@@ -30,8 +31,36 @@ int main(int argc, char *argv[]) {
 	g_assert(xmi_input_compare(output->input, output_copy->input) == 0);
 	g_assert_true(xmi_output_equals(output, output_copy));
 
-	xmi_output_free(output);
 	xmi_output_free(output_copy);
+
+	// print history from GHashTable
+	GHashTable *history = xmi_output_get_history(output);
+	GHashTableIter iter1;
+	g_hash_table_iter_init(&iter1, history);
+	gpointer Z;
+	xmi_history_element *element;
+	while (g_hash_table_iter_next(&iter1, &Z, (gpointer *) &element)) {
+		fprintf(stderr, "Z: %d -> %g\n", GPOINTER_TO_INT(Z), element->total_counts);	
+		GHashTableIter iter2;
+		gchar *line;
+		xmi_history_element_line *element_line;
+		g_hash_table_iter_init(&iter2, element->lines);
+		while (g_hash_table_iter_next(&iter2, (gpointer *) &line, (gpointer *) &element_line)) {
+			fprintf(stderr, "\tline: %s -> %g -> %g keV\n",  line, element_line->total_counts, element_line->energy);
+			int interaction;
+			for (interaction = 0 ; interaction < element_line->interactions->len ; interaction++) {
+				fprintf(stderr, "\t\tinteraction: %d -> %g\n", interaction, g_array_index(element_line->interactions, double, interaction));
+			}
+		}
+	}
+	// Cu-KL3
+	// a.get_history()[29].lines['KL3'].interactions
+	// [0.0, 341906.0, 80777.5, 3453.95, 142.371]
+	g_assert(fabs(g_array_index(((xmi_history_element_line *) g_hash_table_lookup(((xmi_history_element *) g_hash_table_lookup(history, GINT_TO_POINTER(29)))->lines, "KL3"))->interactions, double, 2) - 80777.5) < 1E-6);
+
+	g_hash_table_destroy(history);
+
+	xmi_output_free(output);
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;

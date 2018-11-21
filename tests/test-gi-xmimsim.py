@@ -397,6 +397,10 @@ class TestReadXMSO(unittest.TestCase):
         spec4 = self.output.get_spectrum_unconvoluted(4)
         self.assertAlmostEqual(spec4[1000], 352636.0)
 
+    def test_history(self):
+        # Cu-KL3
+        self.assertAlmostEqual(self.output.get_history()[29].lines['KL3'].interactions, [0.0, 341906.0, 80777.5, 3453.95, 142.371])
+
 class TestWriteXMSO(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
