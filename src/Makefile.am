@@ -222,11 +222,14 @@ introspection_sources = \
 	xmi_private.h \
 	$(top_srcdir)/include/xmi_xml.h \
 	$(top_srcdir)/include/xmi_error.h \
+	$(top_srcdir)/include/xmi_aux.h \
+	$(top_srcdir)/include/xmi_data.h \
 	xmi_data_structs.c \
 	xmi_job.c \
 	xmi_gobject.c \
 	xmi_type_builtins.c \
 	xmi_xml.c \
+	xmi_aux.c \
 	$(NULL)
 
 if ENABLE_GOOGLE_ANALYTICS
@@ -235,7 +238,7 @@ endif
 
 XmiMsim-1.0.gir: libxmimsim.la
 XmiMsim_1_0_gir_INCLUDES = GObject-2.0 libxml2-2.0
-XmiMsim_1_0_gir_CFLAGS = 
+XmiMsim_1_0_gir_CFLAGS = $(xraylib_CFLAGS)
 XmiMsim_1_0_gir_LIBS = libxmimsim.la
 XmiMsim_1_0_gir_FILES = $(introspection_sources)
 INTROSPECTION_GIRS += XmiMsim-1.0.gir

@@ -256,6 +256,11 @@ xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPath
 
 static gboolean xmi_init_hdf5_done = FALSE;
 
+/**
+ * xmi_init_hdf5:
+ *
+ * Does some initializing related to the HDF5 library: calls H5open(), disables error messages and establishes values for some types...
+ */
 void xmi_init_hdf5(void) {
 	//this is not thread-safe but I don't expect problems
 

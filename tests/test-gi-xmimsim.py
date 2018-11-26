@@ -3,6 +3,9 @@ import unittest
 import sys
 import os
 import math
+from timeit import default_timer as timer
+import logging
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 try:
     import gi
@@ -15,11 +18,19 @@ try:
 except Exception as e:
     from urllib.request import urlretrieve
 
+# check if lxml is available... necessary for some of the XMSI/XMSO tests
 try:
     import lxml.etree as etree
     HAVE_LXML = True
 except ImportError as e:
     HAVE_LXML = False
+
+# check if xraylib is available... necessary for job tests
+try:
+    import xraylib as xrl
+    HAVE_XRAYLIB = True
+except ImportError as e:
+    HAVE_XRAYLIB = False
 
 
 gi.require_version('XmiMsim', '1.0')
@@ -428,6 +439,451 @@ class TestWriteXMSO(unittest.TestCase):
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
             self.assertTrue("No such file or directory" in err.message)
+
+@unittest.skipUnless(HAVE_XRAYLIB, "Install xraylib's python bindings to run this test")
+class TestJob(unittest.TestCase):
+
+    COMPOUND = "C6H12O6" # sweet, sweet sugar
+    EXTRA_OPTIONS = (
+    "--with-hdf5-data=xmimsimdata-" + COMPOUND + ".h5",
+    "--with-solid-angles-data=solid-angles.h5",
+    "--with-escape-ratios-data=escape-ratios.h5"
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        if not XmiMsim.Job.is_suspend_available():
+            raise 
+        XmiMsim.init_hdf5()
+        cls.cd = xrl.CompoundParser(cls.COMPOUND)
+        if cls.cd is None:
+            raise
+        cls.data_file = "xmimsimdata-" + cls.COMPOUND + ".h5"
+        logging.debug("data_file: {}".format(cls.data_file))
+        if XmiMsim.db(cls.data_file, cls.cd['Elements']) is not 1:
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(cls.data_file)
+
+    def setUp(self):
+        self.main_loop = GLib.MainLoop.new(None, False)
+        self.input = XmiMsim.Input.init_empty()
+        # simulate 10M photons brute force
+        general = self.input.general.copy()
+        general.n_photons_line = 10000000
+        self.input.set_general(general)
+        self.options = XmiMsim.MainOptions.new()
+        self.options.use_variance_reduction = False # brute force!
+        self.options.use_escape_peaks = False # no escape peaks!
+
+        layer = XmiMsim.Layer.new(type(self).cd['Elements'], type(self).cd['massFractions'], 1.0, 1.0)
+        composition = XmiMsim.Composition.new([layer], reference_layer=1)
+        self.input.set_composition(composition)
+
+    def test_no_executable(self):
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_NON_EXISTENT_EXEC"],
+            "non-existent-file.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+        try:
+            logging.debug("command: {}".format(job.get_command()))
+            job.start()
+            self.fail("Starting a job without existent executable must throw an exception!")
+        except GLib.Error as err:
+            self.assertEqual(GLib.quark_from_string(err.domain), GLib.spawn_error_quark())
+            self.assertTrue(err.code == GLib.SpawnError.NOENT or err.code == GLib.SpawnError.FAILED)
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertFalse(job.has_finished())
+        self.assertFalse(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+    def _test_fail_finished_cb(self, job, result, buffer):
+        logging.debug("test_fail_finished_cb time elapsed: {}".format(timer() - self.start))
+        logging.debug("message: {}".format(buffer))
+        self.main_loop.quit()
+
+    def _print_stdout(self, job, string):
+        logging.debug("stdout: {}".format(string))
+
+    def _print_stderr(self, job, string):
+        logging.debug("stderr: {}".format(string))
+
+    def test_no_input_file(self):
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            "non-existent-file.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_fail_finished_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertFalse(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+    def test_bad_input_file(self):
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        # invalidate file
+        composition = self.input.composition.copy()
+        composition.reference_layer = 5
+        self.input.set_composition(composition)
+        self.assertEqual(self.input.validate(), XmiMsim.InputFlags.COMPOSITION)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            type(self).COMPOUND + "-test.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_fail_finished_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertFalse(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        os.remove(type(self).COMPOUND + "-test.xmsi")
+
+    def _test_special_event_cb(self, job, event, buffer):
+        self.assertTrue(job.is_running())
+        # this test is running in brute force mode, so we know exactly what to expect
+        if event == XmiMsim.JobSpecialEvent.SOLID_ANGLE:
+            self.assertEqual(buffer, "Solid angle grid redundant")
+        elif event == XmiMsim.JobSpecialEvent.ESCAPE_PEAKS:
+            self.assertEqual(buffer, "Escape peaks redundant")
+        logging.debug("special_event: {}".format(buffer))
+
+    def _test_succeed_finished_cb(self, job, result, buffer):
+        logging.debug("test_succeed_finished_cb time elapsed: {}".format(timer() - self.start))
+        logging.debug("message: {}".format(buffer))
+        self.main_loop.quit()
+
+    def test_good_input_file_simple(self):
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            type(self).COMPOUND + "-test.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_succeed_finished_cb)
+        job.connect('special-event', self._test_special_event_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertTrue(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        os.remove(type(self).COMPOUND + "-test.xmsi")
+        os.remove(type(self).COMPOUND + "-test.xmso")
+
+    def _stop_timeout(self, job):
+        self.assertTrue(job.stop())
+        logging.debug("message: job stopped")
+        return False
+
+    def test_good_input_file_stop(self):
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            type(self).COMPOUND + "-test.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_fail_finished_cb)
+        job.connect('special-event', self._test_special_event_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+
+        GLib.timeout_add_seconds(5, self._stop_timeout, job)
+
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertFalse(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        os.remove(type(self).COMPOUND + "-test.xmsi")
+
+    def _suspend_resume_timeout(self, job):
+        logging.debug("calling _suspend_resume_timeout")
+        self.assertTrue(job.is_running())
+
+        if not job.is_suspended():
+            self.assertTrue(job.suspend())
+            logging.debug("message: job suspended")
+            return True
+
+        self.assertTrue(job.resume())
+        logging.debug("message: job resumed");
+
+        return False
+
+    def test_good_input_file_suspend_resume(self):
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            type(self).COMPOUND + "-test.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_succeed_finished_cb)
+        job.connect('special-event', self._test_special_event_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+
+        GLib.timeout_add_seconds(5, self._suspend_resume_timeout, job)
+
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertTrue(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        os.remove(type(self).COMPOUND + "-test.xmsi")
+        os.remove(type(self).COMPOUND + "-test.xmso")
+
+    def _suspend_stop_timeout(self, job):
+        logging.debug("calling _suspend_stop_timeout")
+        self.assertTrue(job.is_running())
+
+        if not job.is_suspended():
+            self.assertTrue(job.suspend())
+            logging.debug("message: job suspended")
+            return True
+
+        self.assertTrue(job.stop())
+        logging.debug("message: job killed")
+
+        return False
+
+    def test_good_input_file_suspend_stop(self):
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
+        job = XmiMsim.Job.new(
+            os.environ["XMIMSIM_EXEC"],
+            type(self).COMPOUND + "-test.xmsi",
+            self.options,
+            extra_options=type(self).EXTRA_OPTIONS
+            )
+        self.assertIsNotNone(job)
+
+        # hook up signals
+        job.connect('finished-event', self._test_fail_finished_cb)
+        job.connect('special-event', self._test_special_event_cb)
+        job.connect('stdout-event', self._print_stdout)
+        job.connect('stderr-event', self._print_stderr)
+
+        logging.debug("command: {}".format(job.get_command()))
+        job.start()
+        self.start = timer()
+
+        GLib.timeout_add_seconds(5, self._suspend_stop_timeout, job)
+
+        self.main_loop.run()
+
+        self.assertFalse(job.is_running())
+        self.assertFalse(job.is_suspended())
+        self.assertTrue(job.has_finished())
+        self.assertFalse(job.was_successful())
+        try:
+            job.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        try:
+            job.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        try:
+            job.start()
+            self.fail("Starting a job after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        os.remove(type(self).COMPOUND + "-test.xmsi")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

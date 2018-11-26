@@ -331,7 +331,14 @@ struct _xmi_input {
 void xmi_input_free(xmi_input *input);
 void xmi_input_copy(xmi_input *A, xmi_input **B);
 xmi_input *xmi_input_init_empty(void);
+/* the following xmi_input functions are mostly intended to be used from Gobject-Introspection */
 xmi_input *xmi_input_new(xmi_general *general, xmi_composition *composition, xmi_geometry *geometry, xmi_excitation *excitation, xmi_absorbers *absorbers, xmi_detector *detector);
+void xmi_input_set_general(xmi_input *input, xmi_general *general);
+void xmi_input_set_composition(xmi_input *input, xmi_composition *composition);
+void xmi_input_set_geometry(xmi_input *input, xmi_geometry *geometry);
+void xmi_input_set_excitation(xmi_input *input, xmi_excitation *excitation);
+void xmi_input_set_absorbers(xmi_input *input, xmi_absorbers *absorbers);
+void xmi_input_set_detector(xmi_input *input, xmi_detector *detector);
 
 #ifndef __GI_SCANNER__
 typedef struct _xmi_counts xmi_counts;

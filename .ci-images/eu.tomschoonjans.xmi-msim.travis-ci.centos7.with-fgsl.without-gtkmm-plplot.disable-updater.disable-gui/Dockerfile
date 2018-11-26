@@ -15,6 +15,7 @@ RUN yum install -y  gcc gcc-gfortran gcc-c++ \
         hdf5-devel \
         xraylib-devel \
         xraylib-fortran \
+        xraylib-python \
         libsoup-devel \
 	gobject-introspection \
 	gobject-introspection-devel \

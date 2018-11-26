@@ -11,7 +11,7 @@ export GTKMM_PLPLOT_BRANCH=master
 curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
 tar xfz xraylib-3.3.0.tar.gz
 cd xraylib-3.3.0
-./configure --prefix=$HOME/install --disable-static
+./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration
 make -j2
 make install
 cd ..

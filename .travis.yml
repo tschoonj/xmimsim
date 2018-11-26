@@ -240,7 +240,8 @@ before_install:
       brew update || exit 1
       brew cleanup -s || exit 1
       #rm -rf $(brew --cache) || exit 1
-      brew install git gsl autoconf automake libtool libxslt hdf5 libsoup wget pygobject3 bash || exit 1
+      brew install git gsl autoconf automake libtool libxslt hdf5 libsoup wget pygobject3 bash swig || exit 1
+      brew install numpy --without-python@2 || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       pip3 install lxml
@@ -262,7 +263,7 @@ install:
       wget https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz || exit 1
       tar xfz xraylib-3.3.0.tar.gz || exit 1
       cd xraylib-3.3.0
-      ./configure --enable-fortran2003 --disable-static || exit 1
+      ./configure --enable-fortran2003 --disable-static --enable-python PYTHON=/usr/local/bin/python3 --enable-python-integration || exit 1
       make -j2 || exit 1
       sudo make install || exit 1
       cd ..
