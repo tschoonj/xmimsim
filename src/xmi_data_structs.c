@@ -112,6 +112,20 @@ xmi_input *xmi_input_new(xmi_general *general, xmi_composition *composition, xmi
 	return rv;
 }
 
+#define INPUT_SETTER(name) \
+	void xmi_input_set_ ## name(xmi_input *input, xmi_ ## name *name) { \
+		g_return_if_fail(input != NULL); \
+		xmi_ ## name ## _free(input->name); \
+		xmi_ ## name ## _copy(name, &input->name); \
+	}
+
+INPUT_SETTER(general)
+INPUT_SETTER(composition)
+INPUT_SETTER(geometry)
+INPUT_SETTER(excitation)
+INPUT_SETTER(absorbers)
+INPUT_SETTER(detector)
+
 /**
  * xmi_input_free:
  * @input: a #xmi_input struct

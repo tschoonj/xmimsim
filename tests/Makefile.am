@@ -28,6 +28,14 @@ PY_LOG_COMPILER = $(PYTHON)
 AM_PY_LOG_FLAGS =
 AM_TESTS_ENVIRONMENT = XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH ;
 
+if OS_WINDOWS
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+else
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+endif
+
 
 if HAVE_INTROSPECTION
 if HAVE_PYTHON

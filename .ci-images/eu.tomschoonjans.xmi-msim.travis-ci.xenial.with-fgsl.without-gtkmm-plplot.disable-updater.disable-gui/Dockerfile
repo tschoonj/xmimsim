@@ -15,6 +15,7 @@ RUN apt-get install -y build-essential \
         libhdf5-serial-dev \
         hdf5-tools \
         libxrl7-dev \
+        python-libxrl7 \
         libsoup2.4-dev \
 	gobject-introspection \
 	python-gobject \

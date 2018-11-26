@@ -6,14 +6,6 @@
 
 #define COMPOUND "C6H12O6" // sweet, sweet sugar
 
-#ifdef G_OS_WIN32
-  #define XMIMSIM_EXEC "../bin/.libs/xmimsim.exe"
-  #define XMIMSIM_NON_EXISTENT_EXEC "../bin/.libs/xmimsim-bad.exe"
-#else
-  #define XMIMSIM_EXEC "../bin/xmimsim"
-  #define XMIMSIM_NON_EXISTENT_EXEC "../bin/xmimsim-bad"
-#endif
-
 const gchar *extra_options[4] = {
 	"--with-hdf5-data=xmimsimdata-" COMPOUND ".h5",
 	"--with-solid-angles-data=solid-angles.h5",
@@ -25,12 +17,13 @@ typedef struct {
 	GMainLoop *main_loop;
 	xmi_input *input;
 	xmi_main_options *options;
+	GTimer *timer;
 } SetupData;
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
 	data->main_loop = g_main_loop_new(NULL, FALSE);
 	data->input = xmi_input_init_empty();
-	// simulate 10M photons
+	// simulate 10M photons brute force
 	data->input->general->n_photons_line = 10000000;
 	data->options = xmi_main_options_new();
 	data->options->use_variance_reduction = FALSE; // brute force!
@@ -56,7 +49,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_NON_EXISTENT_EXEC,
+		g_getenv("XMIMSIM_NON_EXISTENT_EXEC"),
 		"non-existent-file.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -64,6 +57,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 		&error
 		);
 	g_assert_nonnull(job);
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_false(xmi_msim_job_start(job, &error));
 
 	g_assert(error->domain == G_SPAWN_ERROR);
@@ -110,7 +104,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		"non-existent-file.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -124,6 +118,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
@@ -155,7 +150,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -169,6 +164,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
@@ -208,7 +204,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -223,6 +219,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	g_main_loop_run(data->main_loop);
@@ -260,7 +257,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -275,6 +272,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will stop the job
@@ -322,7 +320,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -337,6 +335,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will suspend and resume the job
@@ -385,7 +384,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
-		XMIMSIM_EXEC,
+		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
@@ -400,6 +399,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
 
 	// hook up timeout that will suspend and stop the job
