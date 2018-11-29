@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsoResultsScrolledWindow		XmiMsimGuiXmsoResultsScrolledWindow;
 typedef struct _XmiMsimGuiXmsoResultsScrolledWindowClass   	XmiMsimGuiXmsoResultsScrolledWindowClass;
 
-GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new();
+GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new(void);
 
 gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmsoResultsScrolledWindow *window, const gchar *xmsofile, GError **error);
 

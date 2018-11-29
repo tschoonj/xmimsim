@@ -924,6 +924,13 @@ static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *sel
 	g_action_map_add_action_entries(G_ACTION_MAP(self), win_entries, G_N_ELEMENTS(win_entries), self);
 }
 
+/**
+ * xmi_msim_gui_xmsa_viewer_window_new: (constructor)
+ * @app: (nullable): an instance of #XmiMsimGuiApplication.
+ * @archive: (transfer full): an instance of #XmiMsimArchive
+ *
+ * Returns: a fresly initialized #XmiMsimGuiXmsaViewerWindow
+ */
 GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, xmi_archive *archive) {
 	g_return_val_if_fail(archive != NULL, NULL);
 

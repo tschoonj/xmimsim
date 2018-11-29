@@ -15,16 +15,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <config.h>
-#include "xmimsim-gui-application.h"
-#include <gtkmm/main.h>
 
-int main(int argc, char *argv[]) {
+#ifndef XMI_MSIM_GUI_UTILS_PP_H
+#define XMI_MSIM_GUI_UTILS_PP_H
 
-	gtk_disable_setlocale();
+#include <glib.h>
 
-	// for gtkmm-plplot!
-	Gtk::Main::init_gtkmm_internals();
 
-	return g_application_run(G_APPLICATION(xmi_msim_gui_application_new()), argc, argv);
-}
+G_BEGIN_DECLS
+
+void xmi_msim_gui_init(void);
+
+G_END_DECLS
+
+
+#endif
+

@@ -40,8 +40,10 @@ void xmi_msim_gui_utils_ensure_extension(gchar **filename, const gchar *extensio
 gchar* xmi_msim_gui_utils_get_layer_element_string(xmi_layer *layer);
 
 void xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(GtkWidget *controlsLogW, GTimer *timer, GtkTextBuffer *buffer, const gchar *text, gint len, GtkTextTag *first_tag, ...);
-G_END_DECLS
 
 GArray* xmi_msim_gui_utils_tree_view_get_selected_indices(GtkTreeView *tree);
+
+G_END_DECLS
+
 
 #endif

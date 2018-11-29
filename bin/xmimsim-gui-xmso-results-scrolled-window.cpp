@@ -755,7 +755,7 @@ static void xmi_msim_gui_xmso_results_scrolled_window_init(XmiMsimGuiXmsoResults
 	gtk_widget_show_all(GTK_WIDGET(self));
 }
 
-GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new() {
+GtkWidget* xmi_msim_gui_xmso_results_scrolled_window_new(void) {
 
 	XmiMsimGuiXmsoResultsScrolledWindow *scrolled_window = XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(g_object_new(XMI_MSIM_GUI_TYPE_XMSO_RESULTS_SCROLLED_WINDOW, NULL));
 

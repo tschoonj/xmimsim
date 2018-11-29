@@ -39,6 +39,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-source-module.h \
 	xmimsim-gui-utils.h \
+	xmimsim-gui-utils-pp.h \
 	xmimsim-gui-export-canvas-dialog.h \
 	xmimsim-gui-tools.h \
 	xmimsim-gui-sources-dialog.h \
@@ -76,6 +77,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-source-module.c \
 	xmimsim-gui-utils.c \
+	xmimsim-gui-utils-pp.cpp \
 	xmimsim-gui-export-canvas-dialog.cpp \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-sources-dialog.cpp \
@@ -279,7 +281,7 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 
 
 xmimsim_gui_SOURCES = \
-	xmimsim-gui-main.cpp
+	xmimsim-gui-main.c
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
@@ -493,7 +495,18 @@ INTROSPECTION_COMPILER_ARGS = --includedir=$(top_builddir)/src
 
 if ENABLE_GUI
 if HAVE_INTROSPECTION
-introspection_sources = xmimsim-gui-source-abstract.c xmimsim-gui-source-abstract.h
+introspection_sources = \
+	xmimsim-gui-source-abstract.c \
+	xmimsim-gui-source-abstract.h \
+	xmimsim-gui-xmsa-viewer-window.cpp \
+	xmimsim-gui-xmsa-viewer-window.h \
+	xmimsim-gui-xmso-results-scrolled-window.cpp \
+	xmimsim-gui-xmso-results-scrolled-window.h \
+	xmimsim-gui-application.c \
+	xmimsim-gui-application.h \
+	xmimsim-gui-utils-pp.cpp \
+	xmimsim-gui-utils-pp.h \
+	$(NULL)
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la
 XmiMsimGui_1_0_gir_INCLUDES = GObject-2.0 XmiMsim-1.0 Gtk-3.0
