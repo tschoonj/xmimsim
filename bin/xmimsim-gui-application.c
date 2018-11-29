@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmimsim-gui-long-task-window.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
+#include "xmimsim-gui-utils-pp.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 
@@ -498,11 +499,10 @@ static void app_startup(GApplication *app) {
 	// no xraylib error messages!
 	SetErrorMessages(0);
 
+	xmi_msim_gui_init();
+
 	// init hdf5 constants and error messages
 	xmi_init_hdf5();
-
-	// init colors and css stuff
-	xmi_msim_gui_utils_init_colors();
 
 #ifdef __APPLE__ 
 	xmi_msim_gui_osx_app_disable_tabbing();

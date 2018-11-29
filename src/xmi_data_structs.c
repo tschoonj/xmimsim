@@ -1514,6 +1514,12 @@ void xmi_fluorescence_line_counts_free(xmi_fluorescence_line_counts *history, in
 	g_free(history);
 }
 
+/**
+ * xmi_output_free:
+ * @output: a #xmi_output struct
+ *
+ * Frees an xmi_output struct and its contents
+ */
 void xmi_output_free(xmi_output *output) {
 	if (output == NULL)
 		return;
@@ -1546,6 +1552,13 @@ void xmi_output_free(xmi_output *output) {
 	g_free(output);
 }
 
+/**
+ * xmi_archive_copy:
+ * @A: the original  #xmi_archive struct
+ * @B: (out): the destination to copy to
+ *
+ * Copies a #xmi_archive struct
+ */
 void xmi_archive_copy(xmi_archive *A, xmi_archive **B) {
 	xmi_archive *C = g_memdup(A, sizeof(xmi_archive));
 	C->xpath1 = g_strdup(A->xpath1);
@@ -1574,6 +1587,12 @@ void xmi_archive_copy(xmi_archive *A, xmi_archive **B) {
 	*B = C;
 }
 
+/**
+ * xmi_archive_free:
+ * @archive: a #xmi_archive struct
+ *
+ * Frees an xmi_archive struct and its contents
+ */
 void xmi_archive_free(xmi_archive *archive) {
 	if (archive == NULL)
 		return;
