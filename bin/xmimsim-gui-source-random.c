@@ -66,7 +66,7 @@ static void xmi_msim_gui_source_random_class_init(XmiMsimGuiSourceRandomClass *k
 	XmiMsimGuiSourceAbstractClass *parent_klass = XMI_MSIM_GUI_SOURCE_ABSTRACT_CLASS(klass);
 
 	parent_klass->generate = xmi_msim_gui_source_random_real_generate;
-	parent_klass->get_name = xmi_msim_gui_source_random_real_get_name;
+	parent_klass->get_source_name = xmi_msim_gui_source_random_real_get_name;
 	parent_klass->get_about_text = xmi_msim_gui_source_random_real_get_about_text;
 }
 
@@ -147,18 +147,11 @@ static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *s
 	}
 
 	// update member variables -> if we get here, everything must be fine.
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_excitation_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+	g_object_set(source, "raw-data", excitation_random, "x", x, "y", y, NULL);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_random;
-
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
-		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y)
-		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
-
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = x;
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
+	xmi_excitation_free(excitation_random);
+	g_array_unref(x);
+	g_array_unref(y);
 
 	g_signal_emit_by_name((gpointer) source, "after-generate", NULL);
 	return;

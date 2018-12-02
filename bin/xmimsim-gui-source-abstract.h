@@ -44,16 +44,14 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_IS_SOURCE_ABSTRACT_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT))
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XmiMsimGuiSourceAbstractClass))
 
-typedef struct _XmiMsimGuiSourceAbstract        XmiMsimGuiSourceAbstract;
-typedef struct _XmiMsimGuiSourceAbstractClass   XmiMsimGuiSourceAbstractClass;
+typedef struct _XmiMsimGuiSourceAbstract               XmiMsimGuiSourceAbstract;
+typedef struct _XmiMsimGuiSourceAbstractPrivate        XmiMsimGuiSourceAbstractPrivate;
+typedef struct _XmiMsimGuiSourceAbstractClass          XmiMsimGuiSourceAbstractClass;
 
 struct _XmiMsimGuiSourceAbstract
 {
   GtkBox parent_instance;
-  GArray *x;
-  GArray *y;
-  xmi_excitation *raw_data;
-  xmi_input *current;
+  XmiMsimGuiSourceAbstractPrivate *priv;
 };
 
 struct _XmiMsimGuiSourceAbstractClass
@@ -64,7 +62,7 @@ struct _XmiMsimGuiSourceAbstractClass
 
   gboolean (*save)      (XmiMsimGuiSourceAbstract *source, const char *filename, GError **error);
   
-  const gchar* (*get_name) (XmiMsimGuiSourceAbstract *source);
+  const gchar* (*get_source_name) (XmiMsimGuiSourceAbstract *source);
 
   const gchar* (*get_about_text) (XmiMsimGuiSourceAbstract *source);
 
@@ -94,6 +92,8 @@ const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *sou
 const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source);
 
 xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source);
+
+void xmi_msim_gui_source_abstract_set_data(XmiMsimGuiSourceAbstract *source, xmi_excitation *raw_data, GArray *x, GArray *y);
 
 typedef enum {
 	XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_METHOD_UNDEFINED,

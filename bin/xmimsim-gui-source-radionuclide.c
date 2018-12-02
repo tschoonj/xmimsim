@@ -66,7 +66,7 @@ static void xmi_msim_gui_source_radionuclide_class_init(XmiMsimGuiSourceRadionuc
 
 	parent_klass->generate = xmi_msim_gui_source_radionuclide_real_generate;
 	//parent_klass->save = xmi_msim_gui_source_radionuclide_real_save; // do not override
-	parent_klass->get_name = xmi_msim_gui_source_radionuclide_real_get_name;
+	parent_klass->get_source_name = xmi_msim_gui_source_radionuclide_real_get_name;
 	parent_klass->get_about_text = xmi_msim_gui_source_radionuclide_real_get_about_text;
 }
 
@@ -324,7 +324,10 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 
 static void slits_button_clicked_cb(XmiMsimGuiSourceRadionuclide *source) {
 	//calculate solid angle based on slits
-	double solid_angle = xmi_msim_gui_utils_get_solid_angle_from_slits(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->current->geometry);
+	xmi_input *current = NULL;
+	g_object_get(source, "xmi-input-current", &current, NULL);
+	double solid_angle = xmi_msim_gui_utils_get_solid_angle_from_slits(current->geometry);
+	xmi_input_free(current);
 
 	gchar *buf = g_strdup_printf("%g", solid_angle);
 	gtk_entry_set_text(GTK_ENTRY(source->nuclideSolidAngleW), buf);
@@ -456,18 +459,11 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 	}
 
 	// update member variables
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data != NULL)
-		xmi_excitation_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data);
+	g_object_set(source, "raw-data", excitation_nuclide, "x", x, "y", y, NULL);
 
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->raw_data = excitation_nuclide;
-
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x)
-		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x, TRUE);
-	if (XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y)
-		g_array_free(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y, TRUE);
-
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->x = x;
-	XMI_MSIM_GUI_SOURCE_ABSTRACT(source)->y = y;
+	xmi_excitation_free(excitation_nuclide);
+	g_array_unref(x);
+	g_array_unref(y);
 
 	g_free(xnp);
 	g_signal_emit_by_name((gpointer) source, "after-generate", NULL);

@@ -22,5 +22,6 @@ dist_xmimsim_example_DATA = In.xmsi \
 			    srm1155.xmsi \
 			    srm1155.xmso \
 			    srm1412.xmsi \
-			    srm1412.xmso
+			    srm1412.xmso \
+			    test-source.py
 
