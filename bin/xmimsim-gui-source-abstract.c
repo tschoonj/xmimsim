@@ -21,7 +21,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-marshal.h"
 #include "xmi_gobject.h"
 
-G_DEFINE_ABSTRACT_TYPE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_BOX)
+struct _XmiMsimGuiSourceAbstractPrivate
+{
+  GArray *x;
+  GArray *y;
+  xmi_excitation *raw_data;
+  xmi_input *current;
+};
+
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_BOX)
 
 static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source);
 
@@ -48,12 +56,37 @@ static void xmi_msim_gui_source_abstract_set_property (GObject          *object,
                                                 const GValue     *value,
                                                 GParamSpec       *pspec);
 
+static void xmi_msim_gui_source_abstract_get_property (GObject          *object,
+                                                guint             prop_id,
+                                                GValue     *value,
+                                                GParamSpec       *pspec);
+
 enum {
 	AFTER_GENERATE,
 	LAST_SIGNAL
 };
 
+enum {
+	PROP_0,
+	PROP_CURRENT_INPUT,
+	PROP_RAW_DATA,
+	PROP_ARRAY_X,
+	PROP_ARRAY_Y,
+	N_PROPERTIES
+};
+
 static guint signals[LAST_SIGNAL];
+
+static GParamSpec *props[N_PROPERTIES] = {NULL, };
+
+static void after_generate_default_cb(XmiMsimGuiSourceAbstract *source, GError *error, gpointer data) {
+	g_debug("Calling after_generate_default_cb");
+	if (error == NULL)
+		return;
+
+	// if an error occurred, set everything to NULL
+	g_object_set(source, "raw_data", NULL, "x", NULL, "y", NULL, NULL);
+}
 
 static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClass *klass) {
 
@@ -62,50 +95,83 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 	object_class->dispose = xmi_msim_gui_source_abstract_dispose;
 	object_class->finalize = xmi_msim_gui_source_abstract_finalize;
 	object_class->set_property = xmi_msim_gui_source_abstract_set_property;
+	object_class->get_property = xmi_msim_gui_source_abstract_get_property;
 
 	klass->generate = xmi_msim_gui_source_abstract_real_generate;
 	klass->save = xmi_msim_gui_source_abstract_real_save;
-	klass->get_name = xmi_msim_gui_source_abstract_real_get_name;
+	klass->get_source_name = xmi_msim_gui_source_abstract_real_get_name;
 	klass->get_about_text = xmi_msim_gui_source_abstract_real_get_about_text;
 	klass->energy_discrete_printf = xmi_msim_gui_source_abstract_real_energy_discrete_printf;
 	klass->energy_continuous_printf = xmi_msim_gui_source_abstract_real_energy_continuous_printf;
 	klass->save_parameters = xmi_msim_gui_source_abstract_real_save_parameters;
 	klass->load_parameters = xmi_msim_gui_source_abstract_real_load_parameters;
 
-	g_object_class_install_property(object_class,
-		1,
-		g_param_spec_boxed(
-			"xmi-input-current",
-			"Current xmi_input",
-			"Current xmi_input",
-			XMI_MSIM_TYPE_INPUT,
-    			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
-		)
+	props[PROP_CURRENT_INPUT] = g_param_spec_boxed(
+		"xmi-input-current",
+		"Current xmi_input",
+		"Current xmi_input",
+		XMI_MSIM_TYPE_INPUT,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT
 	);
 
-	signals[AFTER_GENERATE] = g_signal_new(
+	/**
+	 * XmiMsimGuiSourceAbstract:raw-data:
+	 */
+	props[PROP_RAW_DATA] = g_param_spec_boxed(
+		"raw-data",
+		"Raw data",
+		"Raw data",
+		XMI_MSIM_TYPE_EXCITATION,
+    		G_PARAM_READWRITE
+	);
+
+	/**
+	 * XmiMsimGuiSourceAbstract:x: (type GLib.Array<gdouble>):
+	 */
+	props[PROP_ARRAY_X] = g_param_spec_boxed(
+		"x",
+		"Array x",
+		"Array x",
+		G_TYPE_ARRAY,
+    		G_PARAM_READWRITE
+	);
+
+	/**
+	 * XmiMsimGuiSourceAbstract:y: (type GLib.Array<gdouble>):
+	 */
+	props[PROP_ARRAY_Y] = g_param_spec_boxed(
+		"y",
+		"Array y",
+		"Array y",
+		G_TYPE_ARRAY,
+    		G_PARAM_READWRITE
+	);
+
+	g_object_class_install_properties(object_class, N_PROPERTIES, props);
+
+	GType param_types[1] = {G_TYPE_ERROR /* GError* */};
+	GClosure *default_handler = g_cclosure_new(G_CALLBACK(after_generate_default_cb), NULL, NULL);
+
+	signals[AFTER_GENERATE] = g_signal_newv(
 		"after-generate",
 		G_TYPE_FROM_CLASS(klass),
-		G_SIGNAL_RUN_LAST,
-		0, // no default handler
+		G_SIGNAL_RUN_FIRST,
+		default_handler,
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__POINTER,
+		NULL,
 		G_TYPE_NONE,
 		1,
-		G_TYPE_POINTER // GError *
+		param_types
 	);
 }
 
 static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) {
 
-	source->x = NULL;
-	source->y = NULL;
-	source->raw_data = NULL;
-	source->current = NULL;
+	source->priv = xmi_msim_gui_source_abstract_get_instance_private(source);
 
 	g_object_set(
-		(gpointer) source,
+		source,
 		"spacing", 2,
 		"homogeneous", FALSE,
 		"expand", FALSE,
@@ -115,13 +181,36 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 	
 }
 
+/**
+ * xmi_msim_gui_source_abstract_get_plot_data:
+ * @source: an #XmiMsimGuiSourceAbstract instance
+ * @x: (element-type double) (out): the X-data.
+ * @y: (element-type double) (out): the Y-data.
+ *
+ * Gets the current plot data as two arrays x and y.
+ */
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray **y) {
-	*x = source->x;
-	*y = source->y;
+	g_return_if_fail(x != NULL && y != NULL);
+	if (source->priv->x)
+		*x = g_array_ref(source->priv->x);
+	else
+		*x = NULL;
+	if (source->priv->y)
+		*y = g_array_ref(source->priv->y);
+	else
+		*y = NULL;
 }
 
+/**
+ * xmi_msim_gui_source_abstract_get_raw_data:
+ * @source: an #XmiMsimGuiSourceAbstract instance
+ *
+ * Returns: (transfer full): the current raw excitation spectrum as a freshly allocated #XmiMsimExcitation struct, or %NULL.
+ */
 xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstract *source) {
-	return source->raw_data;
+	xmi_excitation *raw_data = NULL;
+	g_object_get(source, "raw-data", &raw_data, NULL);
+	return raw_data;
 }
 
 static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
@@ -132,14 +221,13 @@ static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 
 static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
 	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
-	if (source->raw_data)
-		xmi_excitation_free(source->raw_data);
-	if (source->x)
-		g_array_free(source->x, TRUE);
-	if (source->y)
-		g_array_free(source->y, TRUE);
+	xmi_excitation_free(source->priv->raw_data);
+	if (source->priv->x)
+		g_array_unref(source->priv->x);
+	if (source->priv->y)
+		g_array_unref(source->priv->y);
 
-	g_boxed_free(XMI_MSIM_TYPE_INPUT, source->current);
+	g_boxed_free(XMI_MSIM_TYPE_INPUT, source->priv->current);
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->finalize(object);
 }
@@ -168,7 +256,7 @@ static gboolean xmi_msim_gui_source_abstract_real_load_parameters(XmiMsimGuiSour
 
 static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract *source, const char *filename, GError **error) {
 	// check if we have data to save
-	if (source->raw_data == NULL || (source->raw_data->n_discrete == 0 && source->raw_data->n_continuous == 0)) {
+	if (source->priv->raw_data == NULL || (source->priv->raw_data->n_discrete == 0 && source->priv->raw_data->n_continuous == 0)) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR, XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_NO_RAW_DATA, "No data available for saving. Ensure the model data is valid and click \"Generate spectrum\"");
 		return FALSE;
 
@@ -199,8 +287,8 @@ static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract 
 
 	int i;
 	gsize bytes_written = 0;
-	for (i = 0 ; i < source->raw_data->n_continuous ; i++) {
-		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_continuous_printf(source, &source->raw_data->continuous[i]);
+	for (i = 0 ; i < source->priv->raw_data->n_continuous ; i++) {
+		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_continuous_printf(source, &source->priv->raw_data->continuous[i]);
 		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line), &bytes_written, NULL, error) == FALSE) {
 			g_object_unref(stream);
 			g_object_unref(file);
@@ -208,8 +296,8 @@ static gboolean xmi_msim_gui_source_abstract_real_save(XmiMsimGuiSourceAbstract 
 		}
 		g_free(line);
 	}
-	for (i = 0 ; i < source->raw_data->n_discrete ; i++) {
-		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_discrete_printf(source, &source->raw_data->discrete[i]);
+	for (i = 0 ; i < source->priv->raw_data->n_discrete ; i++) {
+		gchar *line = XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->energy_discrete_printf(source, &source->priv->raw_data->discrete[i]);
 		if (g_output_stream_write_all(G_OUTPUT_STREAM(stream), (const void*) line, strlen(line), &bytes_written, NULL, error) == FALSE) {
 			g_object_unref(stream);
 			g_object_unref(file);
@@ -261,7 +349,7 @@ gboolean xmi_msim_gui_source_abstract_load_parameters(XmiMsimGuiSourceAbstract *
 }
 
 const gchar *xmi_msim_gui_source_abstract_get_name(XmiMsimGuiSourceAbstract *source) {
-	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_name(source);
+	return XMI_MSIM_GUI_SOURCE_ABSTRACT_GET_CLASS(source)->get_source_name(source);
 }
 
 const gchar *xmi_msim_gui_source_abstract_get_about_text(XmiMsimGuiSourceAbstract *source) {
@@ -281,8 +369,22 @@ static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint pro
   XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
 
   switch (prop_id) {
-    case 1:
-      source->current = (xmi_input *) g_value_dup_boxed(value);
+    case PROP_CURRENT_INPUT:
+      source->priv->current = (xmi_input *) g_value_dup_boxed(value);
+      break;
+    case PROP_RAW_DATA:
+      xmi_excitation_free(source->priv->raw_data);
+      source->priv->raw_data = (xmi_excitation *) g_value_dup_boxed(value);
+      break;
+    case PROP_ARRAY_X:
+      if (source->priv->x)
+	      g_array_unref(source->priv->x);
+      source->priv->x = (GArray *) g_value_dup_boxed(value);
+      break;
+    case PROP_ARRAY_Y:
+      if (source->priv->y)
+	      g_array_unref(source->priv->y);
+      source->priv->y = (GArray *) g_value_dup_boxed(value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -290,3 +392,39 @@ static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint pro
 
 }
 
+static void xmi_msim_gui_source_abstract_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
+
+  XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
+
+  switch (prop_id) {
+    case PROP_CURRENT_INPUT:
+      g_value_set_boxed(value, source->priv->current);
+      break;
+    case PROP_RAW_DATA:
+      g_value_set_boxed(value, source->priv->raw_data);
+      break;
+    case PROP_ARRAY_X:
+      g_value_set_boxed(value, source->priv->x);
+      break;
+    case PROP_ARRAY_Y:
+      g_value_set_boxed(value, source->priv->y);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+/**
+ * xmi_msim_gui_source_abstract_set_data:
+ * @source: #XmiMsimGuiSourceAbstract instance
+ * @raw_data: #XmiMsimExcitation instance
+ * @x: (element-type double): plot data x-axis
+ * @y: (element-type double): plot data y-axis
+ *
+ * Update the raw and plot data. Should be used only from within the generate method, before emitting the after-generate signal.
+ */
+void xmi_msim_gui_source_abstract_set_data(XmiMsimGuiSourceAbstract *source, xmi_excitation *raw_data, GArray *x, GArray *y) {
+	g_return_if_fail(source != NULL && raw_data != NULL && x != NULL && y != NULL);
+
+	g_object_set(source, "x", x, "y", y, "raw-data", raw_data, NULL);
+}

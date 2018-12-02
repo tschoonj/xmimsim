@@ -396,6 +396,9 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	dialog->plot_window->add_data(*dataset);
 	dialog->plot_window->set_region(plot_xmin, plot_xmax,
 				plot_ymin, plot_ymax);
+
+	g_array_unref(x);
+	g_array_unref(y);
 }
 
 static void switch_page_cb(GtkNotebook *notebook, XmiMsimGuiSourceAbstract *source, guint page_num, XmiMsimGuiSourcesDialog *dialog) {
@@ -413,20 +416,6 @@ static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, X
 
 		gtk_dialog_run(GTK_DIALOG(info_dialog));
 		gtk_widget_destroy(info_dialog);
-
-		// set source data to NULL
-		if (source->raw_data) {
-			xmi_excitation_free(source->raw_data);
-			source->raw_data = NULL;
-		}
-		if (source->x) {
-			g_array_free(source->x, TRUE);
-			source->x = NULL;
-		}
-		if (source->y) {
-			g_array_free(source->y, TRUE);
-			source->y = NULL;
-		}
 
 		clear_plot(dialog);
 		gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
@@ -460,9 +449,12 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
 			"xmi-input-current",
 			current,
 			NULL));
-			
-		GtkWidget *label = gtk_label_new(xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source)));
+		g_object_ref(source); // work around pygobject bug/feature
+		const gchar *name = xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source));
+		g_debug("source name %s", name);
+		GtkWidget *label = gtk_label_new(name);
 		gtk_notebook_append_page(GTK_NOTEBOOK(widget->notebookW), source, label);
+		g_object_unref(source); // work around pygobject bug/feature
 		// call generate on all sources
 		xmi_msim_gui_source_abstract_generate(XMI_MSIM_GUI_SOURCE_ABSTRACT(source));
 
@@ -476,44 +468,50 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
 	return GTK_WIDGET(widget);
 }
 
+/**
+ * xmi_msim_gui_sources_dialog_get_raw_data:
+ * @dialog: an #XmiMsimGuiSourcesDialog instance.
+ *
+ * Returns: (transfer full): a freshly allocated #XmiMsimExcitation struct or %NULL.
+ */
 xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog *dialog) {
 	xmi_excitation *rv = NULL;
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 	unsigned int i;
+	xmi_excitation *raw_data = NULL;
 
-	if (source == NULL || source->raw_data == NULL)
+	if (source == NULL || (raw_data = xmi_msim_gui_source_abstract_get_raw_data(source)) == NULL)
 		return NULL;
 
-	//xmi_copy_excitation(source->raw_data, &rv);
 	// copy only those that make sense (intensity > 1)
-	GArray *disc = g_array_sized_new(FALSE, FALSE, sizeof(xmi_energy_discrete), source->raw_data->n_discrete);
+	GArray *disc = g_array_sized_new(FALSE, FALSE, sizeof(xmi_energy_discrete), raw_data->n_discrete);
 
-	for (i = 0 ; i < source->raw_data->n_discrete ; i++) {
-		if (source->raw_data->discrete[i].horizontal_intensity +
-		    source->raw_data->discrete[i].vertical_intensity >= 1.0)
-			g_array_append_val(disc, source->raw_data->discrete[i]);
+	for (i = 0 ; i < raw_data->n_discrete ; i++) {
+		if (raw_data->discrete[i].horizontal_intensity +
+		    raw_data->discrete[i].vertical_intensity >= 1.0)
+			g_array_append_val(disc, raw_data->discrete[i]);
 	}
 
-	GArray *cont = g_array_sized_new(FALSE, FALSE, sizeof(xmi_energy_continuous), source->raw_data->n_continuous);
+	GArray *cont = g_array_sized_new(FALSE, FALSE, sizeof(xmi_energy_continuous), raw_data->n_continuous);
 
 	guint skipped_zeroes = 0u;
-	for (i = 0 ; i < source->raw_data->n_continuous ; i++) {
-		if (source->raw_data->continuous[i].horizontal_intensity +
-		    source->raw_data->continuous[i].vertical_intensity < 1.0) {
+	for (i = 0 ; i < raw_data->n_continuous ; i++) {
+		if (raw_data->continuous[i].horizontal_intensity +
+		    raw_data->continuous[i].vertical_intensity < 1.0) {
 			if (++skipped_zeroes == 1 && i > 0) {
-				xmi_energy_continuous temp = source->raw_data->continuous[i];
+				xmi_energy_continuous temp = raw_data->continuous[i];
 				temp.horizontal_intensity = temp.vertical_intensity = 0.0;
 				g_array_append_val(cont, temp);
 			}
 		}
 		else {
 			if (skipped_zeroes >= 2) {
-				xmi_energy_continuous temp = source->raw_data->continuous[i-1];
+				xmi_energy_continuous temp = raw_data->continuous[i-1];
 				temp.horizontal_intensity = temp.vertical_intensity = 0.0;
 				g_array_append_val(cont, temp);
 			}
 			skipped_zeroes = 0;
-			g_array_append_val(cont, source->raw_data->continuous[i]);
+			g_array_append_val(cont, raw_data->continuous[i]);
 		}
 	}
 
@@ -522,6 +520,8 @@ xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog
 	rv->discrete = (xmi_energy_discrete *) g_array_free(disc, FALSE); 
 	rv->n_continuous = (int) cont->len;
 	rv->continuous = (xmi_energy_continuous *) g_array_free(cont, FALSE); 
+
+	xmi_excitation_free(raw_data);
 
 	return rv;
 }
