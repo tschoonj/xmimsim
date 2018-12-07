@@ -93,7 +93,7 @@ static void xmi_msim_gui_layer_dialog_class_init(XmiMsimGuiLayerDialogClass *kla
     "Layer Dialog Type",
     "The type of the layer dialog",
     XMI_MSIM_GUI_TYPE_LAYER_DIALOG_TYPE,
-    XMI_MSIM_GUI_LAYER_DIALOG_ADD,
+    XMI_MSIM_GUI_LAYER_DIALOG_TYPE_ADD,
     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 }
 
@@ -240,11 +240,11 @@ static void xmi_msim_layer_dialog_set_property(GObject *object, guint prop_id, c
   switch (prop_id) {
     case PROP_LAYER_DIALOG_TYPE:
       dialog->layer_dialog_type = g_value_get_enum(value);
-      if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_ADD) {
+      if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_TYPE_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a new layer");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
       }
-      else if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_EDIT) {
+      else if (dialog->layer_dialog_type == XMI_MSIM_GUI_LAYER_DIALOG_TYPE_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a layer");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
       }
@@ -455,7 +455,7 @@ static void element_row_activated(GtkTreeView *tree_view, GtkTreePath *path, Gtk
   gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
   gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight, -1);
 
-  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_EDIT);
   xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog), element);
   xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog), weight);
 
@@ -605,7 +605,7 @@ static void edit_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog
   gtk_tree_model_get(model, &iter, SYMBOL_COLUMN,  &element, WEIGHT_COLUMN, &weight,  -1);
 
   //put it in dialog
-  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT);
+  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_EDIT);
   xmi_msim_gui_compound_dialog_set_compound(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog), element);
   xmi_msim_gui_compound_dialog_set_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog), weight);
 
@@ -650,7 +650,7 @@ static void update_sum(XmiMsimGuiLayerDialog *dialog) {
 
 static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog) {
   //make entries empty and disable OK button
-  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_ADD);
+  GtkWidget *compound_dialog = xmi_msim_gui_compound_dialog_new(GTK_WINDOW(dialog), XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_ADD);
 
   int rv = gtk_dialog_run(GTK_DIALOG(compound_dialog));
 

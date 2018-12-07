@@ -53,7 +53,7 @@ static void xmi_msim_gui_compound_dialog_class_init(XmiMsimGuiCompoundDialogClas
     "Compound Dialog Type",
     "The type of the compound dialog",
     XMI_MSIM_GUI_TYPE_COMPOUND_DIALOG_TYPE,
-    XMI_MSIM_GUI_COMPOUND_DIALOG_ADD,
+    XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_ADD,
     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 
 
@@ -171,12 +171,12 @@ static void xmi_msim_compound_dialog_set_property(GObject *object, guint prop_id
   switch (prop_id) {
     case PROP_COMPOUND_DIALOG_TYPE:
       dialog->compound_dialog_type = g_value_get_enum(value);
-      if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_ADD) {
+      if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a compound");
         gtk_widget_set_sensitive(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), FALSE);
 	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), TRUE);
       }
-      else if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT) {
+      else if (dialog->compound_dialog_type == XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a compound");
 	gtk_editable_set_editable(GTK_EDITABLE(dialog->compoundEntry), FALSE);
 	gtk_widget_set_sensitive(dialog->compoundEntry, FALSE);

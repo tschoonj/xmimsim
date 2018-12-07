@@ -54,7 +54,7 @@ static void xmi_msim_gui_continuous_energy_dialog_class_init(XmiMsimGuiContinuou
     "Continuous Energy Dialog Type",
     "The type of the continuous energy dialog",
     XMI_MSIM_GUI_TYPE_CONTINUOUS_ENERGY_DIALOG_TYPE,
-    XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_ADD,
+    XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_ADD,
     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 }
 
@@ -184,11 +184,11 @@ static void xmi_msim_continuous_energy_dialog_set_property(GObject *object, guin
   switch (prop_id) {
     case PROP_CONTINUOUS_ENERGY_DIALOG_TYPE:
       dialog->continuous_energy_dialog_type = g_value_get_enum(value);
-      if (dialog->continuous_energy_dialog_type == XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_ADD) {
+      if (dialog->continuous_energy_dialog_type == XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a new continuous energy");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
       }
-      else if (dialog->continuous_energy_dialog_type == XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_EDIT) {
+      else if (dialog->continuous_energy_dialog_type == XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a continuous energy");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
       }

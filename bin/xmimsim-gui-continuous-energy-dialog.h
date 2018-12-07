@@ -34,8 +34,8 @@ typedef struct _XmiMsimGuiContinuousEnergyDialog        XmiMsimGuiContinuousEner
 typedef struct _XmiMsimGuiContinuousEnergyDialogClass   XmiMsimGuiContinuousEnergyDialogClass;
 
 typedef enum {
-  XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_ADD,
-  XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_EDIT
+  XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_ADD,
+  XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_EDIT
 } XmiMsimGuiContinuousEnergyDialogType;
 
 struct _XmiMsimGuiContinuousEnergyDialog

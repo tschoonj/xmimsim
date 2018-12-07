@@ -34,8 +34,8 @@ typedef struct _XmiMsimGuiLayerDialog        XmiMsimGuiLayerDialog;
 typedef struct _XmiMsimGuiLayerDialogClass   XmiMsimGuiLayerDialogClass;
 
 typedef enum {
-  XMI_MSIM_GUI_LAYER_DIALOG_ADD,
-  XMI_MSIM_GUI_LAYER_DIALOG_EDIT
+  XMI_MSIM_GUI_LAYER_DIALOG_TYPE_ADD,
+  XMI_MSIM_GUI_LAYER_DIALOG_TYPE_EDIT
 } XmiMsimGuiLayerDialogType;
 
 struct _XmiMsimGuiLayerDialog

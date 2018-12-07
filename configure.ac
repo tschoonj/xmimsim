@@ -366,10 +366,6 @@ if test x$OS_WINDOWS = x1 ; then
   	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
   fi
 fi
-AC_CHECK_PROG([GLIB_MKENUMS],[glib-mkenums],[glib-mkenums],[fail])
-if test x$GLIB_MKENUMS = xfail ; then
-	AC_MSG_WARN([glib-mkenums was not found. Though not required for a regular build, it will impact developers of the GUI.])
-fi
 AC_CHECK_PROG([GLIB_GENMARSHAL],[glib-genmarshal],[glib-genmarshal],[fail])
 if test x$GLIB_GENMARSHAL = xfail ; then
 	AC_MSG_WARN([glib-genmarshal was not found. Though not required for a regular build, it will impact developers of the GUI.])
