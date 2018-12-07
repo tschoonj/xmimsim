@@ -422,10 +422,10 @@ static void energy_add_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesSi
 	GtkWidget *dialog;
 
 	if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
-		dialog = xmi_msim_gui_discrete_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_ADD);
+		dialog = xmi_msim_gui_discrete_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_TYPE_ADD);
 	}
 	else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
-		dialog = xmi_msim_gui_continuous_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_ADD);
+		dialog = xmi_msim_gui_continuous_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_ADD);
 	}
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -475,11 +475,11 @@ static void energy_edit_button_clicked_cb(GtkWidget *button, XmiMsimGuiEnergiesS
 	g_array_free(selected_indices, TRUE);
 
 	if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_DISCRETE) {
-		dialog = xmi_msim_gui_discrete_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_EDIT);
+		dialog = xmi_msim_gui_discrete_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_TYPE_EDIT);
 		xmi_msim_gui_discrete_energy_dialog_set_discrete_energy(XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->discrete_array, xmi_energy_discrete, selected_index));
 	}
 	else if (single_box->type == XMI_MSIM_GUI_ENERGIES_SINGLE_BOX_TYPE_CONTINUOUS) {
-		dialog = xmi_msim_gui_continuous_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_EDIT);
+		dialog = xmi_msim_gui_continuous_energy_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(single_box->parent_box))), XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG_TYPE_EDIT);
 		xmi_msim_gui_continuous_energy_dialog_set_continuous_energy(XMI_MSIM_GUI_CONTINUOUS_ENERGY_DIALOG(dialog), &g_array_index(single_box->parent_box->continuous_array, xmi_energy_continuous, selected_index));
 	}
 

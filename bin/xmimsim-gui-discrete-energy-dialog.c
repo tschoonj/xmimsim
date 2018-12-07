@@ -56,7 +56,7 @@ static void xmi_msim_gui_discrete_energy_dialog_class_init(XmiMsimGuiDiscreteEne
     "Discrete Energy Dialog Type",
     "The type of the discrete energy dialog",
     XMI_MSIM_GUI_TYPE_DISCRETE_ENERGY_DIALOG_TYPE,
-    XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_ADD,
+    XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_TYPE_ADD,
     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY)));
 }
 
@@ -217,12 +217,12 @@ static void xmi_msim_discrete_energy_dialog_set_property(GObject *object, guint 
   switch (prop_id) {
     case PROP_DISCRETE_ENERGY_DIALOG_TYPE:
       dialog->discrete_energy_dialog_type = g_value_get_enum(value);
-      if (dialog->discrete_energy_dialog_type == XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_ADD) {
+      if (dialog->discrete_energy_dialog_type == XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_TYPE_ADD) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Enter a new discrete energy");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, FALSE);
         gtk_combo_box_set_active(GTK_COMBO_BOX(dialog->distribution_type_combo), 0);
       }
-      else if (dialog->discrete_energy_dialog_type == XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_EDIT) {
+      else if (dialog->discrete_energy_dialog_type == XMI_MSIM_GUI_DISCRETE_ENERGY_DIALOG_TYPE_EDIT) {
         gtk_window_set_title(GTK_WINDOW(dialog), "Modify a discrete energy");
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT, TRUE);
       }

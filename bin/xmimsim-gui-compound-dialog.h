@@ -33,8 +33,8 @@ typedef struct _XmiMsimGuiCompoundDialog        XmiMsimGuiCompoundDialog;
 typedef struct _XmiMsimGuiCompoundDialogClass   XmiMsimGuiCompoundDialogClass;
 
 typedef enum {
-  XMI_MSIM_GUI_COMPOUND_DIALOG_ADD,
-  XMI_MSIM_GUI_COMPOUND_DIALOG_EDIT
+  XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_ADD,
+  XMI_MSIM_GUI_COMPOUND_DIALOG_TYPE_EDIT
 } XmiMsimGuiCompoundDialogType;
 
 struct _XmiMsimGuiCompoundDialog

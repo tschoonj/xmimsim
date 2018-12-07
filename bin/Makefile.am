@@ -257,8 +257,6 @@ bin_PROGRAMS += xmimsim-gui
 BUILT_SOURCES = \
 	$(nodist_xmimsim_gui_SOURCES) \
 	$(nodist_libxmimsim_gui_la_SOURCES) \
-	xmimsim-gui-type-builtins.h \
-	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-marshal.h \
 	xmimsim-gui-marshal.c \
 	$(NULL)
@@ -285,15 +283,6 @@ xmimsim_gui_SOURCES = \
 	$(NULL)
 
 nodist_xmimsim_gui_SOURCES = \
-	$(NULL)
-
-
-mkenum_sources = \
-	xmimsim-gui-compound-dialog.h \
-	xmimsim-gui-layer-dialog.h \
-	xmimsim-gui-discrete-energy-dialog.h \
-	xmimsim-gui-continuous-energy-dialog.h \
-	xmimsim-gui-layer-box.h \
 	$(NULL)
 
 marshal_input = \
@@ -506,6 +495,8 @@ introspection_sources = \
 	xmimsim-gui-application.h \
 	xmimsim-gui-utils-pp.cpp \
 	xmimsim-gui-utils-pp.h \
+	xmimsim-gui-type-builtins.c \
+	xmimsim-gui-type-builtins.h \
 	$(NULL)
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la
@@ -536,28 +527,6 @@ xmimsim-icon.o: xmimsim-icon.rc
 	${srcdir}/xmimsim-icon.rc -O coff -o xmimsim-icon.o
 
 endif
-
-xmimsim-gui-type-builtins.h: $(mkenum_sources) xmimsim-gui-type-builtins.c
-
-
-xmimsim-gui-type-builtins.c: $(mkenum_sources)
-	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#ifndef __XMIMSIM_GUI_TYPE_BUILTINS_H__\n#define __XMIMSIM_GUI_TYPE_BUILTINS_H__\n\n#include <glib-object.h>\n#include <glib.h>\n\nG_BEGIN_DECLS\n\n" \
-		--fprod "/* enumerations from \"@filename@\" */\n" \
-		--vhead "GType @enum_name@_get_type (void);\n#define XMI_MSIM_GUI_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
-		--ftail "\nG_END_DECLS\n#endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */" \
-		--identifier-prefix "XmiMsimGui" \
-		--symbol-prefix "xmi_msim_gui" \
-		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.h
-	( cd $(srcdir) && $(GLIB_MKENUMS) \
-		--fhead "#include \"xmimsim-gui-type-builtins.h\"\n#include \"xmimsim-gui-layer-box.h\"\n#include \"xmimsim-gui-compound-dialog.h\"\n#include \"xmimsim-gui-layer-dialog.h\"\n#include \"xmimsim-gui-discrete-energy-dialog.h\"\n#include \"xmimsim-gui-continuous-energy-dialog.h\"" \
-		--fprod "\n/* enumerations from \"@filename@\" */" \
-		--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
-		--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
-		--vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static(g_intern_static_string(\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
-		--identifier-prefix "XmiMsimGui" \
-		--symbol-prefix "xmi_msim_gui" \
-		$(mkenum_sources) ) > $(srcdir)/xmimsim-gui-type-builtins.c
 
 xmimsim-gui-marshal.h: $(marshal_input) xmimsim-gui-marshal.c
 

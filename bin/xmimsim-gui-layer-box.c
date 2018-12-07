@@ -216,7 +216,7 @@ static void append_layer(XmiMsimGuiLayerBox *self, xmi_layer *layer) {
 }
 
 static void layers_add_button_clicked_cb(GtkWidget *widget, XmiMsimGuiLayerBox *self) {
-	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_ADD);
+	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_TYPE_ADD);
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		xmi_layer *layer = xmi_msim_gui_layer_dialog_get_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog));
@@ -242,7 +242,7 @@ static void layers_edit_button_clicked_cb(GtkWidget *widget, XmiMsimGuiLayerBox 
 	gint selected_index = gtk_tree_path_get_indices(path)[0];
 	gtk_tree_path_free(path);
 
-	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_EDIT);
+	GtkWidget *dialog = xmi_msim_gui_layer_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(widget)), XMI_MSIM_GUI_LAYER_DIALOG_TYPE_EDIT);
 	xmi_layer *selected_layer = &g_array_index(self->layer_array, xmi_layer, selected_index);
 	xmi_msim_gui_layer_dialog_set_layer(XMI_MSIM_GUI_LAYER_DIALOG(dialog), selected_layer);
 
