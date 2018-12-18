@@ -235,13 +235,15 @@ matrix:
 before_install:
   - |
     if [ "$TRAVIS_OS_NAME" == "osx" ] ; then
+      rm -rf $(brew --prefix)/lib/python*
+      rm -rf $(brew --prefix)/bin/f2py*
       brew cask uninstall --force oclint
       brew uninstall --force --ignore-dependencies $(brew list) || exit 1
       brew update || exit 1
       brew cleanup -s || exit 1
       #rm -rf $(brew --cache) || exit 1
       brew install git gsl autoconf automake libtool libxslt hdf5 libsoup wget pygobject3 bash swig || exit 1
-      brew install numpy --without-python@2 || exit 1
+      brew install numpy || exit 1
       brew install $HOMEBREW_GCC || exit 1
       brew install $HOMEBREW_EXTRA librsvg || exit 1
       pip3 install lxml

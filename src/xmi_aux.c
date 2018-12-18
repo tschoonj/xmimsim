@@ -25,8 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <hdf5.h>
 #include "xmi_private.h"
 
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
+#ifdef MAC_INTEGRATION
+  #include "xmi_resources_mac.h"
+#endif
 
 
 void *xmi_memdup(const void *mem, size_t bytes) {
@@ -178,10 +179,10 @@ char *xmi_version_string() {
 	g_string_append_printf(string, "libxslt %s, ", LIBXSLT_DOTTED_VERSION);
 	//fgsl
 #ifdef FGSL_VERSION
-	g_string_append_printf(string, "fgsl %s, ", TOSTRING(FGSL_VERSION));
+	g_string_append_printf(string, "fgsl %s, ", G_STRINGIFY(FGSL_VERSION));
 #endif
 #ifdef EASYRNG_VERSION
-	g_string_append_printf(string, "easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
+	g_string_append_printf(string, "easyRNG %s, ", G_STRINGIFY(EASYRNG_VERSION));
 #endif
 #ifdef HAVE_GUI
 	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
@@ -650,4 +651,21 @@ int compare_string(const void *a, const void *b) {
 
 GQuark xmi_msim_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-error-quark");
+}
+
+/**
+ * xmi_get_xmimsim_path:
+ *
+ * Returns: full path to the xmimsim executable
+ */
+gchar* xmi_get_xmimsim_path(void) {
+	gchar *xmimsim_executable = NULL;
+#ifdef MAC_INTEGRATION
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
+		xmimsim_executable = NULL;
+	}
+#else
+	xmimsim_executable = g_find_program_in_path("xmimsim");
+#endif
+	return xmimsim_executable;
 }

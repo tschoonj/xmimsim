@@ -374,3 +374,7 @@ int remove_xml_tags(const char *filename_old, const char *filename_new,  const c
 	xmlFreeDoc(doc);
 	return 1;
 }
+
+gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+	return FALSE;
+}

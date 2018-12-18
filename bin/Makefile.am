@@ -81,8 +81,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-export-canvas-dialog.cpp \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-sources-dialog.cpp \
-	xmimsim-gui-marshal.h \
-	xmimsim-gui-marshal.c \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
 	xmimsim-gui-xmsi-scrolled-window.c \
@@ -257,8 +255,6 @@ bin_PROGRAMS += xmimsim-gui
 BUILT_SOURCES = \
 	$(nodist_xmimsim_gui_SOURCES) \
 	$(nodist_libxmimsim_gui_la_SOURCES) \
-	xmimsim-gui-marshal.h \
-	xmimsim-gui-marshal.c \
 	$(NULL)
 endif
 
@@ -284,10 +280,6 @@ xmimsim_gui_SOURCES = \
 
 nodist_xmimsim_gui_SOURCES = \
 	$(NULL)
-
-marshal_input = \
-	xmimsim-gui-marshal.list
-
 
 xmimsim_gui_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -528,24 +520,11 @@ xmimsim-icon.o: xmimsim-icon.rc
 
 endif
 
-xmimsim-gui-marshal.h: $(marshal_input) xmimsim-gui-marshal.c
-
-xmimsim-gui-marshal.c: $(marshal_input)
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi_msim_gui" \
-		--header \
-		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.h
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi_msim_gui" \
-		--prototypes \
-		--body \
-		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.c
-
 xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmimsim-gui.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi_msim_gui --generate-source $(srcdir)/xmimsim-gui.gresource.xml
 
 clean-local:
 	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def $(CLEANFILES)
 
-EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
+EXTRA_DIST = xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
 

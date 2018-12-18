@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-source-abstract.h"
 #include <math.h>
 #include <string.h>
-#include "xmimsim-gui-marshal.h"
 #include "xmi_gobject.h"
 
 struct _XmiMsimGuiSourceAbstractPrivate

@@ -50,10 +50,9 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_transmission_efficiency.c \
 			xmi_gobject.c \
 			xmi_job.c \
-			xmi_marshal.c \
-			xmi_marshal.h \
 			xmi_type_builtins.c \
 			xmi_type_builtins.h \
+			xmi_batch.c \
 			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
@@ -170,22 +169,7 @@ xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir
 xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
 
-marshal_input = xmi_marshal.list
-
-xmi_marshal.h: $(marshal_input) xmi_marshal.c
-
-xmi_marshal.c: $(marshal_input)
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi" \
-		--header \
-		$(marshal_input) ) > $(srcdir)/xmi_marshal.h
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi" \
-		--prototypes \
-		--body \
-		$(marshal_input) ) > $(srcdir)/xmi_marshal.c
-
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES)
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -264,5 +248,5 @@ clean-local:
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
 
-EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list identfilter.py symbolfilter.py
+EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl identfilter.py symbolfilter.py
 

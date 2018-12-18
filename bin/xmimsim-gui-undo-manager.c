@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-undo-manager.h"
-#include "xmimsim-gui-marshal.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_gobject.h"
@@ -103,7 +102,7 @@ static void xmi_msim_gui_undo_manager_class_init(XmiMsimGuiUndoManagerClass *kla
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN,
+		NULL,
 		G_TYPE_NONE,
 		5,
 		G_TYPE_BOOLEAN, // save-as
@@ -120,7 +119,7 @@ static void xmi_msim_gui_undo_manager_class_init(XmiMsimGuiUndoManagerClass *kla
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // filename

@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-clipboard-manager.h"
-#include "xmimsim-gui-marshal.h"
 #include "xmimsim-gui-layer-box.h"
 
 #define LayerAtom gdk_atom_intern_static_string("xmi-msim-layer")
@@ -75,7 +74,7 @@ static void xmi_msim_gui_clipboard_manager_class_init(XmiMsimGuiClipboardManager
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_BOOLEAN,
+		NULL,
 		G_TYPE_NONE,
 		3,
 		G_TYPE_BOOLEAN,// GBOOLEAN -> CUT

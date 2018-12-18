@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmi_job.h"
-#include "xmi_marshal.h"
 #include "xmi_type_builtins.h"
 #include "xmi_aux.h"
 #include <string.h>
@@ -338,7 +337,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*
@@ -358,7 +357,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*
@@ -379,7 +378,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__BOOLEAN_STRING,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		G_TYPE_BOOLEAN, // gboolean 
@@ -401,7 +400,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__ENUM_STRING,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
@@ -423,7 +422,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__ENUM_DOUBLE,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
@@ -461,7 +460,7 @@ XmiMsimJob* xmi_msim_job_new(
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	const gchar **extra_options,
+	gchar **extra_options,
 	GError **error
 	) {
 

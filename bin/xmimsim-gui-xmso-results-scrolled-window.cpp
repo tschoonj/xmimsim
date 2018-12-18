@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-xmso-results-scrolled-window.h"
 #include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
-#include "xmimsim-gui-marshal.h"
 #include <xraylib.h>
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
@@ -276,7 +275,7 @@ static void xmi_msim_gui_xmso_results_scrolled_window_class_init(XmiMsimGuiXmsoR
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // filename

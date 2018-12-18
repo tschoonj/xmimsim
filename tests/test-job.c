@@ -6,7 +6,7 @@
 
 #define COMPOUND "C6H12O6" // sweet, sweet sugar
 
-const gchar *extra_options[4] = {
+gchar *extra_options[4] = {
 	"--with-hdf5-data=xmimsimdata-" COMPOUND ".h5",
 	"--with-solid-angles-data=solid-angles.h5",
 	"--with-escape-ratios-data=escape-ratios.h5",
@@ -17,7 +17,6 @@ typedef struct {
 	GMainLoop *main_loop;
 	xmi_input *input;
 	xmi_main_options *options;
-	GTimer *timer;
 } SetupData;
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
@@ -508,7 +507,6 @@ int main(int argc, char *argv[]) {
 	// cleanup
 	FreeCompoundData(cd);
 	unlink(data_file);
-
 
 	return rv;
 }

@@ -747,13 +747,7 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	self->executableB = gtk_button_new_with_mnemonic("_Open");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), self->executableB, FALSE, FALSE, 0);
 	g_signal_connect(G_OBJECT(self->executableB), "clicked", G_CALLBACK(select_executable_cb), self);
-#ifdef MAC_INTEGRATION
-	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
-		xmimsim_executable = NULL;
-	}
-#else
-	xmimsim_executable = g_find_program_in_path("xmimsim");
-#endif
+	xmimsim_executable = xmi_get_xmimsim_path();
 	self->executableW = gtk_entry_new();
 	if (xmimsim_executable == NULL) {
 		//bad...
@@ -761,6 +755,7 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	}
 	else {
 		gtk_entry_set_text(GTK_ENTRY(self->executableW), xmimsim_executable);
+		g_free(xmimsim_executable);
 	}
 	gtk_editable_set_editable(GTK_EDITABLE(self->executableW), FALSE);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), self->executableW, TRUE, TRUE, 0);

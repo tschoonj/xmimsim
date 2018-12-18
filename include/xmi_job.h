@@ -42,7 +42,7 @@ XmiMsimJob* xmi_msim_job_new(
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	const gchar **extra_options,
+	gchar **extra_options,
 	GError **error
 	);
 

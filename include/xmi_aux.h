@@ -112,6 +112,8 @@ void *xmi_realloc(void *ptr, size_t size);
 
 void xmi_print_progress(char *string, int progress);
 
+gchar* xmi_get_xmimsim_path(void);
+
 #ifdef __cplusplus
 }
 #endif

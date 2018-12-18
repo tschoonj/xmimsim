@@ -20,7 +20,8 @@ check_PROGRAMS = \
      test-cubic-spline \
      test-ebel \
      test-gobject \
-     test-job
+     test-job \
+     test-batch \
      $(NULL)
 
 TEST_EXTENSIONS = .py
@@ -61,7 +62,8 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
-TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+#TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+TESTS = test-batch
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -193,11 +195,15 @@ test_job_SOURCES = test-job.c
 test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_job_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
+test_batch_SOURCES = test-batch.c
+test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_batch_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
+
 test_version_SOURCES = test-version.c
 test_version_CPPFLAGS = -I${top_builddir} -I${top_srcdir}/include @xml2_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@
 test_version_LDADD = @glib2_LIBS@
 
 clean-local:
-	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
+	rm -f test.spe *.xmsi *.xmso *.xmsa
 
 EXTRA_DIST = transmission-efficiency.txt
