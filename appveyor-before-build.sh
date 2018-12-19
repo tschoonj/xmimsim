@@ -50,6 +50,8 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
+	# fix pango.pc
+	echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
 	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.13.0.tar.gz
 	tar xfz plplot-5.13.0.tar.gz
 	cd plplot-5.13.0
