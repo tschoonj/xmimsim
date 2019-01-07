@@ -655,6 +655,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 
 		GError *error = NULL;
 		gchar *filename = g_file_get_path(files[0]);
+		gboolean do_return = FALSE;
 		if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmsi") == 0) {
 			if (xmi_msim_gui_undo_manager_get_status(window->undo_manager) == XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_DEFAULT) {
 				// use current window
@@ -668,9 +669,11 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 					gtk_widget_destroy(new_window);
 				}
 			}
+			do_return = TRUE;
 		}
 		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmso") == 0) {
 			xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page), filename, &error);
+			do_return = TRUE;
 		}
 		if (error) {
 			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
@@ -686,7 +689,8 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 			gtk_widget_destroy(dialog);
 		}
 		g_free(filename);
-		return;
+		if (do_return)
+			return;
 	}
 
 	int i;
