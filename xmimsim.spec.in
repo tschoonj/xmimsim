@@ -61,26 +61,17 @@ export CPPFLAGS="$RPM_OPT_FLAGS"
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
-export LD_LIBRARY_PATH=`pwd`/src/.libs
 make
-
-#create database file
-#./bin/xmimsim-db
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 libtool --finish $RPM_BUILD_ROOT%{_libdir}
 find $RPM_BUILD_ROOT -name '*.la' | xargs rm
-#mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
 
-cp /media/sf_awf63395/xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
-chmod 644 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/xmimsimdata.h5
-
-#pushd $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
-#wget http://lvserver.ugent.be/~schoon/xmimsimdata.h5
-#popd
-
+#create database file
+export LD_LIBRARY_PATH=$RPM_BUILD_ROOT/%{_libdir}
+$RPM_BUILD_ROOT/%{_bindir}/xmimsim-db $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/xmimsimdata.h5
 
 desktop-file-install --dir=$RPM_BUILD_ROOT%{_datadir}/applications \
 	--delete-original \
