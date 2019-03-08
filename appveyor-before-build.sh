@@ -5,7 +5,7 @@ set -x
 
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
-export GTKMM_PLPLOT_BRANCH=master
+#export GTKMM_PLPLOT_BRANCH=master
 
 # install xraylib
 curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
@@ -51,10 +51,10 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
 	# fix pango.pc
-	echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
-	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.13.0.tar.gz
-	tar xfz plplot-5.13.0.tar.gz
-	cd plplot-5.13.0
+	#echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
+	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.14.0.tar.gz
+	tar xfz plplot-5.14.0.tar.gz
+	cd plplot-5.14.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
 	make -j2
 	make install
@@ -65,9 +65,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
           cd gtkmm-plplot
           autoreconf -i
         else
-	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
-	  tar xfz gtkmm-plplot-2.2.tar.gz
-	  cd gtkmm-plplot-2.2
+	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.3/gtkmm-plplot-2.3.tar.gz
+	  tar xfz gtkmm-plplot-2.3.tar.gz
+	  cd gtkmm-plplot-2.3
         fi
 	./configure --prefix=$HOME/install --disable-static
 	make -j2

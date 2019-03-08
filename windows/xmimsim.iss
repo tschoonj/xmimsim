@@ -87,7 +87,7 @@ Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-2.dll" ; DestDir: "{app}\Lib
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\share\plplot5.13.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
+Source: "{#MY_HOME}\install\share\plplot5.14.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
 Source: "{#builddir}\src\.libs\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#builddir}\bin\.libs\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 

@@ -62,8 +62,8 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
-#TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-batch
+TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+#TESTS = test-batch
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
