@@ -367,7 +367,7 @@ static void xmi_msim_gui_layer_dialog_set_composition(XmiMsimGuiLayerDialog *dia
   int i;
   for (i = 0 ; i < n_elements ; i++) {
     gtk_list_store_append(store, &iter);
-    char *symbol = AtomicNumberToSymbol(Z[i]);
+    char *symbol = AtomicNumberToSymbol(Z[i], NULL);
     gtk_list_store_set(store, &iter,
       SYMBOL_COLUMN, symbol,
       WEIGHT_COLUMN, weight[i] * 100.0,
@@ -660,7 +660,7 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
     gdouble compound_weight = xmi_msim_gui_compound_dialog_get_weight(XMI_MSIM_GUI_COMPOUND_DIALOG(compound_dialog));
 
     struct compoundData *cd, *cd2, *cdsum;
-    cd2 = CompoundParser(compound);
+    cd2 = CompoundParser(compound, NULL);
 
     //get current composition
     int n_elements, *Z;
@@ -684,7 +684,7 @@ static void add_button_clicked(GtkButton *button, XmiMsimGuiLayerDialog *dialog)
       xmi_scale_double(cd2->massFractions, cd2->nElements, compound_weight/100.0);
       if (cd2->nElements == 1) {
         // if compound
-        double density = ElementDensity(cd2->Elements[0]);
+        double density = ElementDensity(cd2->Elements[0], NULL);
         gchar *buffer = g_strdup_printf("%f", density);
         g_signal_handler_block(G_OBJECT(dialog->densityEntry), dialog->density_changed);
         gtk_entry_set_text(GTK_ENTRY(dialog->densityEntry), buffer);

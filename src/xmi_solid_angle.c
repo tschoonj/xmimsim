@@ -413,7 +413,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy, NULL)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -449,7 +449,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy, NULL)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -487,7 +487,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], energy, NULL)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
@@ -523,7 +523,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], energy, NULL)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}

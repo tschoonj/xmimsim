@@ -135,7 +135,7 @@ gchar* xmi_msim_gui_utils_get_layer_element_string(xmi_layer *layer) {
 	int j;
 
 	for (j = 0 ; j < layer->n_elements ; j++) {
-		char *symbol = AtomicNumberToSymbol(layer->Z[j]);
+		char *symbol = AtomicNumberToSymbol(layer->Z[j], NULL);
 		g_string_append(rv, symbol);
 		xrlFree(symbol);
 		if (j != layer->n_elements-1) {

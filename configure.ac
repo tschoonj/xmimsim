@@ -112,8 +112,8 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 3.3.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.3.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 3.99.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.99.0)
 PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 EASYRNG_FOUND=no
@@ -335,6 +335,7 @@ AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
 WSTRICT_CFLAGS=
 AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=deprecated-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-prototypes"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)

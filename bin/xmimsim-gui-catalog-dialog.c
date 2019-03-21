@@ -52,7 +52,7 @@ static void xmi_msim_gui_catalog_dialog_init(XmiMsimGuiCatalogDialog *dialog) {
   GtkWidget *nist_comboW = gtk_combo_box_text_new();
 
   int i;
-  char **list = GetCompoundDataNISTList(NULL);
+  char **list = GetCompoundDataNISTList(NULL, NULL);
 
   for (i = 0 ; list[i] != NULL ; i++) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(nist_comboW), list[i]);
@@ -124,7 +124,7 @@ xmi_layer* xmi_msim_gui_catalog_dialog_get_layer(XmiMsimGuiCatalogDialog *dialog
 #endif
   if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->nist_radioW))) {
     int nistCompNumber = gtk_combo_box_get_active(GTK_COMBO_BOX(dialog->nist_comboW));
-    struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber);
+    struct compoundDataNIST *cdn = GetCompoundDataNISTByIndex(nistCompNumber, NULL);
     if (cdn == NULL) {
       fprintf(stderr,"Fatal error in GetCompoundDataNISTListByIndex\n");
       return NULL;

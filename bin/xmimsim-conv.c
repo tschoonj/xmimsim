@@ -145,7 +145,6 @@ XMI_MAIN
 
 	xmi_input_free(xmsi_in);
 
-	SetErrorMessages(0);
 	static char *xmimsim_hdf5_escape_ratios = NULL;
 
 	//read escape ratios

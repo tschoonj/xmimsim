@@ -1429,7 +1429,7 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 				continue;
 			output->brute_force_history[output->nbrute_force_history-1].lines = g_realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
-			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j, NULL);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].total_counts = counts_sum;
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions = 0;
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = NULL;
@@ -1476,7 +1476,7 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 				continue;
 			output->var_red_history[output->nvar_red_history-1].lines = g_realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
-			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j, NULL);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].total_counts = counts_sum;
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions = 0;
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = NULL;

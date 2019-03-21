@@ -131,7 +131,7 @@ double CS_Total_Layer(xmi_layer *layer, double E) {
 	int i;
 	double rv = 0.0;
 	for (i = 0 ; i < layer->n_elements ; i++) {
-		rv += layer->weight[i] * CS_Total(layer->Z[i], E);
+		rv += layer->weight[i] * CS_Total(layer->Z[i], E, NULL);
 	}
 	return rv;
 }
@@ -149,8 +149,8 @@ double fpm(xmi_layer *layer, int Z, int line, double w, double E0, double I0, do
 	double G = Omega / 4.0 / M_PI / sin(alpha);
 	rv *= G;
 	rv *= w;
-	rv *= CS_FluorLine_Kissel(Z, line, E0);
-	double my_chi = chi(E0, LineEnergy(Z, line), layer, alpha, beta);
+	rv *= CS_FluorLine_Kissel(Z, line, E0, NULL);
+	double my_chi = chi(E0, LineEnergy(Z, line, NULL), layer, alpha, beta);
 	rv *= (1.0 - exp(-1.0 * my_chi * layer->density * layer->thickness));
 
 	return rv;
@@ -172,7 +172,7 @@ xmi_output* run_main(const char *compound) {
 	xmi_init_hdf5();
 
 	// read compound
-	struct compoundData *cd = CompoundParser(compound);
+	struct compoundData *cd = CompoundParser(compound, NULL);
 	g_assert(cd != NULL);
 
 	// generate appropriate xmimsimdata.h5 file

@@ -68,7 +68,7 @@ static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input
 			pymca_input->n_z_arr_pymca_conc++;
 			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i], NULL);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
@@ -83,7 +83,7 @@ static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input
 			pymca_input->n_z_arr_pymca_conc++;
 			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i], NULL);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
@@ -98,7 +98,7 @@ static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input
 			pymca_input->n_z_arr_pymca_conc++;
 			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i], NULL);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
@@ -113,7 +113,7 @@ static int read_pymca_concentrations(GKeyFile *pymcaFile, xmi_pymca *pymca_input
 			pymca_input->n_z_arr_pymca_conc++;
 			pymca_input->z_arr_pymca_conc = (int *) g_realloc(pymca_input->z_arr_pymca_conc,sizeof(int)*pymca_input->n_z_arr_pymca_conc);
 			pymca_input->weight_arr_pymca_conc = (double *) g_realloc(pymca_input->weight_arr_pymca_conc,sizeof(double)*pymca_input->n_z_arr_pymca_conc);
-			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i]);
+			pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = SymbolToAtomicNumber(elements[i], NULL);
 			pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1] = temp_double;
 #if DEBUG == 1
 			fprintf(stdout,"pymca conc: %i: %lf\n",pymca_input->z_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1],pymca_input->weight_arr_pymca_conc[pymca_input->n_z_arr_pymca_conc-1]);
@@ -271,6 +271,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 		if (compoundfractions == NULL) {
 			g_fprintf(stderr,"Error parsing compoundfractions\n");
 			g_fprintf(stderr,"GLib error message: %s\n",error->message);
+			g_error_free(error);
 			return rv;
 		}
 		//CompoundList -> strings
@@ -278,6 +279,7 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 		if (compoundlist == NULL) {
 			g_fprintf(stderr,"Error parsing compoundlist\n");
 			g_fprintf(stderr,"GLib error message: %s\n",error->message);
+			g_error_free(error);
 			return rv;
 		}
 		if (lengthlist != lengthfractions) {
@@ -287,8 +289,10 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 
 		if (lengthlist == 1) {
 			//only one compound
-			if ((cd1 = CompoundParser(g_strchug(compoundlist[0]))) == NULL) {
-				fprintf(stderr,"Could not parse compound %s\n",compoundlist[0]);
+			xrl_error *xrlError = NULL;
+			if ((cd1 = CompoundParser(g_strstrip(compoundlist[0]), &xrlError)) == NULL) {
+				fprintf(stderr,"Could not parse compound %s: %s\n", compoundlist[0], xrlError->message);
+				xrl_error_free(xrlError);
 				return rv;
 			}
 			if (alloc == TRUE) {
@@ -303,13 +307,16 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 		else {
 			//more than one compound...
 			//start with the first compound
-			if ((cd1 = CompoundParser(g_strchug(compoundlist[0]))) == NULL) {
-				fprintf(stderr,"Could not parse compound %s\n",compoundlist[0]);
+			xrl_error *xrlError = NULL;
+			if ((cd1 = CompoundParser(g_strstrip(compoundlist[0]), &xrlError)) == NULL) {
+				fprintf(stderr,"Could not parse compound %s: %s\n", compoundlist[0], xrlError->message);
+				xrl_error_free(xrlError);
 				return rv;
 			}
 			for (i = 1 ; i < lengthlist ; i++) {
-				if ((cd2 = CompoundParser(g_strchug(compoundlist[i]))) == NULL) {
-					fprintf(stderr,"Could not parse compound %s\n",compoundlist[i]);
+				if ((cd2 = CompoundParser(g_strstrip(compoundlist[i]), &xrlError)) == NULL) {
+					fprintf(stderr,"Could not parse compound %s: %s\n", compoundlist[i], xrlError->message);
+					xrl_error_free(xrlError);
 					return rv;
 				}
 				//sum up cd1 and cd2
@@ -333,8 +340,10 @@ static int get_composition(GKeyFile *pymcaFile, char *compositionString, xmi_lay
 	}
 	else {
 		//not predefined... feed it directly to xraylib
-		if ((cd1 = CompoundParser(compositionString)) == NULL) {
-			fprintf(stderr,"Could not parse compound %s\n",compositionString);
+		xrl_error *xrlError = NULL;
+		if ((cd1 = CompoundParser(compositionString, &xrlError)) == NULL) {
+			fprintf(stderr,"Could not parse compound %s: %s\n",compositionString, xrlError->message);
+			xrl_error_free(xrlError);
 			return rv;
 		}
 		if (alloc == TRUE) {
@@ -789,7 +798,7 @@ static int read_multilayer_composition(GKeyFile *pymcaFile, xmi_layer **multilay
 #if DEBUG == 2
 		for (i = 1 ; i < 100 ; i++)
 			if (flags[i] == 1)
-				fprintf(stdout,"Element flagged: %s\n",AtomicNumberToSymbol(i));
+				fprintf(stdout,"Element flagged: %s\n",AtomicNumberToSymbol(i, NULL));
 
 #endif
 	}
@@ -832,7 +841,7 @@ static int get_peak_areas(GKeyFile *pymcaFile, xmi_pymca *pymca_input) {
 #if DEBUG == 2
 		fprintf(stdout,"Examining peaks of %s\n",elements[i]);
 #endif
-		Z = SymbolToAtomicNumber(g_strstrip(elements[i]));
+		Z = SymbolToAtomicNumber(g_strstrip(elements[i]), NULL);
 		(pymca_input)->z_arr[i] = Z;
 
 		//check the lines
@@ -1250,7 +1259,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 		int element;
 		int atomic_number;
 		for (element = 0 ; ignore_elements[element] != NULL ; element++) {
-			atomic_number = SymbolToAtomicNumber(ignore_elements[element]);
+			atomic_number = SymbolToAtomicNumber(ignore_elements[element], NULL);
 			if (atomic_number < 1) {
 				g_fprintf(stderr,"Invalid chemical symbol %s found in ignore_elements\n", ignore_elements[element]);
 				return rv;
@@ -1278,7 +1287,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 				return rv;
 			}
 			else {
-				(*pymca_input)->reference = SymbolToAtomicNumber(reference);
+				(*pymca_input)->reference = SymbolToAtomicNumber(reference, NULL);
 				if ((*pymca_input)->reference == 0) {
 					g_fprintf(stderr,"Invalid Matrix reference element detected.\n");
 					return rv;
@@ -1292,7 +1301,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 					}
 				}
 				if (!found) {
-					g_fprintf(stderr,"Reference element %s is not part of the matrix composition\n",AtomicNumberToSymbol((*pymca_input)->reference));
+					g_fprintf(stderr,"Reference element %s is not part of the matrix composition\n", AtomicNumberToSymbol((*pymca_input)->reference, NULL));
 					(*pymca_input)->reference = 0;
 					return rv;
 				}
@@ -1314,7 +1323,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 		(*pymca_input)->n_z_arr_quant = 0;
 		for (i = 0 ; i < (*pymca_input)->n_peaks ; i++) {
 #if DEBUG == 2
-			fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]));
+			fprintf(stderr,"Element %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr[i]), NULL);
 #endif
 
 			if ((*pymca_input)->k_alpha[i] + (*pymca_input)->l_alpha[i] <= 0.0)
@@ -1361,7 +1370,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 				(*pymca_input)->z_arr_quant = (int *) g_realloc((*pymca_input)->z_arr_quant,sizeof(int)*++((*pymca_input)->n_z_arr_quant) );
 				(*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1] = (*pymca_input)->z_arr[i];
 #if DEBUG == 2
-				fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]));
+				fprintf(stdout,"Element to be quantified: %s\n",AtomicNumberToSymbol((*pymca_input)->z_arr_quant[((*pymca_input)->n_z_arr_quant)-1]), NULL);
 #endif
 			}
 		}

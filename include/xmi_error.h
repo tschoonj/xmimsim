@@ -27,6 +27,7 @@ extern "C" {
 typedef enum {
 	XMI_MSIM_ERROR_XML,
 	XMI_MSIM_ERROR_TRANSMISSION_EFFICIENCY,
+	XMI_MSIM_ERROR_XRAYLIB,
 } XmiMsimError;
 
 #define XMI_MSIM_ERROR (xmi_msim_error_quark())

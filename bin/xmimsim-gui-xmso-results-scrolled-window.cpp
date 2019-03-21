@@ -963,7 +963,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 		for (int i = 0 ; i < window->results->nbrute_force_history ; i++) {
 			//iterating over atomic numbers -> highest level
 			gtk_tree_store_append(window->counts_tree_store, &iter1, NULL);
-			gchar *symbol = AtomicNumberToSymbol(window->results->brute_force_history[i].atomic_number);
+			gchar *symbol = AtomicNumberToSymbol(window->results->brute_force_history[i].atomic_number, NULL);
 			gtk_tree_store_set(window->counts_tree_store, &iter1,
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",
@@ -1014,7 +1014,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 		for (int i = 0 ; i < window->results->nvar_red_history ; i++) {
 			//iterating over atomic numbers -> highest level
 			gtk_tree_store_append(window->counts_tree_store, &iter1, NULL);
-			gchar *symbol = AtomicNumberToSymbol(window->results->var_red_history[i].atomic_number);
+			gchar *symbol = AtomicNumberToSymbol(window->results->var_red_history[i].atomic_number, NULL);
 			gtk_tree_store_set(window->counts_tree_store, &iter1,
 				ELEMENT_COLUMN, symbol,
 				LINE_COLUMN , "all",

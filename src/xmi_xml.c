@@ -1493,7 +1493,13 @@ int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *out
 		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "fluorescence_line_counts", NULL);
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "atomic_number", "%i", output->brute_force_history[i].atomic_number);
 		//two attributes: atomic_number and element
-		symbol = AtomicNumberToSymbol(output->brute_force_history[i].atomic_number);
+		xrl_error *xrlError = NULL;
+		symbol = AtomicNumberToSymbol(output->brute_force_history[i].atomic_number, &xrlError);
+		if (xrlError) {
+			g_propagate_error(error, xmi_error_convert_xrl_to_glib(xrlError));
+			xrl_error_free(xrlError);
+			return 0;
+		}
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "symbol", "%s", symbol);
 		xrlFree(symbol);
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "total_counts", "%g", output->brute_force_history[i].total_counts);
@@ -1523,7 +1529,13 @@ int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *out
 		nodePtr2 = xmlNewChild(nodePtr1, NULL, BAD_CAST "fluorescence_line_counts", NULL);
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "atomic_number", "%i", output->var_red_history[i].atomic_number);
 		//two attributes: atomic_number and element
-		symbol = AtomicNumberToSymbol(output->var_red_history[i].atomic_number);
+		xrl_error *xrlError = NULL;
+		symbol = AtomicNumberToSymbol(output->var_red_history[i].atomic_number, &xrlError);
+		if (xrlError) {
+			g_propagate_error(error, xmi_error_convert_xrl_to_glib(xrlError));
+			xrl_error_free(xrlError);
+			return 0;
+		}
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "symbol", "%s", symbol);
 		xrlFree(symbol);
 		xmi_new_prop_printf(nodePtr2, BAD_CAST "total_counts", "%g", output->var_red_history[i].total_counts);

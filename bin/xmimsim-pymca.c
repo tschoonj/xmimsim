@@ -54,20 +54,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 static double calculate_detector_absorption(xmi_input *input, int Z, int line) {
-	double energy = LineEnergy(Z, line);
+	double energy = LineEnergy(Z, line, NULL);
 	int i, j;
 	double rv = 1.0;
 
 	for (i = 0 ; i < input->absorbers->n_det_layers ; i++) {
 		double mu = 0.0;
 		for (j = 0 ; j < input->absorbers->det_layers[i].n_elements ; j++)
-			mu += CS_Total_Kissel(input->absorbers->det_layers[i].Z[j], energy) * input->absorbers->det_layers[i].weight[j];
+			mu += CS_Total_Kissel(input->absorbers->det_layers[i].Z[j], energy, NULL) * input->absorbers->det_layers[i].weight[j];
 		rv *= exp(-1.0*input->absorbers->det_layers[i].density * input->absorbers->det_layers[i].thickness * mu);
 	}
 	for (i = 0 ; i < input->detector->n_crystal_layers ; i++) {
 		double mu = 0.0;
 		for (j = 0 ; j < input->detector->crystal_layers[i].n_elements ; j++)
-			mu += CS_Total_Kissel(input->detector->crystal_layers[i].Z[j], energy) * input->detector->crystal_layers[i].weight[j];
+			mu += CS_Total_Kissel(input->detector->crystal_layers[i].Z[j], energy, NULL) * input->detector->crystal_layers[i].weight[j];
 		rv *= -1.0 * expm1(-1.0*input->detector->crystal_layers[i].density*input->detector->crystal_layers[i].thickness * mu);
 	}
 	return rv;
@@ -513,8 +513,6 @@ XMI_MAIN
 
 
 	//read escape ratios
-
-	SetErrorMessages(0);
 
 	if (options->use_escape_peaks) {
 		if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0)

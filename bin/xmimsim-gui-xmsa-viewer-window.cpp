@@ -719,7 +719,7 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	self->xrf_element_comboW = gtk_combo_box_text_new();
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(self->xrf_element_comboW), "All");
 	for (i = 0 ; i < self->fd->len ; i++) {
-		element = AtomicNumberToSymbol(((struct fluor_data *) g_ptr_array_index(self->fd, i))->atomic_number);
+		element = AtomicNumberToSymbol(((struct fluor_data *) g_ptr_array_index(self->fd, i))->atomic_number, NULL);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(self->xrf_element_comboW), element);
 		xrlFree(element);
 	}

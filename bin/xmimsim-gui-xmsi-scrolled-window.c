@@ -182,7 +182,7 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 			);
 			g_free(buffer2);
 			g_free(buffer);
-			buffer = AtomicNumberToSymbol(input->composition->layers[i].Z[j]);
+			buffer = AtomicNumberToSymbol(input->composition->layers[i].Z[j], NULL);
 			buffer2 = g_strdup_printf("/xmimsim/composition/layer[%i]/element[%i]/atomic_number", i+1, j+1);
 			gtk_tree_store_append(model, &iter4, &iter3);
 			gtk_tree_store_set(model, &iter4,
@@ -740,7 +740,7 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 			);
 			g_free(buffer2);
 			g_free(buffer);
-			buffer = AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j]);
+			buffer = AtomicNumberToSymbol(input->absorbers->exc_layers[i].Z[j], NULL);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/excitation_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
 			gtk_tree_store_append(model, &iter5, &iter4);
 			gtk_tree_store_set(model, &iter5,
@@ -826,7 +826,7 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 				-1
 			);
 			g_free(buffer2);
-			buffer = AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j]);
+			buffer = AtomicNumberToSymbol(input->absorbers->det_layers[i].Z[j], NULL);
 			buffer2 = g_strdup_printf("/xmimsim/absorbers/detector_path/layer[%i]/element[%i]/atomic_number", i+1, j+1);
 			gtk_tree_store_append(model, &iter5, &iter4);
 			gtk_tree_store_set(model, &iter5,
@@ -1025,7 +1025,7 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 			);
 			g_free(buffer2);
 			g_free(buffer);
-			buffer = AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j]);
+			buffer = AtomicNumberToSymbol(input->detector->crystal_layers[i].Z[j], NULL);
 			buffer2 = g_strdup_printf("/xmimsim/detector/crystal/layer[%i]/element[%i]/atomic_number", i+1, j+1);
 			gtk_tree_store_append(model, &iter5, &iter4);
 			gtk_tree_store_set(model, &iter5,

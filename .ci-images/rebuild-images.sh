@@ -1,7 +1,8 @@
 set -e
 set -x
 
-DOCKER_BUILD_OPTIONS="--pull"
+DOCKER_BUILD_OPTIONS="--pull --no-cache"
+#DOCKER_BUILD_OPTIONS="--pull"
 
 # centos 7 -> always with fgsl
 docker build $DOCKER_BUILD_OPTIONS -t tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui eu.tomschoonjans.xmi-msim.travis-ci.centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui

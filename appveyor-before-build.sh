@@ -6,11 +6,18 @@ set -x
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
 #export GTKMM_PLPLOT_BRANCH=master
+export XRAYLIB_BRANCH=master
 
 # install xraylib
-curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
-tar xfz xraylib-3.3.0.tar.gz
-cd xraylib-3.3.0
+if [ -n "$XRAYLIB_BRANCH" ] ; then
+	git clone -b $XRAYLIB_BRANCH --single-branch --depth=1 https://github.com/tschoonj/xraylib.git
+	cd xraylib
+	autoreconf -i
+else
+	curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
+	tar xfz xraylib-3.3.0.tar.gz
+	cd xraylib-3.3.0
+fi
 ./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration
 make -j2
 make install

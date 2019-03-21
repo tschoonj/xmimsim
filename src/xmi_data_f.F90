@@ -938,8 +938,6 @@ CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [nZs, 4, M5_SHELL+1, nZs, AB
 CALL C_F_POINTER(compton_profiles_Ptr, cp, [nZs])
 CALL C_F_POINTER(ZsPtr, Zs, [nZs])
 
-CALL SetErrorMessages(0)
-
 ALLOCATE(thetas(nintervals_theta))
 ALLOCATE(Qs(ncompton_profiles))
 ALLOCATE(rs2(ncompton_profiles))

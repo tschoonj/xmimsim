@@ -14,14 +14,31 @@ RUN apt-get install -y build-essential \
         libxml2-utils \
         libhdf5-serial-dev \
         hdf5-tools \
-        libxrl7-dev \
-        python-libxrl7 \
+#        libxrl7-dev \
+#        python-libxrl7 \
         libsoup2.4-dev \
 	gobject-introspection \
 	python-gobject \
-	libgirepository1.0-dev
+	libgirepository1.0-dev \
+	swig \
+	python-dev \
+	python-numpy
 
 RUN apt-get install -y libeasyrng-dev
 
+# build xraylib from master
 WORKDIR /root
+RUN git clone --single-branch --depth=1 https://github.com/tschoonj/xraylib.git
+WORKDIR /root/xraylib
+RUN autoreconf -i
+RUN ./configure --disable-static --enable-python --enable-fortran2003
+RUN make -j2
+RUN make check
+RUN make install
+RUN make clean
+
+WORKDIR /root
+
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+ENV LD_LIBRARY_PATH=/usr/local/lib
 

@@ -265,22 +265,27 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 		GNotification *notification;
 		if (result == FALSE) {
 			notification = g_notification_new("Simulation failed");
-			g_notification_set_body(notification, "Check error messages");
+			if (notification)
+				g_notification_set_body(notification, "Check error messages");
 		}
 		else {
 			notification = g_notification_new("Simulation succeeded");
-			gchar *my_basename = g_path_get_basename(self->output_file);
-			gchar *information = g_strdup_printf("%s is now showing in the results window", my_basename);
-			g_notification_set_body(notification, information);
-			g_free(my_basename);
-			g_free(information);
+			if (notification) {
+				gchar *my_basename = g_path_get_basename(self->output_file);
+				gchar *information = g_strdup_printf("%s is now showing in the results window", my_basename);
+				g_notification_set_body(notification, information);
+				g_free(my_basename);
+				g_free(information);
+			}
 		}
 		// has to be a fileicon...
 		//GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
 		//g_notification_set_icon(notification, icon);
 		//g_object_unref(icon);
-		g_application_send_notification(g_application_get_default(), NULL, notification);
-		g_object_unref(notification);
+		if (notification) {
+			g_application_send_notification(g_application_get_default(), NULL, notification);
+			g_object_unref(notification);
+		}
 	}
 	g_value_unset(&xpv);
 #endif

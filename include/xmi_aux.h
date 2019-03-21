@@ -114,6 +114,10 @@ void xmi_print_progress(char *string, int progress);
 
 gchar* xmi_get_xmimsim_path(void);
 
+#ifndef __GI_SCANNER__
+GError* xmi_error_convert_xrl_to_glib(xrl_error *error);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

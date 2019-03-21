@@ -36,8 +36,8 @@ cd $APPVEYOR_BUILD_FOLDER
 
 autoreconf -fi
 export CPPFLAGS="-I/usr/local/include"
-export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Werror=implicit"
-export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
+#export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Werror=implicit"
+#export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 export LIBS="-L/usr/local/lib/nvidia"
 ./configure --prefix=$HOME/install $CONFIGURE_OPTIONS --disable-static --enable-introspection
 make
@@ -47,6 +47,7 @@ else
 	# I think the OpenCL test will block due to that stupid dialog. So don't test until glib 2.56.0 is out
 	make dist
 	export DO_NOT_USE_DATA=1
+	export USE_LOCAL_XRAYLIB=1
 	cd windows
 	make iss
 	mv XMI-MSIM*exe ..

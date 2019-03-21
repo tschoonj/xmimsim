@@ -669,3 +669,10 @@ gchar* xmi_get_xmimsim_path(void) {
 #endif
 	return xmimsim_executable;
 }
+
+GError* xmi_error_convert_xrl_to_glib(xrl_error *error) {
+	if (error == NULL)
+		return NULL;
+
+	return g_error_new_literal(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XRAYLIB, error->message);
+}

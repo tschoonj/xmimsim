@@ -496,9 +496,6 @@ static void app_startup(GApplication *app) {
 	// invoke parent method
 	G_APPLICATION_CLASS(xmi_msim_gui_application_parent_class)->startup(app);
 
-	// no xraylib error messages!
-	SetErrorMessages(0);
-
 	xmi_msim_gui_init();
 
 	// init hdf5 constants and error messages

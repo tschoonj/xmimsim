@@ -127,11 +127,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
         TYPE (xmi_ran_trap_workspace) :: workspace
 
-
-        CALL SetErrorMessages(0)
-
-
-
         rv = 0
         photons_simulated = 0
         detector_hits = 0

@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
 	xmi_init_hdf5();
 
 	// read compound
-	struct compoundData *cd = CompoundParser(COMPOUND);
+	struct compoundData *cd = CompoundParser(COMPOUND, NULL);
 	g_assert(cd != NULL);
 
 	// generate appropriate xmimsimdata.h5 file
