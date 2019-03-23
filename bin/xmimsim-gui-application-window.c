@@ -339,6 +339,29 @@ static GActionEntry win_entries[] = {
 	{"minimize", minimize_activated, NULL, NULL, NULL},
 };
 
+static void controls_finished_event(XmiMsimGuiControlsScrolledWindow *controls_window, gboolean result, GFile *xmso_file, XmiMsimGuiApplicationWindow *window) {
+	if (result) {
+		gchar *filename = g_file_get_path(xmso_file);
+		GError *error = NULL;
+		xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page), filename, &error);
+		if (error) {
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not load %s",
+				filename
+	                	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
+	     		gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+		}
+		g_free(filename);
+	}
+		
+}
+
 static void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_val, gboolean copy_val, gboolean paste_val, XmiMsimGuiApplicationWindow *window) {
 	GAction *action = NULL;
 	
@@ -668,6 +691,7 @@ static void xmi_msim_gui_application_window_init(XmiMsimGuiApplicationWindow *se
 	gtk_notebook_append_page(GTK_NOTEBOOK(self->notebook), self->results_page, label);
 	gtk_container_child_set(GTK_CONTAINER(self->notebook), self->results_page, "tab-expand", TRUE, "tab-fill", TRUE, NULL);
 
+	g_signal_connect(self->controls_page, "finished-event", G_CALLBACK(controls_finished_event), self);
 	g_signal_connect(self->clipboard_manager, "update-clipboard-buttons", G_CALLBACK(update_clipboard_buttons), self);
 	g_signal_connect(self->undo_manager, "update-status-buttons", G_CALLBACK(update_status_buttons), self);
 	g_signal_connect(G_OBJECT(self), "delete-event", G_CALLBACK(window_delete_event), self);

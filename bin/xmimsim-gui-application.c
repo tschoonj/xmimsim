@@ -633,7 +633,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 	g_debug("Calling app_open with hint %s and %d files", hint, n_files);
 
 	if (n_files == 1 && strlen(hint) > 0) {
-		// in this case the file needs to be either xmsi or xmso
+		// in this case the file needs to be xmsi
 		// get window
 		GList *windows = gtk_application_get_windows(GTK_APPLICATION(app));
 		XmiMsimGuiApplicationWindow *window = NULL;
@@ -666,10 +666,6 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 					gtk_widget_destroy(new_window);
 				}
 			}
-			do_return = TRUE;
-		}
-		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmso") == 0) {
-			xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page), filename, &error);
 			do_return = TRUE;
 		}
 		if (error) {

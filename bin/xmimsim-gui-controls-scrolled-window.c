@@ -34,6 +34,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_resources_mac.h"
 #endif
 
+enum {
+	FINISHED_EVENT,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 struct _XmiMsimGuiControlsScrolledWindowClass {
 	GtkScrolledWindowClass parent_class;
 };
@@ -162,6 +169,28 @@ static void xmi_msim_gui_controls_scrolled_window_class_init(XmiMsimGuiControlsS
 
 	object_class->dispose = xmi_msim_gui_controls_scrolled_window_dispose;
 	object_class->finalize = xmi_msim_gui_controls_scrolled_window_finalize;
+
+	/**
+	 * XmiMsimGuiControlsScrolledWindow::finished-event:
+	 * @window: The #XmiMsimGuiControlsScrolledWindow object emitting the signal
+	 * @status: The exit status of the finished job. %TRUE if successful, %FALSE otherwise
+	 * @xmso_file: The file that should be opened if successful, or %NULL otherwise
+	 *
+	 * Emitted when the #XmiMsimJob has finished.
+	 */
+	signals[FINISHED_EVENT] = g_signal_new(
+		"finished-event",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_LAST,
+		0, // no default handler
+		NULL,
+		NULL,
+		NULL,
+		G_TYPE_NONE,
+		2,
+		G_TYPE_BOOLEAN, // gboolean
+		G_TYPE_FILE // GFile
+	);
 }
 
 static void reset_controls(XmiMsimGuiControlsScrolledWindow *self) {
@@ -293,17 +322,14 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 	if (result == FALSE) {
 		//if something is spinning, make it stop and make it red
 		error_spinners(self);
+		g_signal_emit(self, signals[FINISHED_EVENT], 0, result, NULL);
 		return;
 	}
 
 	// read the spectrum in
-	GtkWidget *window = gtk_widget_get_toplevel(GTK_WIDGET(self));
-	if (XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window)) {
-		GFile *file = g_file_new_for_path(self->output_file);
-		g_application_open(g_application_get_default(), &file, 1, gtk_widget_get_name(window));
-		g_object_unref(file);
-	
-	}
+	GFile *file = g_file_new_for_path(self->output_file);
+	g_signal_emit(self, signals[FINISHED_EVENT], 0, result, file);
+	g_object_unref(file);
 }
 
 static void job_special_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *message, XmiMsimGuiControlsScrolledWindow *self) {
