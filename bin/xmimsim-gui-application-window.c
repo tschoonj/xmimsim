@@ -750,7 +750,20 @@ GtkWidget* xmi_msim_gui_application_window_new(XmiMsimGuiApplication *app) {
 	return GTK_WIDGET(app_window);
 }
 
+GtkWidget* xmi_msim_gui_application_window_get_active_tab(XmiMsimGuiApplicationWindow *window) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window), NULL);
+	g_return_val_if_fail(window->notebook != NULL, NULL);
+	return gtk_notebook_get_nth_page(GTK_NOTEBOOK(window->notebook), gtk_notebook_get_current_page(GTK_NOTEBOOK(window->notebook)));
+}
+
 gboolean xmi_msim_gui_application_window_load_file(XmiMsimGuiApplicationWindow *window, const gchar *filename, GError **error) {
+	if (!XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window)) {
+		g_set_error(error, XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR, XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR_INVALID_ARGUMENT, "window must be an instance of XmiMsimGuiApplicationWindow");
+		return FALSE;
+	}
 	return xmi_msim_gui_undo_manager_load_file(window->undo_manager, filename, error);
 }
 
+GQuark xmi_msim_gui_application_window_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-gui-application-window-error-quark");
+}

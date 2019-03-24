@@ -61,6 +61,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-xmsi-config-scrolled-window.h \
 	xmimsim-gui-application.h \
 	xmimsim-gui-application-window.h \
+	xmimsim-gui-xmso-results-application-window.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -97,6 +98,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-application.c \
 	xmimsim-gui-application-window.c \
 	xmimsim-gui-private.h \
+	xmimsim-gui-xmso-results-application-window.c \
 	$(NULL)
 
 nodist_libxmimsim_gui_la_SOURCES = \
@@ -489,6 +491,8 @@ introspection_sources = \
 	xmimsim-gui-utils-pp.h \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-xmso-results-application-window.c \
+	xmimsim-gui-xmso-results-application-window.h \
 	$(NULL)
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la

@@ -36,9 +36,19 @@ typedef struct _XmiMsimGuiApplicationWindowClass   	XmiMsimGuiApplicationWindowC
 
 GtkWidget* xmi_msim_gui_application_window_new(XmiMsimGuiApplication *app);
 
-gboolean xmi_msim_gui_application_window_load_file(XmiMsimGuiApplicationWindow *app, const gchar *filename, GError **error);
+gboolean xmi_msim_gui_application_window_load_file(XmiMsimGuiApplicationWindow *window, const gchar *filename, GError **error);
+
+GtkWidget* xmi_msim_gui_application_window_get_active_tab(XmiMsimGuiApplicationWindow *window);
 
 GType xmi_msim_gui_application_window_get_type(void) G_GNUC_CONST;
+
+typedef enum {
+	XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR_INVALID_ARGUMENT,
+} XmiMsimGuiApplicationWindowError;
+
+#define XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR (xmi_msim_gui_application_window_error_quark())
+
+GQuark xmi_msim_gui_application_window_error_quark(void);
 
 G_END_DECLS
 
