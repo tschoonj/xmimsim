@@ -27,6 +27,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gtkmm-plplot/canvas.h>
 #include "xmi_gobject.h"
 
+#ifdef __APPLE__
+  #include "xmimsim-gui-osx.h"
+#endif
+
 class Plot2DBatch: public Gtk::PLplot::Plot2D {
 	public:
 	Plot2DBatch(
@@ -100,6 +104,7 @@ extern "C" struct _XmiMsimGuiXmsaViewerWindow {
 	double *y;
 	double *z;
 	xmi_archive *archive;
+	gchar *filename;
 };
 
 extern "C" struct _XmiMsimGuiXmsaViewerWindowClass {
@@ -112,6 +117,12 @@ static void xmi_msim_gui_xmsa_viewer_window_set_property (GObject          *obje
                                                    guint             prop_id,
                                                    const GValue     *value,
                                                    GParamSpec       *pspec);
+
+static void xmi_msim_gui_xmsa_viewer_window_get_property (GObject          *object,
+                                                   guint             prop_id,
+                                                   GValue     *value,
+                                                   GParamSpec       *pspec);
+
 
 static void xmi_msim_gui_xmsa_viewer_window_dispose(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_gui_xmsa_viewer_window_parent_class)->dispose(gobject);
@@ -131,23 +142,41 @@ static void xmi_msim_gui_xmsa_viewer_window_finalize(GObject *gobject) {
 
 static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj);
 
+enum {
+	PROP_0,
+	PROP_ARCHIVE,
+	PROP_FILENAME,
+	N_PROPERTIES
+};
+
+
+static GParamSpec *props[N_PROPERTIES] = {NULL, };
+
 static void xmi_msim_gui_xmsa_viewer_window_class_init(XmiMsimGuiXmsaViewerWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_gui_xmsa_viewer_window_dispose;
 	object_class->finalize = xmi_msim_gui_xmsa_viewer_window_finalize;
 	object_class->set_property = xmi_msim_gui_xmsa_viewer_window_set_property;
+	object_class->get_property = xmi_msim_gui_xmsa_viewer_window_get_property;
 	object_class->constructed = xmi_msim_gui_xmsa_viewer_window_constructed;
 
-	g_object_class_install_property(object_class,
-		1,
-		g_param_spec_pointer(
-			"archive",
-			"archive",
-			"archive",
-    			(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
-		)
+	props[PROP_ARCHIVE] = g_param_spec_pointer(
+		"archive",
+		"archive",
+		"archive",
+    		(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 	);
+
+	props[PROP_FILENAME] = g_param_spec_string(
+		"filename",
+		"filename",
+		"filename",
+		NULL,
+    		(GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT)
+	);
+
+	g_object_class_install_properties(object_class, N_PROPERTIES, props);
 }
 
 static GPtrArray* get_fluor_data(xmi_archive *archive) {
@@ -920,8 +949,28 @@ static GActionEntry win_entries[] = {
 	{"minimize", minimize_activated, NULL, NULL, NULL},
 };
 
+#ifdef __APPLE__
+  #define XMIMSIM_TITLE_PREFIX ""
+#else
+  #define XMIMSIM_TITLE_PREFIX "XMI-MSIM: "
+#endif
+
+static void viewer_cb(XmiMsimGuiXmsaViewerWindow *viewer, gpointer data) {
+	if (!viewer->filename)
+		return;
+	gchar *basename = g_path_get_basename(viewer->filename);
+	gchar *xmimsim_title_xmsa = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s", basename);
+	g_free(basename);
+	gtk_window_set_title(GTK_WINDOW(viewer), xmimsim_title_xmsa);
+	g_free(xmimsim_title_xmsa);
+#ifdef __APPLE__
+	xmi_msim_gui_osx_nswindow_set_file(GTK_WIDGET(viewer), viewer->filename);
+#endif
+}
+
 static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *self) {
 	g_action_map_add_action_entries(G_ACTION_MAP(self), win_entries, G_N_ELEMENTS(win_entries), self);
+	g_signal_connect(self, "realize", G_CALLBACK(viewer_cb), NULL);
 }
 
 /**
@@ -931,12 +980,13 @@ static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *sel
  *
  * Returns: a fresly initialized #XmiMsimGuiXmsaViewerWindow
  */
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, xmi_archive *archive) {
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, gchar *filename, xmi_archive *archive) {
 	g_return_val_if_fail(archive != NULL, NULL);
 
 	XmiMsimGuiXmsaViewerWindow *rv = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(
 					g_object_new(XMI_MSIM_GUI_TYPE_XMSA_VIEWER_WINDOW,
 					"application", app,
+					"filename", filename,
 					"archive", archive,
 					"title", "Batch mode plot",
 					"window-position", GTK_WIN_POS_CENTER,
@@ -954,8 +1004,24 @@ static void xmi_msim_gui_xmsa_viewer_window_set_property(GObject *object, guint 
   XmiMsimGuiXmsaViewerWindow *window= XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(object);
 
   switch (prop_id) {
-    case 1:
+    case PROP_ARCHIVE:
       window->archive =  (xmi_archive *) g_value_get_pointer(value);
+      break;
+    case PROP_FILENAME:
+      window->filename =  g_value_dup_string(value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void xmi_msim_gui_xmsa_viewer_window_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
+
+  XmiMsimGuiXmsaViewerWindow *window= XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(object);
+
+  switch (prop_id) {
+    case PROP_FILENAME:
+      g_value_set_string(value, window->filename);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1403,4 +1469,9 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 
 	g_free(zz);
 	g_free(xx);
+}
+
+const gchar* xmi_msim_gui_xmsa_viewer_window_get_filename(XmiMsimGuiXmsaViewerWindow *viewer) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSA_VIEWER_WINDOW(viewer), NULL);
+	return viewer->filename;
 }

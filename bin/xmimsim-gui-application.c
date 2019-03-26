@@ -575,18 +575,6 @@ static void app_activate(GApplication *app) {
 	gtk_widget_show(window);
 }
 
-static void viewer_cb(GtkWidget *viewer, gchar *filename) {
-	gchar *basename = g_path_get_basename(filename);
-	gchar *xmimsim_title_xmsa = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s", basename);
-	g_free(basename);
-	gtk_window_set_title(GTK_WINDOW(viewer), xmimsim_title_xmsa);
-	g_free(xmimsim_title_xmsa);
-#ifdef __APPLE__
-	xmi_msim_gui_osx_nswindow_set_file(viewer, filename);
-#endif
-	g_free(filename);
-}
-
 static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, GtkWidget *active_window) {
 
 	GError *error = NULL;
@@ -610,8 +598,7 @@ static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, Gtk
 		g_application_release(g_application_get_default());
 		return ;
 	}
-	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive);
-	g_signal_connect(viewer, "realize", G_CALLBACK(viewer_cb), g_strdup((const gchar*) g_task_get_task_data(task)));
+	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), g_task_get_task_data(task), archive);
 	gtk_widget_show(viewer);
 	g_application_release(g_application_get_default());
 }
@@ -684,6 +671,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 
 		if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmsi") == 0) {
 			GtkWidget *window = xmi_msim_gui_application_window_new(XMI_MSIM_GUI_APPLICATION(app));
+			gtk_window_present(GTK_WINDOW(window));
 			if (xmi_msim_gui_application_window_load_file(XMI_MSIM_GUI_APPLICATION_WINDOW(window), filename, &error) == FALSE) {
 				gtk_widget_destroy(window);
 				error_dialog = gtk_message_dialog_new(active_window,
@@ -694,9 +682,6 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 				);
 				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "%s", error->message);
 				g_error_free(error);
-			}
-			else {
-				gtk_window_present(GTK_WINDOW(window));
 			}
 		}
 		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmso") == 0) {
@@ -713,7 +698,6 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 				g_error_free(error);
 			}
 			else {
-				g_signal_connect(window, "realize", G_CALLBACK(viewer_cb), g_strdup((const gchar*) filename));
 				gtk_window_present(GTK_WINDOW(window));
 			}
 		}

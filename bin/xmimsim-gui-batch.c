@@ -1336,7 +1336,12 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 	return rv;
 }
 
-
+struct save_archive_data {
+	struct archive_options_data *aod;
+	gchar *xpath1;
+       	gchar *xpath2;
+	xmi_output ***output;
+};
 
 static int general_options(GtkWidget *main_window, xmi_main_options **options) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Set the options for the simulations batch", GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
@@ -1363,6 +1368,8 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 	gdk_window_set_cursor(gtk_widget_get_window(task_window), NULL);
 	gtk_widget_destroy(task_window);
 
+	struct save_archive_data *sad = g_task_get_task_data(G_TASK(result));
+
 	GError *error = NULL;
 
 	xmi_archive *archive = g_task_propagate_pointer(G_TASK(result), &error);
@@ -1381,17 +1388,10 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 		return;
 	}
 
-	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive);
+	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), sad->aod->xmsa_file, archive);
 	gtk_window_set_transient_for(GTK_WINDOW(xmsa_window), GTK_WINDOW(window));
 	gtk_window_present(GTK_WINDOW(xmsa_window));
 }
-
-struct save_archive_data {
-	struct archive_options_data *aod;
-	gchar *xpath1;
-       	gchar *xpath2;
-	xmi_output ***output;
-};
 
 struct save_archive_update_task_window_data {
 	XmiMsimGuiLongTaskWindow *window;

@@ -35,7 +35,9 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsaViewerWindow		XmiMsimGuiXmsaViewerWindow;
 typedef struct _XmiMsimGuiXmsaViewerWindowClass   	XmiMsimGuiXmsaViewerWindowClass;
 
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication* app, xmi_archive *archive);
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, gchar *filename, xmi_archive *archive);
+
+const gchar* xmi_msim_gui_xmsa_viewer_window_get_filename(XmiMsimGuiXmsaViewerWindow *viewer);
 
 GType xmi_msim_gui_xmsa_viewer_window_get_type(void) G_GNUC_CONST;
 

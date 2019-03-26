@@ -20,6 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-application-window.h"
+#include "xmimsim-gui-xmso-results-scrolled-window.h"
+#include "xmimsim-gui-xmso-results-application-window.h"
+#include "xmimsim-gui-xmsi-config-scrolled-window.h"
+#include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-long-task-window.h"
 #include "xmi_xslt.h"
 #include "xmi_xml.h"
@@ -89,6 +94,31 @@ static GtkWidget* get_description_frame(const gchar *description) {
 	gtk_widget_set_vexpand(frame, TRUE);
 	
 	return frame;
+}
+
+enum XmiMsimFileType {
+	XMSI_TYPE,
+	XMSO_TYPE,
+	XMSA_TYPE
+};
+
+static const gchar* get_active_filename(GtkWidget *active_window, enum XmiMsimFileType file_type) {
+	if (!active_window)
+		return NULL;
+
+	if (XMI_MSIM_GUI_IS_APPLICATION_WINDOW(active_window))
+		active_window = xmi_msim_gui_application_window_get_active_tab(XMI_MSIM_GUI_APPLICATION_WINDOW(active_window));
+	else if (XMI_MSIM_GUI_IS_XMSO_RESULTS_APPLICATION_WINDOW(active_window))
+		active_window = gtk_bin_get_child(GTK_BIN(XMI_MSIM_GUI_XMSO_RESULTS_APPLICATION_WINDOW(active_window)));
+
+	if (XMI_MSIM_GUI_IS_XMSI_CONFIG_SCROLLED_WINDOW(active_window) && file_type == XMSI_TYPE)
+		return xmi_msim_gui_xmsi_config_scrolled_window_get_filename(XMI_MSIM_GUI_XMSI_CONFIG_SCROLLED_WINDOW(active_window));
+	if (XMI_MSIM_GUI_IS_XMSO_RESULTS_SCROLLED_WINDOW(active_window) && file_type == XMSO_TYPE)
+		return xmi_msim_gui_xmso_results_scrolled_window_get_filename(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(active_window));
+	if (XMI_MSIM_GUI_IS_XMSA_VIEWER_WINDOW(active_window) && file_type == XMSA_TYPE)
+		return xmi_msim_gui_xmsa_viewer_window_get_filename(XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(active_window));
+
+	return NULL;
 }
 
 static void xmsa_to_xmso_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable) {
@@ -454,8 +484,9 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	}
 
 	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	gchar *xmsifile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
+	gchar *xmsifile = g_strdup(gtk_entry_get_text(GTK_ENTRY(xt->entry2)));
 	gchar *outputfile= (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry3));
+	gboolean open_file = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1));
 
 	if (strcmp(outputfile,"(optional)") == 0)
 		outputfile = NULL;
@@ -484,7 +515,13 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
      		gtk_dialog_run (GTK_DIALOG (dialog));
 		gtk_widget_destroy(dialog);
 		gtk_widget_destroy(xt->window);
+		if (open_file) {
+			GFile *file = g_file_new_for_path(xmsifile);
+			g_application_open(g_application_get_default(), &file, 1, "");
+			g_object_unref(file);
+		}
 	}
+	g_free(xmsifile);
 }
 
 static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
@@ -838,6 +875,8 @@ void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	text = gtk_entry_new();
+	if (get_active_filename(main_window, XMSO_TYPE))
+		gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSO_TYPE));
 	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(text, TRUE);
@@ -891,14 +930,18 @@ void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	xt3->entry = text;
 	xt4->entry3 = text;
 
-	gtk_grid_attach(GTK_GRID(grid), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), 0, 4, 3, 1);
+	xt4->button1 = gtk_check_button_new_with_label("Open XMSI file after conversion");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(xt4->button1), TRUE);
+	gtk_grid_attach(GTK_GRID(grid), xt4->button1, 0, 4, 3, 1);
+
+	gtk_grid_attach(GTK_GRID(grid), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), 0, 5, 3, 1);
 
 	button = gtk_button_new_with_mnemonic("_Apply");
 	gtk_widget_set_halign(button, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2xmsi_apply_button_clicked_cb), xt4);
-	gtk_grid_attach(GTK_GRID(grid), button, 0, 5, 3, 1);
+	gtk_grid_attach(GTK_GRID(grid), button, 0, 6, 3, 1);
 
 	gtk_container_add(GTK_CONTAINER(window), grid);
 
@@ -932,6 +975,8 @@ void xmso2csv_activated(GSimpleAction *action, GVariant *parameter, gpointer dat
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	text = gtk_entry_new();
+	if (get_active_filename(main_window, XMSO_TYPE))
+		gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSO_TYPE));
 	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(text, TRUE);
@@ -1015,6 +1060,8 @@ void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	text = gtk_entry_new();
+	if (get_active_filename(main_window, XMSO_TYPE))
+		gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSO_TYPE));
 	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(text, TRUE);
@@ -1096,6 +1143,8 @@ void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer dat
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	text = gtk_entry_new();
+	if (get_active_filename(main_window, XMSO_TYPE))
+		gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSO_TYPE));
 	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(text, TRUE);
@@ -1270,13 +1319,16 @@ void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	xmsi_fileW = gtk_file_chooser_button_new("Select an XMI-MSIM input-file", GTK_FILE_CHOOSER_ACTION_OPEN);
+	if (get_active_filename(main_window, XMSI_TYPE))
+		gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(xmsi_fileW), get_active_filename(main_window, XMSI_TYPE));
 	gtk_widget_set_halign(xmsi_fileW, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(xmsi_fileW, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(xmsi_fileW, TRUE);
 	gtk_grid_attach(GTK_GRID(grid), xmsi_fileW, 1, 1, 1, 1);
 	GtkFileFilter *filter;
 	filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter,"*.[xX][mM][sS][iI]");
+	gtk_file_filter_add_pattern(filter,"*.xmsi");
+	gtk_file_filter_add_pattern(filter,"*.XMSI");
 	gtk_file_filter_set_name(filter,"XMI-MSIM inputfiles");
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(xmsi_fileW), filter);
 
@@ -1360,6 +1412,9 @@ void xmsa2xmso_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
 	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
 	text = gtk_entry_new();
+	// cannot do this until I parse the XMSA file in a GTask
+	//if (get_active_filename(main_window, XMSA_TYPE))
+	//	gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSA_TYPE));
 	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
 	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
 	gtk_widget_set_hexpand(text, TRUE);

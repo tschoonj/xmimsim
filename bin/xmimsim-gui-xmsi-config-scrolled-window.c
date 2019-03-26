@@ -1036,3 +1036,9 @@ GtkWidget* xmi_msim_gui_xmsi_config_scrolled_window_new(XmiMsimGuiUndoManager *u
 
 	return GTK_WIDGET(scrolled_window);
 }
+
+const gchar* xmi_msim_gui_xmsi_config_scrolled_window_get_filename(XmiMsimGuiXmsiConfigScrolledWindow *window) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSI_CONFIG_SCROLLED_WINDOW(window), NULL);
+
+	return xmi_msim_gui_undo_manager_get_filename(window->undo_manager);
+}
