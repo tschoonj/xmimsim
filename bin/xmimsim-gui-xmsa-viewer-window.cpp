@@ -990,7 +990,6 @@ GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, gchar
 					"archive", archive,
 					"title", "Batch mode plot",
 					"window-position", GTK_WIN_POS_CENTER,
-					"modal", TRUE,
 					"default-width", 1100,
 					"resizable", FALSE,
 					NULL)
