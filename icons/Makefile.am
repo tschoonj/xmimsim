@@ -75,8 +75,6 @@ dist_icons256_DATA = 256x256/Logo_xmi_msim.png \
 #			  Logo_xmi_msim_Gnome_XMSA.svg \
 #			  Radiation_warning_symbol.svg
 #endif
-xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = Logo_xmi_msim.png Logo_xmi_msim_red.png Logo_xmi_msim_archive.png
 endif
 all:
 
@@ -241,4 +239,7 @@ EXTRA_DIST = Logo_xmi_msim.bmp \
 	Logo_xmi_msim_Win7_XMSI.ico \
 	Logo_xmi_msim_Win7_XMSO.ico \
 	Logo_xmi_msim_Win7_XMSA.ico \
-	applications-x-xmimsim.xml
+	applications-x-xmimsim.xml \
+	Logo_xmi_msim.png \
+	Logo_xmi_msim_red.png \
+	Logo_xmi_msim_archive.png

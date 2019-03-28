@@ -468,8 +468,6 @@ xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 #xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
 #xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
-xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = coordinate_system.png
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
@@ -530,5 +528,5 @@ xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOUR
 clean-local:
 	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def $(CLEANFILES)
 
-EXTRA_DIST = xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
+EXTRA_DIST = xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui coordinate_system.png
 
