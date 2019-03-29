@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
-#include "xmimsim-gui-xmsi-scrolled-window.h"
+#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
 #include "xmimsim-gui-options-box.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-long-task-window.h"
@@ -774,14 +774,14 @@ static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path
 static int select_parameter(GtkWidget *window, xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select one or two variable parameters", GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
-	GtkWidget *scrolled_window = xmi_msim_gui_xmsi_scrolled_window_new(input, TRUE);
+	GtkWidget *scrolled_window = xmi_msim_gui_xmsi_selection_scrolled_window_new(input, TRUE);
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_container_add(GTK_CONTAINER(content_area), scrolled_window);
 	gtk_widget_show_all(scrolled_window);
 	gtk_container_set_border_width(GTK_CONTAINER(dialog), 3);
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 500, 500);
-	GtkTreeView* treeview = xmi_msim_gui_xmsi_scrolled_window_get_tree_view(XMI_MSIM_GUI_XMSI_SCROLLED_WINDOW(scrolled_window));
+	GtkTreeView* treeview = xmi_msim_gui_xmsi_selection_scrolled_window_get_tree_view(XMI_MSIM_GUI_XMSI_SELECTION_SCROLLED_WINDOW(scrolled_window));
 	GtkWidget *okButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	gtk_widget_set_sensitive(okButton, FALSE);

@@ -16,75 +16,152 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
-#include "xmimsim-gui-xmsi-scrolled-window.h"
+#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
 #include <string.h>
 #include <xraylib.h>
+#include "xmi_gobject.h"
 
-struct _XmiMsimGuiXmsiScrolledWindow {
+struct _XmiMsimGuiXmsiSelectionScrolledWindow {
 	GtkScrolledWindow parent_instance;
 	GtkTreeView *treeview;
+	gboolean with_colors;
+	xmi_input *input;
 };
 
-struct _XmiMsimGuiXmsiScrolledWindowClass
+struct _XmiMsimGuiXmsiSelectionScrolledWindowClass
 {
 	GtkScrolledWindowClass parent_class;
 };
 
-G_DEFINE_TYPE(XmiMsimGuiXmsiScrolledWindow, xmi_msim_gui_xmsi_scrolled_window, GTK_TYPE_SCROLLED_WINDOW)
+G_DEFINE_TYPE(XmiMsimGuiXmsiSelectionScrolledWindow, xmi_msim_gui_xmsi_selection_scrolled_window, GTK_TYPE_SCROLLED_WINDOW)
 
-static void xmi_msim_gui_xmsi_scrolled_window_dispose(GObject *gobject) {
-	G_OBJECT_CLASS(xmi_msim_gui_xmsi_scrolled_window_parent_class)->dispose(gobject);
+enum {
+	PROP_0,
+	PROP_INPUT,
+	PROP_WITH_COLOR,
+	N_PROPERTIES
+};
+
+static GParamSpec *props[N_PROPERTIES] = {NULL, };
+
+static void xmi_msim_gui_xmsi_selection_scrolled_window_dispose(GObject *gobject) {
+	G_OBJECT_CLASS(xmi_msim_gui_xmsi_selection_scrolled_window_parent_class)->dispose(gobject);
 }
 
-static void xmi_msim_gui_xmsi_scrolled_window_finalize(GObject *gobject) {
-	G_OBJECT_CLASS(xmi_msim_gui_xmsi_scrolled_window_parent_class)->finalize(gobject);
+static void xmi_msim_gui_xmsi_selection_scrolled_window_finalize(GObject *gobject) {
+	G_OBJECT_CLASS(xmi_msim_gui_xmsi_selection_scrolled_window_parent_class)->finalize(gobject);
 }
 
-static void xmi_msim_gui_xmsi_scrolled_window_class_init(XmiMsimGuiXmsiScrolledWindowClass *klass) {
+static void xmi_msim_gui_xmsi_selection_scrolled_window_set_property(GObject          *object,
+                                                guint             prop_id,
+                                                const GValue     *value,
+                                                GParamSpec       *pspec);
+
+static void xmi_msim_gui_xmsi_selection_scrolled_window_get_property(GObject          *object,
+                                                guint             prop_id,
+                                                GValue     *value,
+                                                GParamSpec       *pspec);
+
+static void xmi_msim_gui_xmsi_selection_scrolled_window_class_init(XmiMsimGuiXmsiSelectionScrolledWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-	object_class->dispose = xmi_msim_gui_xmsi_scrolled_window_dispose;
-	object_class->finalize = xmi_msim_gui_xmsi_scrolled_window_finalize;
+	object_class->dispose = xmi_msim_gui_xmsi_selection_scrolled_window_dispose;
+	object_class->finalize = xmi_msim_gui_xmsi_selection_scrolled_window_finalize;
+	object_class->set_property = xmi_msim_gui_xmsi_selection_scrolled_window_set_property;
+	object_class->get_property = xmi_msim_gui_xmsi_selection_scrolled_window_get_property;
+
+	props[PROP_INPUT] = g_param_spec_boxed(
+		"xmi-input",
+		"xmi-input",
+		"xmi-input",
+		XMI_MSIM_TYPE_INPUT,
+    		G_PARAM_READWRITE 
+	);
+
+	props[PROP_WITH_COLOR] = g_param_spec_boolean(
+		"with-colors",
+		"with-colors",
+		"with-colors",
+		TRUE,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	g_object_class_install_properties(object_class, N_PROPERTIES, props);
 }
 
-static void xmi_msim_gui_xmsi_scrolled_window_init(XmiMsimGuiXmsiScrolledWindow *self) {
+static GtkCellRenderer* get_cell_renderer(XmiMsimGuiXmsiSelectionScrolledWindow *self, gint column_nr) {
+	GtkTreeViewColumn *column = gtk_tree_view_get_column(self->treeview, column_nr);
+	g_return_val_if_fail(column != NULL, NULL);
 
+	GList *renderers = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(column));
+	g_return_val_if_fail(renderers != NULL, NULL);
+
+	GtkCellRenderer *rv = renderers->data;
+	g_list_free(renderers);
+
+	return rv;
 }
 
-GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with_colors) {
-	XmiMsimGuiXmsiScrolledWindow *scrolled_window = XMI_MSIM_GUI_XMSI_SCROLLED_WINDOW(g_object_new(XMI_MSIM_GUI_TYPE_XMSI_SCROLLED_WINDOW, NULL));
+static void update_colors(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
+	GtkCellRenderer *renderer1 = get_cell_renderer(self, 0);
+	GtkCellRenderer *renderer2 = get_cell_renderer(self, 1);
 
-	//assume that the input has been validated
+	if (self->with_colors) {
+		g_debug("update_colors: TRUE");
+		g_object_set(renderer1, "cell-background", "Chartreuse", NULL);
+		g_object_set(renderer2, "cell-background", "Chartreuse", NULL);
+	}
+	else {
+		g_debug("update_colors: FALSE");
+		g_object_set(renderer1, "cell-background", NULL, NULL);
+		g_object_set(renderer2, "cell-background", NULL, NULL);
+	}
+}
+
+static void xmi_msim_gui_xmsi_selection_scrolled_window_init(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
+	self->with_colors = TRUE;
+
 	GtkTreeStore *model = gtk_tree_store_new(INPUT_N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_INT);
 	GtkWidget *treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
-	scrolled_window->treeview = GTK_TREE_VIEW(treeview);
+	self->treeview = GTK_TREE_VIEW(treeview);
 	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
-	int i,j;
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, NULL);
-	if (with_colors) {
-		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
-		g_object_set(renderer, "cell-background", "Chartreuse", NULL);
-	}
+	gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
 	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, NULL);
-	if (with_colors) {
-		gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
-		g_object_set(renderer, "cell-background", "Chartreuse", NULL);
-	}
+	gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_container_add(GTK_CONTAINER(scrolled_window), treeview);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(self), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_container_add(GTK_CONTAINER(self), treeview);
 
+	gtk_widget_set_hexpand(GTK_WIDGET(self), TRUE);
+	gtk_widget_set_vexpand(GTK_WIDGET(self), TRUE);
+	gtk_container_set_border_width(GTK_CONTAINER(self), 5);
+	gtk_widget_show_all(GTK_WIDGET(self));
+}
+
+static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
+	GtkTreeStore *model = GTK_TREE_STORE(gtk_tree_view_get_model(self->treeview));
+
+	// clear whats in there
+	gtk_tree_store_clear(model);
+
+	if (self->input == NULL)
+		return;
+	
+	g_debug("Populating model with data");
+
+	int i, j;
 	GtkTreeIter iter1, iter2, iter3, iter4, iter5;
-
+	xmi_input *input = self->input;
 
 	//general
 	gtk_tree_store_append(model, &iter1, NULL);
@@ -1080,15 +1157,46 @@ GtkWidget* xmi_msim_gui_xmsi_scrolled_window_new(xmi_input *input, gboolean with
 		g_free(buffer);
 		g_free(buffer2);
 	}
-
-	gtk_widget_set_hexpand(GTK_WIDGET(scrolled_window), TRUE);
-	gtk_widget_set_vexpand(GTK_WIDGET(scrolled_window), TRUE);
-	gtk_container_set_border_width(GTK_CONTAINER(scrolled_window), 5);
-
-	return GTK_WIDGET(scrolled_window);
 }
 
-GtkTreeView *xmi_msim_gui_xmsi_scrolled_window_get_tree_view(XmiMsimGuiXmsiScrolledWindow *scrolled_window) {
+GtkWidget* xmi_msim_gui_xmsi_selection_scrolled_window_new(xmi_input *input, gboolean with_colors) {
+	return g_object_new(XMI_MSIM_GUI_TYPE_XMSI_SELECTION_SCROLLED_WINDOW, "xmi-input", input, "with-colors", with_colors, NULL);
+}
+
+GtkTreeView *xmi_msim_gui_xmsi_selection_scrolled_window_get_tree_view(XmiMsimGuiXmsiSelectionScrolledWindow *scrolled_window) {
 	return scrolled_window->treeview;
 }
 
+static void xmi_msim_gui_xmsi_selection_scrolled_window_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec) {
+  XmiMsimGuiXmsiSelectionScrolledWindow *self = XMI_MSIM_GUI_XMSI_SELECTION_SCROLLED_WINDOW(object);
+
+  switch (prop_id) {
+    case PROP_INPUT:
+      xmi_input_free(self->input);
+      self->input = g_value_dup_boxed(value);
+      populate_model(self);
+      break;
+    case PROP_WITH_COLOR:
+      self->with_colors = g_value_get_boolean(value);
+      update_colors(self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void xmi_msim_gui_xmsi_selection_scrolled_window_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec) {
+  XmiMsimGuiXmsiSelectionScrolledWindow *self = XMI_MSIM_GUI_XMSI_SELECTION_SCROLLED_WINDOW(object);
+
+  switch (prop_id) {
+    case PROP_INPUT:
+      g_value_set_boxed(value, self->input);
+      break;
+    case PROP_WITH_COLOR:
+      g_value_set_boolean(value, self->with_colors);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+
+}

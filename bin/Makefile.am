@@ -47,7 +47,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-continuous-energy-dialog.h \
 	xmimsim-gui-compat.h \
 	xmimsim-gui-colors.h \
-	xmimsim-gui-xmsi-scrolled-window.h \
+	xmimsim-gui-xmsi-selection-scrolled-window.h \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
 	xmimsim-gui-xmso-results-scrolled-window.h \
@@ -84,7 +84,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-sources-dialog.cpp \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
-	xmimsim-gui-xmsi-scrolled-window.c \
+	xmimsim-gui-xmsi-selection-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
 	xmimsim-gui-batch.c \
@@ -208,6 +208,7 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
+#noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
 #noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
 endif
 #xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
@@ -238,14 +239,14 @@ endif
 #	@xml2_LIBS@ \
 #	$(NULL)
 
-#xmimsim_gui_xmsi_config_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-config-scrolled-window-test.c
-#xmimsim_gui_xmsi_config_scrolled_window_test_CPPFLAGS = \
+#xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
+#xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
 #	@xml2_CFLAGS@ \
 #	@gtkmm3_CFLAGS@ \
 #	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
 #	$(AM_CPPFLAGS) \
 #	$(NULL)
-#xmimsim_gui_xmsi_config_scrolled_window_test_LDADD = \
+#xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
 #	libxmimsim-gui.la \
 #	../src/libxmimsim.la \
 #	@gtkmm3_LIBS@ \
