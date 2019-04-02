@@ -26,7 +26,7 @@ endif
 
 
 #Fortran example
-detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@
+detector_response1_la_FCFLAGS = @OPENMP_FCFLAGS@ -I${top_builddir}/src $(xraylib_f2003_CFLAGS) $(easyRNG_CFLAGS) $(fgsl_CFLAGS)
 detector_response1_la_SOURCES = detector-response1.F90
 detector_response1_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
 if OS_WINDOWS
