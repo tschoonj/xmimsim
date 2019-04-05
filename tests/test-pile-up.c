@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
 	// and now the big test -> which fails with easyRNG 1.0
 	g_assert(counts_with_pile_up/counts_without_pile_up > 100.0);
 
-	xmi_deallocate(channels_without_pile_up);
-	xmi_deallocate(channels_with_pile_up);
+	g_free(channels_without_pile_up);
+	g_free(channels_with_pile_up);
 	xmi_output_free(output);
 	xmi_input_free(input);
 

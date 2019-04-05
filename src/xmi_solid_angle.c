@@ -704,7 +704,8 @@ int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **
 }
 
 void xmi_free_solid_angle(xmi_solid_angle *solid_angle) {
-	//this is potentially dangerous... some of this memory is allocated by fortran...
+	if (!solid_angle)
+		return;
 	g_free(solid_angle->solid_angles);
 	g_free(solid_angle->grid_dims_r_vals);
 	g_free(solid_angle->grid_dims_theta_vals);

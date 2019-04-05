@@ -31,6 +31,7 @@ USE :: fgsl, ONLY : &
         xmi_rng_uniform => fgsl_rng_uniform
 #endif
 USE :: omp_lib
+USE :: xmimsim_glib
 
 IMPLICIT NONE
 
@@ -744,15 +745,19 @@ SUBROUTINE assign_interaction_prob(outvar,invar)
         TYPE(interaction_prob), INTENT(INOUT) :: outvar
         REAL (KIND=C_DOUBLE),DIMENSION(:),INTENT(IN) :: invar
         INTEGER :: i
+        TYPE (C_PTR) :: ptr1, ptr2
 
 #if DEBUG == 1
         WRITE (6,*) 'Entering assign_interaction_prob'
 #endif
 
-        !invar = energies2
-        ALLOCATE(outvar%energies(SIZE(invar)),outvar%Rayl_and_Compt(SIZE(invar),2))
+        ptr1 = g_malloc(xmi_sizeof_double * SIZE(invar))
+        CALL C_F_POINTER(ptr1, outvar%energies, [SIZE(invar)])
+
+        ptr2 = g_malloc(xmi_sizeof_double * SIZE(invar) * 2)
+        CALL C_F_POINTER(ptr2, outvar%Rayl_and_Compt, [SIZE(invar),2])
         DO i=1,SIZE(invar)
-                outvar%energies(i)=REAL(invar(i),KIND=C_DOUBLE)
+                outvar%energies(i)=invar(i)
         ENDDO
 
         RETURN
@@ -1826,21 +1831,6 @@ FUNCTION xmi_check_detector_intersection&
         ENDIF
         RETURN
 ENDFUNCTION xmi_check_detector_intersection
-
-!wrapper around deallocate
-SUBROUTINE xmi_deallocate(ptr) BIND(C,NAME='xmi_deallocate')
-        IMPLICIT NONE
-        TYPE (C_PTR), VALUE :: ptr
-        REAL(C_DOUBLE), DIMENSION(:), POINTER :: array
-
-        IF (.NOT. C_ASSOCIATED(ptr)) RETURN
-
-        CALL C_F_POINTER(ptr, array, [1])
-
-        DEALLOCATE(array)
-
-        RETURN
-ENDSUBROUTINE xmi_deallocate
 
 !
 !

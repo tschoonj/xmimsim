@@ -21,6 +21,7 @@ USE, INTRINSIC :: ISO_C_BINDING
 USE :: xmimsim_aux
 USE :: xmimsim_varred
 USE :: xmimsim_detector
+USE :: xmimsim_glib
 #ifdef HAVE_EASYRNG
 USE :: easyRNG, ONLY : &
         xmi_ran_cauchy => easy_ran_cauchy, &
@@ -99,14 +100,11 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: channels
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE :: brute_history
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: brute_historyF
-        !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: brute_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET :: var_red_history
-        !REAL (C_DOUBLE), DIMENSION(:,:,:), ALLOCATABLE, TARGET, SAVE :: var_red_historyF
         REAL (C_DOUBLE), DIMENSION(:,:,:), POINTER :: var_red_historyF
         INTEGER (C_INT) :: element, line_last, shell_last, shell
         REAL (C_DOUBLE) :: exc_corr, total_intensity
         INTEGER (C_INT) :: xmi_cascade_type
-        !REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: det_corr_all
         REAL (C_DOUBLE), DIMENSION(:,:), ALLOCATABLE, TARGET :: LineEnergies
         TYPE (xmi_solid_angle), TARGET :: solid_angles
         INTEGER (C_LONG) :: detector_solid_angle_not_found
@@ -160,7 +158,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
         CALL C_F_POINTER(hdf5FPtr, hdf5F)
 
         IF (options%use_variance_reduction .EQ. 1) THEN
-                !ALLOCATE(solid_angles)
                 solid_angles%grid_dims_r_n = solid_anglesCPtr%grid_dims_r_n
                 solid_angles%grid_dims_theta_n =&
                 solid_anglesCPtr%grid_dims_theta_n
@@ -211,10 +208,8 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                 shell_last = L3_SHELL
         ENDIF
 
-        !ALLOCATE(det_corr_all(100,ABS(line_last)))
         ALLOCATE(LineEnergies(100,ABS(line_last)))
 
-        !det_corr_all = 1.0_C_DOUBLE
         LineEnergies = 0.0_C_DOUBLE
 
         DO i=1,SIZE(hdf5F%xmi_hdf5_Zs)
@@ -390,7 +385,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
-                        !photon%det_corr_all => det_corr_all
                         photon%LineEnergies => LineEnergies
 
 
@@ -551,8 +545,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                         photon%detector_solid_angle_not_found+&
                                         detector_solid_angle_not_found
                                 ENDIF
-                                DEALLOCATE(photon_temp%history)
-                                DEALLOCATE(photon_temp%mus)
                                 DEALLOCATE(photon_temp)
                                 IF (ASSOCIATED(photon_temp2)) THEN
                                         photon_temp => photon_temp2
@@ -676,7 +668,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                         photon%options = options
                         photon%xmi_cascade_type = xmi_cascade_type
                         photon%precalc_mu_cs => precalc_mu_cs
-                        !photon%det_corr_all => det_corr_all
                         photon%LineEnergies => LineEnergies
 
 
@@ -840,8 +831,6 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
                                         photon%detector_solid_angle_not_found+&
                                         detector_solid_angle_not_found
                                 ENDIF
-                                DEALLOCATE(photon_temp%history)
-                                DEALLOCATE(photon_temp%mus)
                                 DEALLOCATE(photon_temp)
                                 IF (ASSOCIATED(photon_temp2)) THEN
                                         photon_temp => photon_temp2
@@ -931,39 +920,34 @@ options, brute_historyPtr, var_red_historyPtr, solid_anglesCPtr) BIND(C,NAME='xm
 
 
         !now we can access the history in C using the same indices...
-        ALLOCATE(brute_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
-        brute_historyF = RESHAPE(brute_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
+        brute_historyPtr = g_malloc(xmi_sizeof_double * inputF%general%n_interactions_trajectory * (383+2) * 100)
+        CALL C_F_POINTER(brute_historyPtr, brute_historyF, [inputF%general%n_interactions_trajectory, (383+2), 100])
+        brute_historyF = RESHAPE(brute_history, [inputF%general%n_interactions_trajectory, (383+2), 100], ORDER=[3,2,1])
 
         !multiply with live time
         brute_historyF = brute_historyF*inputF%detector%live_time*n_mpi_hosts
-
-        brute_historyPtr = C_LOC(brute_historyF(1,1,1))
-
 
 #if DEBUG == 1
         WRITE (6,'(A,ES14.5)') 'zero_sum:' ,SUM(channels(0,:))
 #endif
 
         IF (options%use_variance_reduction .EQ. 1_C_INT) THEN
-                ALLOCATE(var_red_historyF(inputF%general%n_interactions_trajectory,(383+2),100))
+                var_red_historyPtr = g_malloc(xmi_sizeof_double * inputF%general%n_interactions_trajectory * (383+2) * 100)
+                CALL C_F_POINTER(var_red_historyPtr, var_red_historyF, [inputF%general%n_interactions_trajectory,(383+2),100])
                 var_red_historyF = RESHAPE(var_red_history,[inputF%general%n_interactions_trajectory,(383+2),100],ORDER=[3,2,1])
                 !multiply with live time
                 var_red_historyF =&
-                var_red_historyF*inputF%detector%live_time*n_mpi_hosts
-
-                var_red_historyPtr = C_LOC(var_red_historyF(1,1,1))
+                var_red_historyF * inputF%detector%live_time * n_mpi_hosts
         ELSE
                 var_red_historyPtr = C_NULL_PTR
         ENDIF
 
 
-
-        ALLOCATE(channelsF(0:inputF%detector%nchannels-1,0:inputF%general%n_interactions_trajectory))
-        channelsF = RESHAPE(channels, [inputF%detector%nchannels,inputF%general%n_interactions_trajectory+1],ORDER=[2,1])
+        channelsPtr = g_malloc(xmi_sizeof_double * inputF%detector%nchannels * (inputF%general%n_interactions_trajectory + 1))
+        CALL C_F_POINTER(channelsPtr, channelsF, [inputF%detector%nchannels, inputF%general%n_interactions_trajectory + 1])
+        channelsF = RESHAPE(channels, [inputF%detector%nchannels, inputF%general%n_interactions_trajectory + 1], ORDER=[2,1])
         !multiply with live time
-        channelsF = channelsF*inputF%detector%live_time
-
-        channelsPtr = C_LOC(channelsF(0,0))
+        channelsF = channelsF * inputF%detector%live_time
 
         rv = 1
 
@@ -4452,6 +4436,10 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
         photon%offspring%current_element_index = photon%current_element_index
         photon%offspring%precalc_mu_cs => photon%precalc_mu_cs
         photon%offspring%LineEnergies => photon%LineEnergies
+        NULLIFY(photon%offspring%offspring)
+        NULLIFY(photon%offspring%solid_angle)
+        NULLIFY(photon%offspring%var_red_history)
+        NULLIFY(photon%offspring%channels)
 
 
 
@@ -4535,8 +4523,6 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                 !leave if energy is too low
                 IF (photon%offspring%energy .LE. energy_threshold) THEN
                         !deallocate photon
-                        DEALLOCATE(photon%offspring%history)
-                        DEALLOCATE(photon%offspring%mus)
                         DEALLOCATE(photon%offspring)
                         !next line may be redundant
                         NULLIFY(photon%offspring)
@@ -4600,8 +4586,6 @@ SUBROUTINE xmi_simulate_photon_cascade_auger(photon, shell, rng,inputF,hdf5F)
                 ENDIF
         ELSE
                 !deallocate photon
-                DEALLOCATE(photon%offspring%history)
-                DEALLOCATE(photon%offspring%mus)
                 DEALLOCATE(photon%offspring)
                 !next line may be redundant
                 NULLIFY(photon%offspring)
@@ -5412,6 +5396,10 @@ FUNCTION xmi_fluorescence_line_check(photon, rng, shell, element, energy, line_r
         ELSEIF (shell .EQ. M5_SHELL) THEN
                 line_first = M5N1_LINE
                 line_last = M5P5_LINE
+        ELSE
+                ! invalid shell -> kill the photon
+                energy = 0.0_C_DOUBLE
+                RETURN
         ENDIF
 
         DO line=line_first,line_last,-1
@@ -5497,6 +5485,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         TYPE (xmi_input), POINTER :: inputF
         TYPE (xmi_main_options) :: options
         TYPE (xmi_escape_ratiosC), POINTER :: escape_ratios
+        TYPE (xmi_escape_ratiosC) :: escape_ratios_dummy
         INTEGER (C_INT) :: xmi_cascade_type
         TYPE (xmi_precalc_mu_cs), DIMENSION(:), ALLOCATABLE, TARGET ::&
         precalc_mu_cs
@@ -5508,18 +5497,13 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         INTEGER (C_LONG) :: i,j,k,l,m,n
         TYPE (xmi_photon), POINTER :: photon
         INTEGER, PARAMETER :: maxz = 94
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: &
         input_energies, compton_escape_output_energies
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:,:) :: &
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:,:) :: &
         fluo_escape_ratios
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: &
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: &
         compton_escape_ratios
-        INTEGER (C_INT), POINTER, DIMENSION(:) :: &
-        !INTEGER (C_INT), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: &
-        Z
+        INTEGER (C_INT), POINTER, DIMENSION(:) :: Z
         REAL (C_DOUBLE) :: theta_elecv
         REAL (C_DOUBLE) :: photons_simulated, photons_no_interaction,&
         photons_rayleigh, photons_compton, photons_einstein,photons_interacted
@@ -5538,8 +5522,17 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         CALL C_F_POINTER(inputFPtr, inputF)
         CALL C_F_POINTER(hdf5FPtr, hdf5F)
 
-        ALLOCATE(input_energies(ero%n_input_energies))
-        ALLOCATE(compton_escape_output_energies(ero%n_compton_output_energies))
+        escape_ratiosPtr = g_malloc(c_sizeof(escape_ratios_dummy))
+        CALL C_F_POINTER(escape_ratiosPtr, escape_ratios)
+
+        escape_ratios%fluo_escape_input_energies = g_malloc(xmi_sizeof_double * ero%n_input_energies)
+        escape_ratios%compton_escape_input_energies = escape_ratios%fluo_escape_input_energies
+        CALL C_F_POINTER(escape_ratios%fluo_escape_input_energies, input_energies, [ero%n_input_energies])
+
+        escape_ratios%compton_escape_output_energies = g_malloc(xmi_sizeof_double * ero%n_compton_output_energies)
+        CALL C_F_POINTER(escape_ratios%compton_escape_output_energies, &
+                compton_escape_output_energies, [ero%n_compton_output_energies])
+
         DO i=0,ero%n_input_energies-1
                 input_energies(i+1) = &
                 ero%input_energy_min+i*ero%input_energy_delta
@@ -5550,11 +5543,17 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                 ero%compton_output_energy_min+i*ero%compton_output_energy_delta
         ENDDO
 
-        ALLOCATE(Z(SIZE(hdf5F%xmi_hdf5_Zs)))
+        escape_ratios%Z = g_malloc(xmi_sizeof_int * SIZE(hdf5F%xmi_hdf5_Zs))
+        CALL C_F_POINTER(escape_ratios%Z, Z, [SIZE(hdf5F%xmi_hdf5_Zs)])
         Z = hdf5F%xmi_hdf5_Zs(:)%Z
-        ALLOCATE(fluo_escape_ratios(SIZE(Z),ABS(L3P3_LINE),ero%n_input_energies))
-        ALLOCATE(compton_escape_ratios(ero%n_input_energies,&
-        ero%n_compton_output_energies))
+
+        escape_ratios%fluo_escape_ratios = g_malloc(xmi_sizeof_double * SIZE(Z) * ABS(L3P3_LINE) * ero%n_input_energies)
+        CALL C_F_POINTER(escape_ratios%fluo_escape_ratios, fluo_escape_ratios, &
+                [SIZE(Z, KIND=C_LONG),ABS(INT(L3P3_LINE, KIND=C_LONG)),ero%n_input_energies])
+
+        escape_ratios%compton_escape_ratios = g_malloc(xmi_sizeof_double * ero%n_input_energies * ero%n_compton_output_energies)
+        CALL C_F_POINTER(escape_ratios%compton_escape_ratios, compton_escape_ratios, &
+                [ero%n_input_energies, ero%n_compton_output_energies])
 
         fluo_escape_ratios = 0.0_C_DOUBLE
         compton_escape_ratios = 0.0_C_DOUBLE
@@ -5569,7 +5568,6 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         options%use_advanced_compton = 0
 
         xmi_cascade_type = XMI_CASCADE_NONE
-
 
         max_threads = input_options%omp_num_threads
 
@@ -5747,8 +5745,6 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
                         ENDIF
 
                         !deallocate photon
-                        DEALLOCATE(photon%history)
-                        DEALLOCATE(photon%mus)
                         DEALLOCATE(photon)
 
                         IF (omp_get_thread_num() == 0) THEN
@@ -5782,8 +5778,6 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
 
 
 
-
-        ALLOCATE(escape_ratios)
         escape_ratios%n_elements = SIZE(Z)
         escape_ratios%n_fluo_input_energies =&
         ero%n_input_energies
@@ -5791,15 +5785,7 @@ BIND(C,NAME='xmi_escape_ratios_calculation_fortran')
         ero%n_input_energies
         escape_ratios%n_compton_output_energies =&
         ero%n_compton_output_energies
-        escape_ratios%Z=C_LOC(Z(1))
-        escape_ratios%fluo_escape_ratios=C_LOC(fluo_escape_ratios(1,1,1))
-        escape_ratios%fluo_escape_input_energies=C_LOC(input_energies(1))
-        escape_ratios%compton_escape_ratios=C_LOC(compton_escape_ratios(1,1))
-        escape_ratios%compton_escape_input_energies=C_LOC(input_energies(1))
-        escape_ratios%compton_escape_output_energies=C_LOC(compton_escape_output_energies(1))
         escape_ratios%xmi_input_string = input_string
-
-        escape_ratiosPtr = C_LOC(escape_ratios)
 
         IF (input_options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6

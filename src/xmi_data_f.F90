@@ -1202,8 +1202,12 @@ ENDIF
                (Qs_big(2)-Qs_big(1))*(ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j))+&
                ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j-1)))*0.5_C_DOUBLE
           ENDDO
+          BLOCK
+          REAL (C_DOUBLE) :: last
+          last = profile_partial_cdf_big(nintervals_pz)
           profile_partial_cdf_big = &
-          profile_partial_cdf_big*0.5/profile_partial_cdf_big(nintervals_pz)
+          profile_partial_cdf_big*0.5/last
+          ENDBLOCK
           cp_temp%Qs_inv(k,1) = 0.0
           pos = 1
           DO j=1,ncompton_profiles

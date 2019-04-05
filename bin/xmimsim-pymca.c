@@ -600,9 +600,9 @@ XMI_MAIN
 #define ARRAY2D_FORTRAN(array,i,j,Ni,Nj) (array[(Nj)*(i)+(j)])
 
 	while ((sum_k > XMI_PYMCA_CONV_THRESHOLD) || (sum_l > XMI_PYMCA_CONV_THRESHOLD) || fabs(sum_roi-xp->sum_xmin_xmax)/xp->sum_xmin_xmax > 0.05) {
-		xmi_deallocate(channels);
-		xmi_deallocate(brute_history);
-		xmi_deallocate(var_red_history);
+		g_free(channels);
+		g_free(brute_history);
+		g_free(var_red_history);
 
 		if (i++ > XMI_PYMCA_MAX_ITERATIONS) {
 			g_fprintf(stderr,"No convergence after %i iterations... Fatal error\n",i);
@@ -789,7 +789,7 @@ XMI_MAIN
 
 				//g_fprintf(stdout,"sum_roi: %lf\n", sum_roi);
 
-				xmi_deallocate(channels_conv_temp2);
+				g_free(channels_conv_temp2);
 
 				for (j = 0 ; j < xi->excitation->n_discrete ; j++) {
 					xi->excitation->discrete[j].horizontal_intensity *= xp->sum_xmin_xmax/sum_roi;

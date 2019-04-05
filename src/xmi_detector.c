@@ -556,13 +556,13 @@ void xmi_free_escape_ratios(xmi_escape_ratios *escape_ratios) {
 	else {
 		//allocated in Fortran
 		//do not free compton_escape_input_energies here!!!
-		xmi_deallocate(escape_ratios->Z);
-		xmi_deallocate(escape_ratios->fluo_escape_ratios);
-		xmi_deallocate(escape_ratios->fluo_escape_input_energies);
-		xmi_deallocate(escape_ratios->compton_escape_ratios);
-		xmi_deallocate(escape_ratios->compton_escape_output_energies);
+		g_free(escape_ratios->Z);
+		g_free(escape_ratios->fluo_escape_ratios);
+		g_free(escape_ratios->fluo_escape_input_energies);
+		g_free(escape_ratios->compton_escape_ratios);
+		g_free(escape_ratios->compton_escape_output_energies);
 		g_free(escape_ratios->xmi_input_string);
-		xmi_deallocate(escape_ratios);
+		g_free(escape_ratios);
 	}
 }
 

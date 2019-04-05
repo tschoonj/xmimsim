@@ -726,14 +726,14 @@ XMI_MAIN
 		}
 
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-			xmi_deallocate(channels_conv[i] );
+			g_free(channels_conv[i] );
 		}
 		g_free(channels_conv);
 		/* Do not deallocate as problems may arise in OpenMPI mode
-		xmi_deallocate(channelsdef);
-		xmi_deallocate(brute_history);
+		g_free(channelsdef);
+		g_free(brute_history);
 		if (options->use_variance_reduction)
-			xmi_deallocate(var_red_history);
+			g_free(var_red_history);
 		*/
 #ifdef HAVE_OPENMPI
 	}

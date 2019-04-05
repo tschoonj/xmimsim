@@ -242,10 +242,14 @@ xmi_output* run_main(const char *compound) {
 
 	// cleanup
 	for (i = 1 ; i <= input->general->n_interactions_trajectory ; i++)
-		xmi_deallocate(channels_conv[i] );
+		g_free(channels_conv[i] );
 	g_free(channels_conv);
 	g_free(channels);
 	g_free(channels_def_ptrs);
+
+	// check solid_angle_def is still not NULL
+	g_assert(solid_angle_def != NULL);
+	
 	xmi_free_solid_angle(solid_angle_def);
 	unlink(data_file);
 	g_free(data_file);

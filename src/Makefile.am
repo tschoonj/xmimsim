@@ -18,7 +18,7 @@ NULL =
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
-nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
+nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_glib.mod
 
 AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
 
@@ -30,6 +30,7 @@ nodist_libxmimsim_la_SOURCES = xmi_resources.c xmi_resources.h
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
+			xmi_glib_f.F90 \
 			xmi_aux_f.F90 \
 			xmi_data_f.F90 \
 			xmi_data.c \
@@ -183,6 +184,8 @@ xmimsim_varred.mod: libxmimsim.la
 
 xmimsim_detector.mod: libxmimsim.la
 
+xmimsim_glib.mod: libxmimsim.la
+
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
 INTROSPECTION_SCANNER_ARGS = \
@@ -244,7 +247,7 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(plugindir)/xmimsim-cl*
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod xmimsim_glib.mod libxmimsim-*.def
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
 
