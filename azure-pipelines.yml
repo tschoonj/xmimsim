@@ -145,3 +145,31 @@ jobs:
         cat test*.log
       displayName: Print test
       condition: failed()
+
+  - job: linux_64
+    timeoutInMinutes: 60
+    cancelTimeoutInMinutes: 20
+    pool:
+      vmImage: 'ubuntu-16.04'
+    strategy:
+      matrix:
+        xenial_fgsl_gui_noupdater:
+          containerImage: tomschoonjans/xmimsim-travis-ci:xenial.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui
+          EXTRA: --enable-gui --disable-updater
+
+    container: $[ variables['containerImage'] ]
+
+    steps:
+    - script: |
+        set -x -e
+        autoreconf -fi
+        ./configure $EXTRA --disable-static --enable-introspection
+        make
+        make check
+        make distcheck
+      displayName: Test build
+    - script: |
+        cd tests
+        cat test*.log
+      displayName: Print test
+      condition: failed()
