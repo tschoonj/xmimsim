@@ -39,6 +39,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int test_init (void) {
 	LIBXML_TEST_VERSION
 
+	xmlInitParser();
+
 	// load our xml catalog
 	assert(xmi_xmlLoadCatalog(NULL));
 

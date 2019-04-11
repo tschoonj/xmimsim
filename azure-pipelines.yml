@@ -142,6 +142,7 @@ jobs:
 
     - script: |
         cd tests
+        ls -l
         cat test*.log
       displayName: Print test
       condition: failed()

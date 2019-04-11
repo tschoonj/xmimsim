@@ -34,10 +34,6 @@ int main(int argc, char *argv[]) {
 
   for (i = 0 ; i < 21 ; i++) {
     gchar *filename = g_strdup_printf("temp_%d.xmso", i);
-    if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-      fprintf(stderr, "%s does not exist!", filename);
-      return 1;
-    }
     g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
     g_assert_true(xmi_output_equals(output, archive->output[i][0]));
     xmi_output_free(output);
@@ -62,10 +58,6 @@ int main(int argc, char *argv[]) {
   for (i = 0 ; i < 11 ; i++) {
     for (j = 0 ; j < 11 ; j++) {
       gchar *filename = g_strdup_printf("temp_%d_%d.xmso", i, j);
-      if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-        fprintf(stderr, "%s does not exist!", filename);
-        return 1;
-      }
       g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
       g_assert_true(xmi_output_equals(output, archive->output[i][j]));
       xmi_output_free(output);
