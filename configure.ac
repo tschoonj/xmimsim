@@ -569,7 +569,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
 
-GOBJECT_INTROSPECTION_CHECK([1.30.0])
+GOBJECT_INTROSPECTION_CHECK([1.46.0])
 PYTHON_FOUND=no
 if test "x$found_introspection" = xyes ; then
 	AM_PATH_PYTHON([2.7],,[:])
