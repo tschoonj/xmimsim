@@ -427,6 +427,7 @@ struct _xmi_archive {
 	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
 	char ***inputfiles;
 	char ***outputfiles;
+	gint ref_count;
 };
 
 typedef struct _xmi_main_options xmi_main_options;
@@ -550,8 +551,8 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 void xmi_fluorescence_line_counts_free(xmi_fluorescence_line_counts *history, int nhistory);
 #endif
 
-void xmi_archive_copy(xmi_archive *A, xmi_archive **B);
-void xmi_archive_free(xmi_archive *archive);
+xmi_archive* xmi_archive_ref(xmi_archive *A);
+void xmi_archive_unref(xmi_archive *archive);
 
 xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
 

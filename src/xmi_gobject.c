@@ -47,10 +47,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     return xmi_msim_define_id__volatile; \
   }
 
+#define XMI_MSIM_DEFINE_REFCOUNTED_BOXED_TYPE(TypeName, type_name) \
+  static gpointer xmi_msim_ ## type_name ## _ref(gpointer boxed) { \
+	return xmi_ ## type_name ## _ref(boxed); \
+  } \
+  \
+  static void xmi_msim_ ## type_name ## _unref(gpointer boxed) { \
+	xmi_ ## type_name ## _unref((xmi_ ## type_name *) boxed); \
+  } \
+  GType \
+    xmi_msim_ ## type_name ## _get_type (void) \
+  { \
+    static volatile gsize xmi_msim_define_id__volatile = 0; \
+    if (g_once_init_enter (&xmi_msim_define_id__volatile)) \
+      { \
+        GType xmi_msim_define_id = \
+          g_boxed_type_register_static (g_intern_static_string (#TypeName), \
+                                        (GBoxedCopyFunc) xmi_msim_ ## type_name ## _ref, \
+                                        (GBoxedFreeFunc) xmi_msim_ ## type_name ## _unref); \
+        g_once_init_leave (&xmi_msim_define_id__volatile, xmi_msim_define_id); \
+      } \
+    return xmi_msim_define_id__volatile; \
+  }
+
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimComposition, composition);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimExcitation, excitation);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimInput, input);
-XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimArchive, archive);
+XMI_MSIM_DEFINE_REFCOUNTED_BOXED_TYPE(XmiMsimArchive, archive);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimMainOptions, main_options);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimOutput, output);
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimGeneral, general);

@@ -26,8 +26,10 @@ int main(int argc, char *argv[]) {
 	//ensure they are identical
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
 
-	xmi_archive_free(archive);
-	xmi_archive_free(archive_copy);
+	g_assert_cmpint(archive->ref_count, ==, 1);
+	xmi_archive_unref(archive);
+	g_assert_cmpint(archive_copy->ref_count, ==, 1);
+	xmi_archive_unref(archive_copy);
 
 	//delete the file
 	unlink(TEST_XMSA_COPY_1);
@@ -44,7 +46,8 @@ int main(int argc, char *argv[]) {
 	//ensure they are identical
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
 
-	xmi_archive_free(archive_copy);
+	g_assert_cmpint(archive_copy->ref_count, ==, 1);
+	xmi_archive_unref(archive_copy);
 
 	//delete the file
 	unlink(TEST_XMSA_COPY_2);
@@ -56,7 +59,8 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "message: %s\n", error->message);
 	g_error_free(error);
 	
-	xmi_archive_free(archive);
+	g_assert_cmpint(archive->ref_count, ==, 1);
+	xmi_archive_unref(archive);
 
 	return 0;
 }

@@ -2362,6 +2362,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 	xmlChar *txt;
 
 	xmi_archive *ar = g_malloc0(sizeof(xmi_archive));
+	ar->ref_count = 1;
 	//in case it's not there, make sure the version is 0
 	ar->version = 0.0;
 	while (attr != NULL) {
@@ -2369,7 +2370,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt =xmlNodeGetContent(attr->children);
 			if(sscanf((const char *)txt,"%f",&ar->version) != 1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in version of xml file");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2386,7 +2387,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value1");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2395,7 +2396,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value1");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2404,7 +2405,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps1");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2442,7 +2443,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value2");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2451,7 +2452,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value2");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2460,7 +2461,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			txt = xmlNodeGetContent(subroot->children);
 			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
 				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps2");
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
@@ -2488,7 +2489,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			xmi_output *output = g_malloc0(sizeof(xmi_output));
 			step1 = step2 = 0;
 			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2, error) == 0) {
-				xmi_archive_free(ar);
+				xmi_archive_unref(ar);
 				return NULL;
 			}
 			output->outputfile = g_strdup(output->input->general->outputfile);
@@ -2512,7 +2513,7 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 
 	if (files_read != (ar->nsteps1+1)*(ar->nsteps2+1)) {
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "nfiles/nsteps mismatch");
-		xmi_archive_free(ar);
+		xmi_archive_unref(ar);
 		return NULL;
 	}
 

@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     unlink(filename);
     g_free(filename);
   }
-  xmi_archive_free(archive);
+  xmi_archive_unref(archive);
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 0, 0) == 1);
   g_assert_nonnull(output = xmi_output_read_from_xml_file("temp.xmso", NULL));
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
       g_free(filename);
     }
   }
-  xmi_archive_free(archive);
+  xmi_archive_unref(archive);
 
   return 0;
 }

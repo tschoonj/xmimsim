@@ -134,7 +134,7 @@ static void xmi_msim_gui_xmsa_viewer_window_finalize(GObject *gobject) {
 	g_free(window->x);
 	g_free(window->y);
 	g_free(window->z);
-	xmi_archive_free(window->archive);
+	xmi_archive_unref(window->archive);
 	g_ptr_array_free(window->fd, TRUE);
 
 	G_OBJECT_CLASS(xmi_msim_gui_xmsa_viewer_window_parent_class)->finalize(gobject);
@@ -161,10 +161,11 @@ static void xmi_msim_gui_xmsa_viewer_window_class_init(XmiMsimGuiXmsaViewerWindo
 	object_class->get_property = xmi_msim_gui_xmsa_viewer_window_get_property;
 	object_class->constructed = xmi_msim_gui_xmsa_viewer_window_constructed;
 
-	props[PROP_ARCHIVE] = g_param_spec_pointer(
+	props[PROP_ARCHIVE] = g_param_spec_boxed(
 		"archive",
 		"archive",
 		"archive",
+		XMI_MSIM_TYPE_ARCHIVE,
     		(GParamFlags) (G_PARAM_WRITABLE | G_PARAM_CONSTRUCT)
 	);
 
@@ -1004,7 +1005,7 @@ static void xmi_msim_gui_xmsa_viewer_window_set_property(GObject *object, guint 
 
   switch (prop_id) {
     case PROP_ARCHIVE:
-      window->archive =  (xmi_archive *) g_value_get_pointer(value);
+      window->archive =  (xmi_archive *) g_value_dup_boxed(value);
       break;
     case PROP_FILENAME:
       window->filename =  g_value_dup_string(value);

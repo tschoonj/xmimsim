@@ -264,7 +264,7 @@ static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, xmi_tool
 	gtk_widget_set_sensitive(xt->button2, TRUE);
 
 	//free everything
-	xmi_archive_free(archive);
+	xmi_archive_unref(archive);
 	gtk_entry_set_text(GTK_ENTRY(xt->entry), g_task_get_task_data(task));
 }
 

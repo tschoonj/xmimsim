@@ -1389,6 +1389,7 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 	}
 
 	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), sad->aod->xmsa_file, archive);
+	xmi_archive_unref(archive);
 	gtk_window_set_transient_for(GTK_WINDOW(xmsa_window), GTK_WINDOW(window));
 	gtk_window_present(GTK_WINDOW(xmsa_window));
 }
@@ -1452,7 +1453,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	g_free(sad->aod);
 	g_free(sad->xpath1);
 	g_free(sad->xpath2);
-	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_free);
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_unref);
 }
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {

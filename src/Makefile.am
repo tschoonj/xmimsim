@@ -20,7 +20,7 @@ xmimsimdir = $(datadir)/xmimsim
 
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_glib.mod
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -DG_LOG_DOMAIN=\"XmiMsim\"
 
 plugindir = $(libdir)/xmimsim
 

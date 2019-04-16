@@ -33,10 +33,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	//make a copy
-	xmi_archive_copy(archive, &archive_copy);
+	archive_copy = xmi_archive_ref(archive);
+	g_assert_cmpint(archive->ref_count, ==, 2);
+	g_assert_cmpint(archive_copy->ref_count, ==, 2);
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
-	xmi_archive_free(archive);
-	xmi_archive_free(archive_copy);
+	xmi_archive_unref(archive);
+	g_assert_cmpint(archive->ref_count, ==, 1);
+	g_assert_cmpint(archive_copy->ref_count, ==, 1);
+	xmi_archive_unref(archive_copy);
 
 	//download file
 	g_assert(test_download_file(TEST_XMSA_URL_2) == 1);
@@ -56,10 +60,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	//make a copy
-	xmi_archive_copy(archive, &archive_copy);
+	archive_copy = xmi_archive_ref(archive);
+	g_assert_cmpint(archive->ref_count, ==, 2);
+	g_assert_cmpint(archive_copy->ref_count, ==, 2);
 	g_assert_true(xmi_archive_equals(archive, archive_copy));
-	xmi_archive_free(archive);
-	xmi_archive_free(archive_copy);
+	xmi_archive_unref(archive);
+	g_assert_cmpint(archive->ref_count, ==, 1);
+	g_assert_cmpint(archive_copy->ref_count, ==, 1);
+	xmi_archive_unref(archive_copy);
 
 	// now some tests that are supposed to fail
 	GError *error = NULL;

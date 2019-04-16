@@ -208,6 +208,7 @@ void xmi_general_free(xmi_general *A) {
 
 	g_free(A->outputfile);
 	g_free(A->comments);
+	g_free(A);
 }
 
 /**
@@ -1553,68 +1554,50 @@ void xmi_output_free(xmi_output *output) {
 }
 
 /**
- * xmi_archive_copy:
- * @A: the original  #xmi_archive struct
- * @B: (out): the destination to copy to
+ * xmi_archive_ref:
+ * @A: a valid #xmi_archive struct
  *
- * Copies a #xmi_archive struct
+ * Increases the reference count of A by 1
+ *
+ * Returns: the passed in #xmi_archive
  */
-void xmi_archive_copy(xmi_archive *A, xmi_archive **B) {
-	xmi_archive *C = g_memdup(A, sizeof(xmi_archive));
-	C->xpath1 = g_strdup(A->xpath1);
-	C->xpath2 = g_strdup(A->xpath2);
-	
-	C->output = g_malloc0(sizeof(xmi_output **) * (C->nsteps1 + 1));
-	C->input = g_malloc0(sizeof(xmi_input **) * (C->nsteps1 + 1));
-	C->inputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
-	C->outputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
+xmi_archive* xmi_archive_ref(xmi_archive *A) {
+	g_return_val_if_fail(A != NULL, NULL);
 
-	int i, j;
+	g_atomic_int_inc (&A->ref_count);
 
-	for (i = 0 ; i <= C->nsteps1 ; i++) {
-		C->output[i] = g_malloc0(sizeof(xmi_output *) * (C->nsteps2 + 1));
-		C->input[i] = g_malloc0(sizeof(xmi_input *) * (C->nsteps2 + 1));
-		C->inputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
-		C->outputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
-		for (j = 0 ; j <= C->nsteps2 ; j++) {
-			xmi_output_copy(A->output[i][j], &C->output[i][j]);
-			C->input[i][j] = C->output[i][j]->input;
-			C->inputfiles[i][j] = C->output[i][j]->inputfile;
-			C->outputfiles[i][j] = C->output[i][j]->outputfile;
-		}
-	}
-
-	*B = C;
+	return A;
 }
 
 /**
- * xmi_archive_free:
+ * xmi_archive_unref:
  * @archive: a #xmi_archive struct
  *
- * Frees an xmi_archive struct and its contents
+ * Reduces the reference count of an xmi_archive struct by 1. If it hits zero, all memory will be released
  */
-void xmi_archive_free(xmi_archive *archive) {
-	if (archive == NULL)
-		return;
+void xmi_archive_unref(xmi_archive *archive) {
+	g_return_if_fail(archive != NULL);
 
-	g_free(archive->xpath1);
-	g_free(archive->xpath2);
-	
-	int i,j;
-	for (i = 0 ; i <= archive->nsteps1 ; i++) {
-		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			xmi_output_free(archive->output[i][j]);
+	if (g_atomic_int_dec_and_test(&archive->ref_count)) {
+		g_free(archive->xpath1);
+		g_free(archive->xpath2);
+
+		int i,j;
+		for (i = 0 ; i <= archive->nsteps1 ; i++) {
+			for (j = 0 ; j <= archive->nsteps2 ; j++) {
+				xmi_output_free(archive->output[i][j]);
+			}
+			g_free(archive->input[i]);
+			g_free(archive->output[i]);
+			g_free(archive->inputfiles[i]);
+			g_free(archive->outputfiles[i]);
 		}
-		g_free(archive->input[i]);
-		g_free(archive->output[i]);
-		g_free(archive->inputfiles[i]);
-		g_free(archive->outputfiles[i]);
+		g_free(archive->input);
+		g_free(archive->output);
+		g_free(archive->inputfiles);
+		g_free(archive->outputfiles);
+		g_free(archive);
 	}
-	g_free(archive->input);
-	g_free(archive->output);
-	g_free(archive->inputfiles);
-	g_free(archive->outputfiles);
-	g_free(archive);
 }
 
 xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
@@ -1627,6 +1610,7 @@ xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, d
 	archive->start_value2 = start_value2;
 	archive->end_value2= end_value2;
 	archive->nsteps2 = nsteps2;
+	archive->ref_count = 1;
 	if (xpath2)
 		archive->xpath2 = g_strdup(xpath2);
 	else
@@ -2478,6 +2462,11 @@ gboolean xmi_output_equals(xmi_output *A, xmi_output *B) {
  * Returns: %TRUE if both are equal, %FALSE otherwise.
  */
 gboolean xmi_archive_equals(xmi_archive *A, xmi_archive *B) {
+	if (A == NULL || B == NULL)
+		return FALSE;
+
+	if (A == B)
+		return TRUE;
 
 	if (A->start_value1 != B->start_value1) {
 		return FALSE;

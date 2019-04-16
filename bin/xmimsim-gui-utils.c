@@ -45,7 +45,7 @@ static void read_xmsa_thread(GTask *task, gpointer source_object, gpointer task_
 		g_object_unref(task);
 		return;
 	}
-	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_free);
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_unref);
 }
 
 void xmi_msim_gui_utils_read_xmsa_async(GtkWidget *dialog, const gchar *filename, GAsyncReadyCallback callback, gpointer user_data) {
