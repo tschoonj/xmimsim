@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-private.h"
+#include "xmi_gobject.h"
 
 #ifdef HAVE_GOOGLE_ANALYTICS
 #include "xmi_google_analytics.h"
@@ -245,6 +246,72 @@ static void detector_nchannels_reader(const GValue *value, xmi_input *input) {
 	input->detector->nchannels = (int) g_value_get_double(value);
 }
 
+static void energies_box_writer(GValue *value, const xmi_input *input) {
+	g_value_init(value, XMI_MSIM_TYPE_EXCITATION);
+	g_value_set_boxed(value, input->excitation);
+}
+
+static void energies_box_reader(const GValue *value, xmi_input *input) {
+	xmi_excitation_free(input->excitation);
+	input->excitation = g_value_dup_boxed(value);
+}
+
+static void sample_composition_writer(GValue *value, const xmi_input *input) {
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_set_boxed(value, input->composition);
+}
+
+static void sample_composition_reader(const GValue *value, xmi_input *input) {
+	xmi_composition_free(input->composition);
+	input->composition = g_value_dup_boxed(value);
+}
+
+static void excitation_absorbers_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->absorbers->exc_layers, input->absorbers->n_exc_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void excitation_absorbers_composition_reader(const GValue *value, xmi_input *input) {
+	xmi_exc_absorbers_free(input->absorbers);
+	xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->exc_layers, &input->absorbers->n_exc_layers);
+}
+
+static void detector_absorbers_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->absorbers->det_layers, input->absorbers->n_det_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void detector_absorbers_composition_reader(const GValue *value, xmi_input *input) {
+	xmi_det_absorbers_free(input->absorbers);
+	xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->det_layers, &input->absorbers->n_det_layers);
+}
+
+static void crystal_composition_writer(GValue *value, const xmi_input *input) {
+	xmi_composition *composition = NULL;
+	xmi_copy_abs_or_crystal2composition(input->detector->crystal_layers, input->detector->n_crystal_layers, &composition);
+
+	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
+	g_value_take_boxed(value, composition);
+}
+
+static void crystal_composition_reader(const GValue *value, xmi_input *input) {
+	int i;
+	if (input->detector->n_crystal_layers > 0) {
+		for (i = 0 ; i < input->detector->n_crystal_layers ; i++)
+			xmi_layer_free(input->detector->crystal_layers+i);
+		g_free(input->detector->crystal_layers);
+	}
+	xmi_composition *composition = g_value_get_boxed(value);
+	xmi_copy_composition2abs_or_crystal(composition, &input->detector->crystal_layers, &input->detector->n_crystal_layers);
+}
 static void xmi_msim_gui_xmsi_config_scrolled_window_constructed(GObject *obj) {
 	// here comes all the stuff that relies on the undo_manager and clipboard_manager being set
 	XmiMsimGuiXmsiConfigScrolledWindow *self = XMI_MSIM_GUI_XMSI_CONFIG_SCROLLED_WINDOW(obj);
@@ -267,7 +334,7 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_constructed(GObject *obj) {
 
 	// composition
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->compositionW);
-	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->compositionW));
+	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->compositionW), sample_composition_writer, sample_composition_reader);
 
 	// geometry
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->d_sample_sourceW);
@@ -319,14 +386,14 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_constructed(GObject *obj) {
 	xmi_msim_gui_undo_manager_register_entry(self->undo_manager, GTK_ENTRY(self->slit_size_yW), "slit size y changed", slit_size_y_writer, slit_size_y_reader, slit_size_y_validator);
 
 	// energies
-	xmi_msim_gui_undo_manager_register_energies_box(self->undo_manager, XMI_MSIM_GUI_ENERGIES_BOX(self->energiesW));
+	xmi_msim_gui_undo_manager_register_energies_box(self->undo_manager, XMI_MSIM_GUI_ENERGIES_BOX(self->energiesW), energies_box_writer, energies_box_reader);
 
 	// absorbers
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->exc_compositionW);
-	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->exc_compositionW));
+	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->exc_compositionW), excitation_absorbers_composition_writer, excitation_absorbers_composition_reader);
 
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->det_compositionW);
-	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->det_compositionW));
+	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->det_compositionW), detector_absorbers_composition_writer, detector_absorbers_composition_reader);
 
 	// detector
 	xmi_msim_gui_undo_manager_register_combo_box_text(self->undo_manager, GTK_COMBO_BOX_TEXT(self->detector_typeW), "detector type changed", detector_type_writer, detector_type_reader);
@@ -352,7 +419,7 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_constructed(GObject *obj) {
 	xmi_msim_gui_undo_manager_register_spin_button(self->undo_manager, GTK_SPIN_BUTTON(self->detector_nchannelsW), "number of channels changed", detector_nchannels_writer, detector_nchannels_reader);
 
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->crystal_compositionW);
-	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->crystal_compositionW));
+	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->crystal_compositionW), crystal_composition_writer, crystal_composition_reader);
 
 }
 
