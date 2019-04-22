@@ -399,15 +399,17 @@ static void append_tool_button(GtkWidget *toolbar, const gchar *label, const gch
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button, -1);
 }
 
-static gboolean job_killer(GtkWidget *dialog) {
+struct job_killer_data {
+	GtkWidget *dialog;
+	XmiMsimJob *job;
+};
 
-	XmiMsimGuiApplicationWindow *window = XMI_MSIM_GUI_APPLICATION_WINDOW(gtk_window_get_transient_for(GTK_WINDOW(dialog)));
-	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
+static gboolean job_killer(struct job_killer_data *data) {
 
-	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
+	if (data->job && xmi_msim_job_is_running(data->job)) {
 		return G_SOURCE_CONTINUE;
 	}
-	gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_CLOSE);
+	gtk_dialog_response(GTK_DIALOG(data->dialog), GTK_RESPONSE_CLOSE);
 
 	return G_SOURCE_REMOVE;
 }
@@ -420,7 +422,7 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 	// 3. if file has never been saved before, but with invalid data -> offer to close without saving or continue
 	// 4. if file has been saved before, but with valid changes -> offer to save
 	// 5. if file has been saved before, but with invalid changes -> offer to close without saving or continue
-	// 6. if file has been save before, without changes -> just close
+	// 6. if file has been saved before, without changes -> just close
 	
 	XmiMsimGuiUndoManagerStatus status = xmi_msim_gui_undo_manager_get_status(window->undo_manager);
 	gboolean rv;
@@ -535,36 +537,44 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 
 	// afterwards, if user still decides to close the window -> check if there is still a job running!
 	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
-	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
-		g_debug("job is running!");
-		GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
-			GTK_WINDOW(window),
-			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-			"_Kill job and close", GTK_RESPONSE_OK,
-			"_Cancel", GTK_RESPONSE_CANCEL,
-			NULL);
-		GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		GtkWidget *label = gtk_label_new("The window you are trying to close still has a job running!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-		guint source_id = g_timeout_add_seconds(1, (GSourceFunc) job_killer, dialog);
-		switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
-			case GTK_RESPONSE_CANCEL:
-			case GTK_RESPONSE_DELETE_EVENT:
-				g_source_remove(source_id);
-				gtk_widget_destroy(dialog);
-				return TRUE;
-			case GTK_RESPONSE_OK:
-				g_source_remove(source_id);
-			case GTK_RESPONSE_CLOSE: // from job_killer!
-			{
-				gtk_widget_destroy(dialog);
-				if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
-					xmi_msim_job_kill(controls_page->job, NULL);
+	// probably wise to take a ref to the job object!
+	if (controls_page->job) {
+		XmiMsimJob *job = g_object_ref(controls_page->job);
+		if (xmi_msim_job_is_running(job)) {
+			g_debug("job is running!");
+			GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
+				GTK_WINDOW(window),
+				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				"_Kill job and close", GTK_RESPONSE_OK,
+				"_Cancel", GTK_RESPONSE_CANCEL,
+				NULL);
+			GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+			GtkWidget *label = gtk_label_new("The window you are trying to close still has a job running!");
+			gtk_widget_show(label);
+			gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+			struct job_killer_data data = {.dialog = dialog, .job = job};
+			guint source_id = g_timeout_add_seconds(1, (GSourceFunc) job_killer, &data);
+			switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+				case GTK_RESPONSE_CANCEL:
+				case GTK_RESPONSE_DELETE_EVENT:
+					g_source_remove(source_id);
+					gtk_widget_destroy(dialog);
+					g_object_unref(job);
+					return TRUE;
+				case GTK_RESPONSE_OK:
+					g_source_remove(source_id);
+				case GTK_RESPONSE_CLOSE: // from job_killer!
+				{
+					gtk_widget_destroy(dialog);
+					if (xmi_msim_job_is_running(job)) {
+						xmi_msim_job_kill(job, NULL);
+					}
+					g_object_unref(job);
+					return FALSE;
 				}
-				return FALSE;
 			}
 		}
+		g_object_unref(job);
 	}
 
 	g_debug("before return rv: %d", rv);

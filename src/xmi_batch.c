@@ -354,8 +354,6 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 	for (job_i = 0 ; job_i < n_jobs ; job_i++) {
 		GError *error = NULL;
 		XmiMsimJob *job = XMI_MSIM_BATCH_ABSTRACT_GET_CLASS(batch)->get_job(batch, job_i, &error);
-		xmi_msim_job_send_all_stdout_events(job, batch->priv->send_all_stdout_events);
-
 		if (error != NULL) {
 			batch->priv->running = FALSE;
 			batch->priv->finished = TRUE;
@@ -363,6 +361,8 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			g_clear_error(&error);
 			return;
 		}
+		xmi_msim_job_send_all_stdout_events(job, batch->priv->send_all_stdout_events);
+
 		
 		if (batch->priv->main_loop)
 			g_main_loop_unref(batch->priv->main_loop);
