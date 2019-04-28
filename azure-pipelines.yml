@@ -129,7 +129,7 @@ jobs:
         set -e -x
         autoreconf -fi
         export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig
-        ./configure $EXTRA --disable-static --enable-introspection PYTHON=/usr/local/bin/python3 SHELL=/usr/local/bin/bash
+        ./configure $EXTRA --enable-custom-detector-response --disable-static --enable-introspection PYTHON=/usr/local/bin/python3 SHELL=/usr/local/bin/bash
         make
         make check
       displayName: Test build

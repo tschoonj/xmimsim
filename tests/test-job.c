@@ -41,6 +41,7 @@ static void setup_data(SetupData *data, gconstpointer user_data) {
 static void teardown_data(SetupData *data, gconstpointer user_data) {
 	g_main_loop_unref(data->main_loop);
 	xmi_input_free(data->input);
+	xmi_main_options_free(data->options);
 }
 
 static void test_no_executable(SetupData *data, gconstpointer user_data) {

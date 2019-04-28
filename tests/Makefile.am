@@ -62,8 +62,12 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
+if ENABLE_CUSTOM_DETECTOR
+  check_PROGRAMS += test-custom-detector-response
+endif
+
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-batch
+#TESTS = test-custom-detector-response
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -194,6 +198,10 @@ test_google_analytics_tracker_LDADD = ../src/libxmimsim-google-analytics.la @gob
 test_job_SOURCES = test-job.c
 test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_job_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
+
+test_custom_detector_response_SOURCES = test-custom-detector-response.c
+test_custom_detector_response_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_custom_detector_response_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
 test_batch_SOURCES = test-batch.c
 test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@

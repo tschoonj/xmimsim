@@ -38,8 +38,7 @@ XMI_EXPORT void xmi_detector_convolute_all_custom(xmi_inputFPtr inputFPtr, doubl
 
 	xmi_input_F2C(inputFPtr, &input);
 
-	//fprintf(stdout, "outputfile: %s\n", input->general->outputfile);
-
+        fprintf(stdout, "Entering detector-response2: xmi_detector_convolute_all_custom\n");
 
 #ifdef _OPENMP
 #pragma omp parallel for default(shared), private(i)

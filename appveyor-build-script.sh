@@ -39,7 +39,7 @@ export CPPFLAGS="-I/usr/local/include"
 #export CFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Werror=implicit"
 #export CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations"
 export LIBS="-L/usr/local/lib/nvidia"
-./configure --prefix=$HOME/install $CONFIGURE_OPTIONS --disable-static --enable-introspection
+./configure --prefix=$HOME/install $CONFIGURE_OPTIONS --disable-static --enable-introspection --enable-custom-detector-response
 make
 if test -z ${DEPLOY+x} ; then
 	make check

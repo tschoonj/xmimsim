@@ -74,6 +74,9 @@ SUBROUTINE xmi_detector_convolute_all_custom(&
 
         INTEGER (C_INT) :: i, start_index
 
+        IF (options%verbose == 1_C_INT)&
+          WRITE(output_unit,'(A)') 'Entering detector-response1: xmi_detector_convolute_all_custom'
+
         IF (zero_inter .EQ. 1_C_INT) THEN
                 start_index = 1
         ELSE
@@ -95,11 +98,7 @@ SUBROUTINE xmi_detector_convolute_all_custom(&
 
         IF (options%use_variance_reduction == 1_C_INT .AND. C_ASSOCIATED(var_red_historyPtr)) THEN
           IF (options%verbose == 1_C_INT)&
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-            CALL xmi_print_progress('Calculating variance reduction history detector absorption correction'
-#else
             WRITE(output_unit,'(A, I2)') 'Calculating variance reduction history detector absorption correction'
-#endif
           CALL xmi_detector_convolute_history(&
             inputFPtr,&
             var_red_historyPtr,&
@@ -108,11 +107,7 @@ SUBROUTINE xmi_detector_convolute_all_custom(&
 
         IF (C_ASSOCIATED(brute_historyPtr)) THEN
           IF (options%verbose == 1_C_INT)&
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 6
-            CALL xmi_print_progress('Calculating brute force history detector absorption correction'
-#else
             WRITE(output_unit,'(A, I2)') 'Calculating brute force history detector absorption correction'
-#endif
           CALL xmi_detector_convolute_history(&
             inputFPtr,&
             brute_historyPtr,&

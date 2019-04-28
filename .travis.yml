@@ -193,7 +193,7 @@ before_script:
             echo "export MPICC=\"$MPICC\"" >> script.sh
         fi
         echo "autoreconf -fi" >> script.sh
-        echo "./configure ${EXTRA} --disable-static --enable-introspection" >> script.sh
+        echo "./configure ${EXTRA} --enable-custom-detector-response --disable-static --enable-introspection" >> script.sh
         echo "make" >> script.sh
         echo "make check" >> script.sh
         echo "make distcheck" >> script.sh
