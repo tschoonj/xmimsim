@@ -36,7 +36,7 @@ XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 %package devel
 Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers: development package
 Requires: gcc gcc-gfortran >= 4.4.0 xraylib-devel >= 3.99.0 libxml2-devel xraylib-fortran >= 3.99.0
-Requires: %name = %{version}
+Requires: %{name}%{?_isa} = %{version}-%{release}
 Requires: gtkmm-plplot-devel
 
 %if 0%{?rhel} == 7
@@ -158,6 +158,8 @@ fi || :
 
 
 %changelog
+* Wed May 1 2019 Tom Schoonjans
+- Improve devel dependency on base package according to guidelines at https://docs.fedoraproject.org/en-US/packaging-guidelines/#_requiring_base_package
 * Wed Mar 27 2019 Tom Schoonjans
 - Add preliminary support for RHEL8
 - Add gobject-introspection support
