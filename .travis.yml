@@ -21,42 +21,42 @@ matrix:
     # with gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui'
     # xenial: fgsl and gtkmm-plplot
     # with updater
     # with gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --enable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui'
     # xenial: fgsl
     # no updater
     # no gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--disable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui'
     # xenial: easyRNG and gtkmm-plplot
     # no updater
     # with gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui'
     # xenial: easyRNG and gtkmm-plplot
     # with updater
     # with gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --enable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui'
     # xenial: easyRNG
     # no updater
     # no gui
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--disable-gui --disable-updater' DOCKER_IMAGE_TAG='xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui'
     # centos7: fgsl and gtkmm-plplot
     # no updater
@@ -64,7 +64,7 @@ matrix:
     # with google-analytics
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --disable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui'
     # centos7: fgsl and gtkmm-plplot
     # with updater
@@ -72,7 +72,7 @@ matrix:
     # with google-analytics
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--enable-gui --enable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui'
     # centos7: fgsl
     # no updater
@@ -80,7 +80,7 @@ matrix:
     # with google-analytics
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--disable-gui --disable-updater --enable-google-analytics' DOCKER_IMAGE_TAG='centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui'
     # xenial: fgsl
     # no updater
@@ -88,7 +88,7 @@ matrix:
     # with MPI
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--disable-gui --disable-updater --enable-mpi' DOCKER_IMAGE_TAG='xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
     # xenial: easyRNG
     # no updater
@@ -96,7 +96,7 @@ matrix:
     # with MPI
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: EXTRA='--disable-gui --disable-updater --enable-mpi' DOCKER_IMAGE_TAG='xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
     # centos7: fgsl
     # no updater
@@ -105,7 +105,7 @@ matrix:
     # with MPI
     - os: linux
       sudo: required
-      dist: trusty
+      dist: xenial
       env: MPICC='/usr/lib64/openmpi/bin/mpicc' EXTRA='--disable-gui --disable-updater --enable-google-analytics --enable-mpi' DOCKER_IMAGE_TAG='centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi'
 
 before_install:
