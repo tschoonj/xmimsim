@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The Random123 library is portable across C, C++, CUDA, OpenCL environments,
 and multiple operating systems (Linux, Windows 7, Mac OS X, FreeBSD, Solaris).
 This level of portability requires the abstraction of some features
-and idioms that are either not standardized (e.g., asm statments), or for which
+and idioms that are either not standardized (e.g., asm statments), or for which 
 different vendors have their own standards (e.g., SSE intrinsics) or for
 which vendors simply refuse to conform to well-established standards (e.g., <inttypes.h>).
 
@@ -55,7 +55,7 @@ Most of the symbols are boolean valued.  In general, they will
 Library users can override any value by defining the pp-symbol with a compiler option,
 e.g.,
 
-    cc -DR123_USE_MULHILO64_C99
+    cc -DR123_USE_MULHILO64_C99 
 
 will use a strictly c99 version of the full-width 64x64->128-bit multiplication
 function, even if it would be disabled by default.
@@ -76,10 +76,19 @@ All boolean-valued pre-processor symbols in Random123/features/compilerfeatures.
 
          CPUID_MSVC
 
-         CXX0X
-
+         CXX11_RANDOM
+         CXX11_TYPE_TRAITS
+         CXX11_STATIC_ASSERT
+         CXX11_CONSTEXPR
+         CXX11_UNRESTRICTED_UNIONS
+         CXX11_EXPLICIT_CONVERSIONS
+         CXX11_LONG_LONG
+         CXX11_STD_ARRAY
+         CXX11 
+   
          X86INTRIN_H
          IA32INTRIN_H
+         XMMINTRIN_H
          EMMINTRIN_H
          SMMINTRIN_H
          WMMINTRIN_H
@@ -93,7 +102,7 @@ All boolean-valued pre-processor symbols in Random123/features/compilerfeatures.
          MULHILO64_C99
 
          U01_DOUBLE
-
+	 
 @endverbatim
 Most have obvious meanings.  Some non-obvious ones:
 
@@ -110,10 +119,10 @@ If the XXXINTRIN_H macros are true, then one should
 @endcode
 to gain accesss to compiler intrinsics.
 
-CXX0X says that C++0x features are available.  It is
-therefore safe to use things like static_assert and defaulted
-and deleted constructors.  Specific C++0x features, e.g., \<random\> may be
-under the control of other macros.
+The CXX11_SOME_FEATURE macros allow the code to use specific
+features of the C++11 language and library.  The catchall
+In the absence of a specific CXX11_SOME_FEATURE, the feature
+is controlled by the catch-all R123_USE_CXX11 macro.
 
 U01_DOUBLE defaults on, and can be turned off (set to 0)
 if one does not want the utility functions that convert to double
@@ -124,7 +133,6 @@ choose to rely on these:
 
 <ul>
 <li>ASM_GNU and ASM_MASM are mutually exclusive
-<li>STD_RANDOM if and only if CXX0X
 <li>The "higher" SSE values imply the lower ones.
 </ul>
 
@@ -133,11 +141,11 @@ There are also non-boolean valued symbols:
 <ul>
 <li>R123_STATIC_INLINE -
   According to both C99 and GNU99, the 'static inline' declaration allows
-  the compiler to not emit code if the function is not used.
+  the compiler to not emit code if the function is not used.  
   Note that the semantics of 'inline', 'static' and 'extern' in
   gcc have changed over time and are subject to modification by
   command line options, e.g., -std=gnu89, -fgnu-inline.
-  Nevertheless, it appears that the meaning of 'static inline'
+  Nevertheless, it appears that the meaning of 'static inline' 
   has not changed over time and (with a little luck) the use of 'static inline'
   here will be portable between versions of gcc and to other C99
   compilers.
@@ -149,15 +157,23 @@ There are also non-boolean valued symbols:
   embellishments to strongly encourage that the declared function be
   inlined.  If there is no such compiler-specific magic, it should
   expand to decl, unadorned.
-
+   
 <li>R123_CUDA_DEVICE - which expands to __device__ (or something else with
   sufficiently similar semantics) when CUDA is in use, and expands
   to nothing in other cases.
+
+<li>R123_METAL_THREAD_ADDRESS_SPACE - which expands to 'thread' (or
+  something else with sufficiently similar semantics) when compiling a
+  Metal kernel, and expands to nothing in other cases.
 
 <li>R123_ASSERT(x) - which expands to assert(x), or maybe to nothing at
   all if we're in an environment so feature-poor that you can't even
   call assert (I'm looking at you, CUDA and OpenCL), or even include
   assert.h safely (OpenCL).
+
+<li>R123_STATIC_ASSERT(expr,msg) - which expands to
+  static_assert(expr,msg), or to an expression that
+  will raise a compile-time exception if expr is not true.
 
 <li>R123_ULONG_LONG - which expands to a declaration of the longest available
   unsigned integer.
@@ -176,26 +192,32 @@ There are also non-boolean valued symbols:
 \cond HIDDEN_FROM_DOXYGEN
 */
 
-/*
+/* 
 N.B.  When something is added to the list of features, it should be
 added to each of the *features.h files, AND to examples/ut_features.cpp.
 */
 
 /* N.B.  most other compilers (icc, nvcc, open64, llvm) will also define __GNUC__, so order matters. */
-#if defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ > 0
-/*#include "openclfeatures.h"*/
+#if defined(__METAL_MACOS__)
+#include "metalfeatures.h"
+#elif defined(__OPENCL_VERSION__) && __OPENCL_VERSION__ > 0
+/* #include "openclfeatures.h" */
 #elif defined(__CUDACC__)
 #include "nvccfeatures.h"
 #elif defined(__ICC)
 #include "iccfeatures.h"
+#elif defined(__xlC__)
+#include "xlcfeatures.h"
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #include "sunprofeatures.h"
 #elif defined(__OPEN64__)
 #include "open64features.h"
-#elif defined(__llvm__)
-#include "llvmfeatures.h"
+#elif defined(__clang__)
+#include "clangfeatures.h"
 #elif defined(__GNUC__)
 #include "gccfeatures.h"
+#elif defined(__PGI)
+#include "pgccfeatures.h"
 #elif defined(_MSC_FULL_VER)
 #include "msvcfeatures.h"
 #else
@@ -203,8 +225,56 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 { /* maybe an unbalanced brace will terminate the compilation */
 #endif
 
+#ifndef R123_USE_CXX11
+#define R123_USE_CXX11 (__cplusplus >= 201103L)
+#endif
+
+#ifndef R123_USE_CXX11_UNRESTRICTED_UNIONS
+#define R123_USE_CXX11_UNRESTRICTED_UNIONS R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_STATIC_ASSERT
+#define R123_USE_CXX11_STATIC_ASSERT R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_CONSTEXPR
+#define R123_USE_CXX11_CONSTEXPR R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_EXPLICIT_CONVERSIONS
+#define R123_USE_CXX11_EXPLICIT_CONVERSIONS R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_RANDOM
+#define R123_USE_CXX11_RANDOM R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_TYPE_TRAITS
+#define R123_USE_CXX11_TYPE_TRAITS R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_LONG_LONG
+#define R123_USE_CXX11_LONG_LONG R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_CXX11_STD_ARRAY
+#define R123_USE_CXX11_STD_ARRAY R123_USE_CXX11
+#endif
+
+#ifndef R123_USE_MULHILO64_C99
+#define R123_USE_MULHILO64_C99 0
+#endif
+
+#ifndef R123_USE_MULHILO64_MULHI_INTRIN
+#define R123_USE_MULHILO64_MULHI_INTRIN 0
+#endif
+
+#ifndef R123_USE_MULHILO32_MULHI_INTRIN
+#define R123_USE_MULHILO32_MULHI_INTRIN 0
+#endif
+
 #ifndef R123_STATIC_ASSERT
-#if R123_USE_CXX0X
+#if R123_USE_CXX11_STATIC_ASSERT
 #define R123_STATIC_ASSERT(expr, msg) static_assert(expr, msg)
 #else
     /* if msg always_looked_like_this, we could paste it into the name.  Worth it? */
@@ -212,12 +282,24 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 #endif
 #endif
 
+#ifndef R123_CONSTEXPR
+#if R123_USE_CXX11_CONSTEXPR
+#define R123_CONSTEXPR constexpr
+#else
+#define R123_CONSTEXPR
+#endif
+#endif
+
+#ifndef R123_USE_64BIT
+#define R123_USE_64BIT 1
+#endif    
+
 #ifndef R123_USE_PHILOX_64BIT
-#define R123_USE_PHILOX_64BIT (R123_USE_MULHILO64_ASM || R123_USE_MULHILO64_MSVC_INTRIN || R123_USE_MULHILO64_CUDA_INTRIN || R123_USE_GNU_UINT128 || R123_USE_MULHILO64_C99 || R123_USE_MULHILO64_OPENCL_INTRIN)
+#define R123_USE_PHILOX_64BIT (R123_USE_64BIT && (R123_USE_MULHILO64_ASM || R123_USE_MULHILO64_MSVC_INTRIN || R123_USE_MULHILO64_CUDA_INTRIN || R123_USE_GNU_UINT128 || R123_USE_MULHILO64_C99 || R123_USE_MULHILO64_OPENCL_INTRIN || R123_USE_MULHILO64_MULHI_INTRIN))
 #endif
 
 #ifndef R123_ULONG_LONG
-#if defined(__cplusplus) && !R123_USE_CXX0X
+#if defined(__cplusplus) && !R123_USE_CXX11_LONG_LONG
 /* C++98 doesn't have long long.  It doesn't have uint64_t either, but
    we will have typedef'ed uint64_t to something in the xxxfeatures.h.
    With luck, it won't elicit complaints from -pedantic.  Cross your
@@ -238,10 +320,14 @@ added to each of the *features.h files, AND to examples/ut_features.cpp.
 #define R123_THROW(x)    throw (x)
 #endif
 
-#ifndef R123_USE_U01_DOUBLE
-#define R123_USE_U01_DOUBLE 1
+#ifndef R123_METAL_THREAD_ADDRESS_SPACE
+#define R123_METAL_THREAD_ADDRESS_SPACE
 #endif
 
+#ifndef R123_METAL_CONSTANT_ADDRESS_SPACE
+#define R123_METAL_CONSTANT_ADDRESS_SPACE
+#endif
+    
 /*
  * Windows.h (and perhaps other "well-meaning" code define min and
  * max, so there's a high chance that our definition of min, max

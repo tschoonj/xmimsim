@@ -67,7 +67,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-custom-detector-response
+#TESTS = test-xmimsim-cl
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \

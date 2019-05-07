@@ -581,6 +581,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON_FOUND" = yes])
 
 AC_CONFIG_FILES([ 	Makefile
 			src/Makefile
+			src/Random123/Makefile
 			bin/Makefile
 			include/Makefile
 			xml/Makefile

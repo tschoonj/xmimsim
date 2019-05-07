@@ -251,5 +251,6 @@ clean-local:
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
 
-EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl identfilter.py symbolfilter.py
+EXTRA_DIST = xmi.gresource.xml xmi_kernels.cl identfilter.py symbolfilter.py
 
+SUBDIRS = Random123
