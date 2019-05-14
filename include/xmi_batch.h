@@ -85,14 +85,29 @@ GType xmi_msim_batch_abstract_get_type(void) G_GNUC_CONST;
 typedef struct _XmiMsimBatchSingle		XmiMsimBatchSingle;
 typedef struct _XmiMsimBatchSingleClass   	XmiMsimBatchSingleClass;
 
-typedef struct {
+typedef struct _xmi_batch_single_data xmi_batch_single_data;
+
+/**
+ * xmi_batch_single_data:
+ * @xpath: XPath expression
+ * @start: start value
+ * @end: end value
+ * @nsteps: number of steps to go from start to end
+ *
+ * A struct describing a single parameter for a XmiMsimBatchSingle task.
+ */
+struct _xmi_batch_single_data {
 	gchar *xpath;
 	gdouble start;
 	gdouble end;
 	guint nsteps;
-} XmiMsimBatchSingleData;
+};
 
-XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, const gchar *xmsa_file, GError **error);
+XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error);
+
+gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const char *xmsa_file, GError **error);
+
+GType xmi_msim_batch_single_get_type(void) G_GNUC_CONST;
 
 #define XMI_MSIM_TYPE_BATCH_MULTI                  (xmi_msim_batch_multi_get_type())
 #define XMI_MSIM_BATCH_MULTI(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_TYPE_BATCH_MULTI, XmiMsimBatchMulti))

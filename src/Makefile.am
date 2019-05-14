@@ -211,12 +211,14 @@ introspection_sources = \
 	$(top_srcdir)/include/xmi_error.h \
 	$(top_srcdir)/include/xmi_aux.h \
 	$(top_srcdir)/include/xmi_data.h \
+	$(top_srcdir)/include/xmi_batch.h \
 	xmi_data_structs.c \
 	xmi_job.c \
 	xmi_gobject.c \
 	xmi_type_builtins.c \
 	xmi_xml.c \
 	xmi_aux.c \
+	xmi_batch.c \
 	$(NULL)
 
 if ENABLE_GOOGLE_ANALYTICS

@@ -483,36 +483,22 @@ class TestJob(unittest.TestCase):
         self.input.set_composition(composition)
 
     def test_no_executable(self):
-        job = XmiMsim.Job.new(
-            os.environ["XMIMSIM_NON_EXISTENT_EXEC"],
-            "non-existent-file.xmsi",
-            self.options,
-            extra_options=type(self).EXTRA_OPTIONS
-            )
-        self.assertIsNotNone(job)
+        general = self.input.general.copy()
+        general.outputfile = type(self).COMPOUND + "-test.xmso"
+        self.input.set_general(general)
+        self.assertEqual(self.input.validate(), 0)
+        self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
+
         try:
-            logging.debug("command: {}".format(job.get_command()))
-            job.start()
-            self.fail("Starting a job without existent executable must throw an exception!")
-        except GLib.Error as err:
-            self.assertEqual(GLib.quark_from_string(err.domain), GLib.spawn_error_quark())
-            self.assertTrue(err.code == GLib.SpawnError.NOENT or err.code == GLib.SpawnError.FAILED)
-        self.assertFalse(job.is_running())
-        self.assertFalse(job.is_suspended())
-        self.assertFalse(job.has_finished())
-        self.assertFalse(job.was_successful())
-        try:
-            job.stop()
+            job = XmiMsim.Job.new(
+                os.environ["XMIMSIM_NON_EXISTENT_EXEC"],
+                type(self).COMPOUND + "-test.xmsi",
+                self.options,
+                extra_options=type(self).EXTRA_OPTIONS
+                )
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.suspend()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.resume()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+        os.remove(type(self).COMPOUND + "-test.xmsi")
 
     def _test_fail_finished_cb(self, job, result, buffer):
         logging.debug("test_fail_finished_cb time elapsed: {}".format(timer() - self.start))
@@ -526,46 +512,15 @@ class TestJob(unittest.TestCase):
         logging.debug("stderr: {}".format(string))
 
     def test_no_input_file(self):
-        job = XmiMsim.Job.new(
-            os.environ["XMIMSIM_EXEC"],
-            "non-existent-file.xmsi",
-            self.options,
-            extra_options=type(self).EXTRA_OPTIONS
-            )
-        self.assertIsNotNone(job)
-
-        # hook up signals
-        job.connect('finished-event', self._test_fail_finished_cb)
-        job.connect('stdout-event', self._print_stdout)
-        job.connect('stderr-event', self._print_stderr)
-
-        logging.debug("command: {}".format(job.get_command()))
-        job.start()
-        self.start = timer()
-        self.main_loop.run()
-
-        self.assertFalse(job.is_running())
-        self.assertFalse(job.is_suspended())
-        self.assertTrue(job.has_finished())
-        self.assertFalse(job.was_successful())
         try:
-            job.stop()
+            job = XmiMsim.Job.new(
+                os.environ["XMIMSIM_EXEC"],
+                "non-existent-file.xmsi",
+                self.options,
+                extra_options=type(self).EXTRA_OPTIONS
+                )
         except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.suspend()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.resume()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-
-        try:
-            job.start()
-            self.fail("Starting a job after is has been run already must throw an exception!")
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
 
     def test_bad_input_file(self):
         general = self.input.general.copy()
@@ -579,46 +534,15 @@ class TestJob(unittest.TestCase):
         self.assertEqual(self.input.validate(), XmiMsim.InputFlags.COMPOSITION)
         self.assertTrue(self.input.write_to_xml_file(type(self).COMPOUND + "-test.xmsi"))
 
-        job = XmiMsim.Job.new(
-            os.environ["XMIMSIM_EXEC"],
-            type(self).COMPOUND + "-test.xmsi",
-            self.options,
-            extra_options=type(self).EXTRA_OPTIONS
-            )
-        self.assertIsNotNone(job)
-
-        # hook up signals
-        job.connect('finished-event', self._test_fail_finished_cb)
-        job.connect('stdout-event', self._print_stdout)
-        job.connect('stderr-event', self._print_stderr)
-
-        logging.debug("command: {}".format(job.get_command()))
-        job.start()
-        self.start = timer()
-        self.main_loop.run()
-
-        self.assertFalse(job.is_running())
-        self.assertFalse(job.is_suspended())
-        self.assertTrue(job.has_finished())
-        self.assertFalse(job.was_successful())
         try:
-            job.stop()
+            job = XmiMsim.Job.new(
+                os.environ["XMIMSIM_EXEC"],
+                type(self).COMPOUND + "-test.xmsi",
+                self.options,
+                extra_options=type(self).EXTRA_OPTIONS
+                )
         except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.suspend()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-        try:
-            job.resume()
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
-
-        try:
-            job.start()
-            self.fail("Starting a job after is has been run already must throw an exception!")
-        except GLib.Error as err:
-            self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+            self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
 
         os.remove(type(self).COMPOUND + "-test.xmsi")
 

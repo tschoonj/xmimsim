@@ -31,7 +31,7 @@ typedef struct {
 	GPtrArray *xmsi_files;
 	GPtrArray *xmso_files;
 	GPtrArray *options;
-	guint notify_called;
+	guint active_job_changed_called;
 	gint action_after;
 } SetupDataMulti;
 
@@ -108,12 +108,8 @@ static void print_stderr(XmiMsimBatchAbstract *batch, const gchar *string) {
 	g_debug("stderr: %s", string);
 }
 
-static void active_job_notify_cb(XmiMsimBatchAbstract *batch, GParamSpec *pspec, SetupDataMulti *data) {
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	if (active_job)
-		g_object_unref(active_job);
-	data->notify_called++;
+static void active_job_changed_cb(XmiMsimBatchAbstract *batch, XmiMsimJob *active_job, SetupDataMulti *data) {
+	data->active_job_changed_called++;
 }
 
 static void test_constructor_args_multi(SetupDataMulti *data, gconstpointer user_data) {
@@ -178,7 +174,7 @@ static void test_no_executable_multi(SetupDataMulti *data, gconstpointer user_da
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_NON_EXISTENT_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_fail_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -186,11 +182,7 @@ static void test_no_executable_multi(SetupDataMulti *data, gconstpointer user_da
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, 0);
+	g_assert_cmpuint(data->active_job_changed_called, ==, 0);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -204,6 +196,7 @@ static void test_no_executable_multi(SetupDataMulti *data, gconstpointer user_da
 }
 
 static void test_no_input_file_multi(SetupDataMulti *data, gconstpointer user_data) {
+	g_test_log_set_fatal_handler(test_log_fatal_false, NULL);
 	GError *error = NULL;
 
 	g_ptr_array_insert(data->xmsi_files, 0, g_strdup("non-existent-file.xmsi"));
@@ -216,7 +209,7 @@ static void test_no_input_file_multi(SetupDataMulti *data, gconstpointer user_da
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_fail_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -224,11 +217,7 @@ static void test_no_input_file_multi(SetupDataMulti *data, gconstpointer user_da
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, 2);
+	g_assert_cmpuint(data->active_job_changed_called, ==, 0);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -242,6 +231,7 @@ static void test_no_input_file_multi(SetupDataMulti *data, gconstpointer user_da
 }
 
 static void test_bad_input_file_multi(SetupDataMulti *data, gconstpointer user_data) {
+	g_test_log_set_fatal_handler(test_log_fatal_false, NULL);
 	GError *error = NULL;
 
 	// open first file and modify it with some invalid value
@@ -253,7 +243,6 @@ static void test_bad_input_file_multi(SetupDataMulti *data, gconstpointer user_d
 	g_assert(xmi_input_validate(input) != 0);
 	g_assert_true(xmi_input_write_to_xml_file(input, g_ptr_array_index(data->xmsi_files, 0), &error));
 	
-	
 	XmiMsimBatchAbstract* batch = xmi_msim_batch_multi_new(
 		data->xmsi_files,
 		data->options
@@ -262,7 +251,7 @@ static void test_bad_input_file_multi(SetupDataMulti *data, gconstpointer user_d
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_fail_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -270,11 +259,7 @@ static void test_bad_input_file_multi(SetupDataMulti *data, gconstpointer user_d
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, 2);
+	g_assert_cmpuint(data->active_job_changed_called, ==, 0);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -298,7 +283,7 @@ static void test_good_input_files_multi(SetupDataMulti *data, gconstpointer user
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_success_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -306,11 +291,7 @@ static void test_good_input_files_multi(SetupDataMulti *data, gconstpointer user
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, N_MULTI + 1);
+	g_assert_cmpuint(data->active_job_changed_called, ==, N_MULTI + 1);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -329,8 +310,8 @@ static gboolean stop_timeout(XmiMsimBatchAbstract *batch) {
 	return FALSE;
 }
 
-static void active_job_notify_stop_after_cb(XmiMsimBatchAbstract *batch, GParamSpec *pspec, SetupDataMulti *data) {
-	if (data->notify_called == data->action_after) {
+static void active_job_changed_stop_after_cb(XmiMsimBatchAbstract *batch, XmiMsimJob *active_job, SetupDataMulti *data) {
+	if (data->active_job_changed_called == data->action_after) {
 		// hook up timeout that will stop a job
 		g_timeout_add_seconds(1, (GSourceFunc) stop_timeout, batch);
 	}
@@ -347,8 +328,8 @@ static void test_good_input_files_multi_stop(SetupDataMulti *data, gconstpointer
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_stop_after_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_stop_after_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_fail_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -356,11 +337,7 @@ static void test_good_input_files_multi_stop(SetupDataMulti *data, gconstpointer
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, data->action_after + 1);
+	g_assert_cmpuint(data->active_job_changed_called, ==, data->action_after + 1);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -387,8 +364,8 @@ static gboolean suspend_resume_timeout(XmiMsimBatchAbstract *batch) {
 	return FALSE;
 }
 
-static void active_job_notify_suspend_resume_after_cb(XmiMsimBatchAbstract *batch, GParamSpec *pspec, SetupDataMulti *data) {
-	if (data->notify_called == data->action_after) {
+static void active_job_changed_suspend_resume_after_cb(XmiMsimBatchAbstract *batch, XmiMsimJob *job, SetupDataMulti *data) {
+	if (data->active_job_changed_called == data->action_after) {
 		// hook up timeout that will suspend and resume a job
 		g_timeout_add_seconds(1, (GSourceFunc) suspend_resume_timeout, batch);
 	}
@@ -405,8 +382,8 @@ static void test_good_input_files_multi_suspend_resume(SetupDataMulti *data, gco
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_suspend_resume_after_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_suspend_resume_after_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_success_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -414,11 +391,7 @@ static void test_good_input_files_multi_suspend_resume(SetupDataMulti *data, gco
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, N_MULTI + 1);
+	g_assert_cmpuint(data->active_job_changed_called, ==, N_MULTI + 1);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));
@@ -445,8 +418,8 @@ static gboolean suspend_stop_timeout(XmiMsimBatchAbstract *batch) {
 	return FALSE;
 }
 
-static void active_job_notify_suspend_stop_after_cb(XmiMsimBatchAbstract *batch, GParamSpec *pspec, SetupDataMulti *data) {
-	if (data->notify_called == data->action_after) {
+static void active_job_changed_suspend_stop_after_cb(XmiMsimBatchAbstract *batch, GParamSpec *pspec, SetupDataMulti *data) {
+	if (data->active_job_changed_called == data->action_after) {
 		// hook up timeout that will suspend and stop a job
 		g_timeout_add_seconds(1, (GSourceFunc) suspend_stop_timeout, batch);
 	}
@@ -463,8 +436,8 @@ static void test_good_input_files_multi_suspend_stop(SetupDataMulti *data, gcons
 	xmi_msim_batch_abstract_set_executable(batch, g_getenv("XMIMSIM_EXEC"));
 	xmi_msim_batch_abstract_set_extra_options(batch, extra_options);
 
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_cb), data);
-	g_signal_connect(G_OBJECT(batch), "notify::active-job", G_CALLBACK(active_job_notify_suspend_stop_after_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_cb), data);
+	g_signal_connect(G_OBJECT(batch), "active-job-changed", G_CALLBACK(active_job_changed_suspend_stop_after_cb), data);
 	g_signal_connect(G_OBJECT(batch), "finished-event", G_CALLBACK(test_fail_finished_cb), data);
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
@@ -472,11 +445,7 @@ static void test_good_input_files_multi_suspend_stop(SetupDataMulti *data, gcons
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
-	XmiMsimJob *active_job = NULL;
-	g_object_get(batch, "active-job", &active_job, NULL);
-	g_assert_null(active_job);
-
-	g_assert_cmpuint(data->notify_called, ==, data->action_after + 1);
+	g_assert_cmpuint(data->active_job_changed_called, ==, data->action_after + 1);
 	g_assert_false(xmi_msim_batch_abstract_is_running(batch));
 	g_assert_false(xmi_msim_batch_abstract_is_suspended(batch));
 	g_assert_true(xmi_msim_batch_abstract_has_finished(batch));

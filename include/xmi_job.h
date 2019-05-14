@@ -36,7 +36,7 @@ typedef struct _XmiMsimJobClass   	XmiMsimJobClass;
 
 XmiMsimJob* xmi_msim_job_new(
 	const gchar *xmi_msim_executable,
-	const gchar *xmsifile,
+	const gchar *xmsi_file,
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
@@ -61,6 +61,9 @@ gboolean xmi_msim_job_get_pid(XmiMsimJob *job, gint *pid, GError **error);
 void xmi_msim_job_send_all_stdout_events(XmiMsimJob *job, gboolean setting);
 
 gchar* xmi_msim_job_get_command(XmiMsimJob *job);
+
+gchar* xmi_msim_job_get_input_file(XmiMsimJob *job);
+gchar* xmi_msim_job_get_output_file(XmiMsimJob *job);
 
 void xmi_msim_job_kill_all(void);
 

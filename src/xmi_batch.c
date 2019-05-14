@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmi_batch.h"
 #include "xmi_aux.h"
+#include "xmi_xml.h"
+#include "xmi_gobject.h"
 #include <gio/gio.h>
 
 struct _XmiMsimBatchAbstractPrivate {
@@ -34,6 +36,7 @@ struct _XmiMsimBatchAbstractPrivate {
 	gchar **extra_options;
 	gchar *last_finished_message;
 	GMainLoop *main_loop;
+	gboolean valid_object;
 };
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(XmiMsimBatchAbstract, xmi_msim_batch_abstract, G_TYPE_OBJECT)
@@ -62,12 +65,12 @@ enum {
 	FINISHED_EVENT,
 	//SPECIAL_EVENT,
 	PROGRESS_EVENT,
+	ACTIVE_JOB_CHANGED,
 	LAST_SIGNAL
 };
 
 enum {
 	PROP_ABSTRACT_0,
-	PROP_ABSTRACT_ACTIVE_JOB,
 	PROP_ABSTRACT_EXECUTABLE,
 	PROP_ABSTRACT_EXTRA_OPTIONS,
 	N_ABSTRACT_PROPERTIES
@@ -193,12 +196,24 @@ static void xmi_msim_batch_abstract_class_init(XmiMsimBatchAbstractClass *klass)
 		G_TYPE_DOUBLE // double (between 0 and 1)
 	);
 
-	abstract_props[PROP_ABSTRACT_ACTIVE_JOB] = g_param_spec_object(
-		"active-job",
-		"Active job",
-		"Active job",
-		XMI_MSIM_TYPE_JOB,
-    		G_PARAM_READABLE
+	/**
+	 * XmiMsimBatchAbstract::active-job-changed:
+	 * @batch: The #XmiMsimBatchAbstract object emitting the signal
+	 * @job: the new active job or NULL
+	 *
+	 * Emitted whenever the active job has changed
+	 */
+	signals[ACTIVE_JOB_CHANGED] = g_signal_new(
+		"active-job-changed",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_FIRST,
+		0, // no default handler
+		NULL,
+		NULL,
+		NULL,
+		G_TYPE_NONE,
+		1,
+		XMI_MSIM_TYPE_JOB
 	);
 
 	abstract_props[PROP_ABSTRACT_EXECUTABLE] = g_param_spec_string(
@@ -295,9 +310,6 @@ static void xmi_msim_batch_abstract_get_property(GObject *object, guint prop_id,
 	XmiMsimBatchAbstract *batch = XMI_MSIM_BATCH_ABSTRACT(object);
 
 	switch (prop_id) {
-		case PROP_ABSTRACT_ACTIVE_JOB:
-			g_value_set_object(value, batch->priv->active_job);
-			break;
 		case PROP_ABSTRACT_EXECUTABLE:
 			g_value_set_string(value, batch->priv->executable);
 			break;
@@ -389,8 +401,9 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 		}
 
 		// make this the active job -> mutex??
-		batch->priv->active_job = job;
-		g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_ACTIVE_JOB]);
+		batch->priv->active_job = g_object_ref(job);
+		g_signal_emit(batch, signals[ACTIVE_JOB_CHANGED], 0, batch->priv->active_job);
+		g_object_unref(job);
 
 		// start blocking
 		g_main_loop_run(batch->priv->main_loop);
@@ -406,7 +419,8 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			batch->priv->paused = FALSE;
 			batch->priv->finished = TRUE;
 			g_clear_object(&batch->priv->active_job);
-			g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_ACTIVE_JOB]);
+			g_signal_emit(batch, signals[ACTIVE_JOB_CHANGED], 0, NULL);
+
 			if (batch->priv->last_finished_message)
 				g_task_return_pointer(task, g_strdup_printf("Job finished with error %s", batch->priv->last_finished_message), g_free);
 			else
@@ -419,7 +433,7 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 	}
 
 	// we are done!
-	g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_ACTIVE_JOB]);
+	g_signal_emit(batch, signals[ACTIVE_JOB_CHANGED], 0, NULL);
 	batch->priv->running = FALSE;
 	batch->priv->finished = TRUE;
 	batch->priv->successful = TRUE;
@@ -429,6 +443,11 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 gboolean xmi_msim_batch_abstract_start(XmiMsimBatchAbstract *batch, GError **error) {
 	if (!XMI_MSIM_IS_BATCH_ABSTRACT(batch)) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchAbstract");
+		return FALSE;
+	}
+
+	if (!batch->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
 		return FALSE;
 	}
 
@@ -452,6 +471,11 @@ gboolean xmi_msim_batch_abstract_start(XmiMsimBatchAbstract *batch, GError **err
 gboolean xmi_msim_batch_abstract_stop(XmiMsimBatchAbstract *batch, GError **error) {
 	if (!XMI_MSIM_IS_BATCH_ABSTRACT(batch)) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchAbstract");
+		return FALSE;
+	}
+
+	if (!batch->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
 		return FALSE;
 	}
 
@@ -479,6 +503,12 @@ gboolean xmi_msim_batch_abstract_kill(XmiMsimBatchAbstract *batch, GError **erro
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchAbstract");
 		return FALSE;
 	}
+
+	if (!batch->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
+		return FALSE;
+	}
+
 	batch->priv->do_not_emit = TRUE;
 	return xmi_msim_batch_abstract_stop(batch, error);
 }
@@ -486,6 +516,11 @@ gboolean xmi_msim_batch_abstract_kill(XmiMsimBatchAbstract *batch, GError **erro
 gboolean xmi_msim_batch_abstract_suspend(XmiMsimBatchAbstract *batch, GError **error) {
 	if (!XMI_MSIM_IS_BATCH_ABSTRACT(batch)) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchAbstract");
+		return FALSE;
+	}
+
+	if (!batch->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
 		return FALSE;
 	}
 
@@ -515,6 +550,11 @@ gboolean xmi_msim_batch_abstract_resume(XmiMsimBatchAbstract *batch, GError **er
 		return FALSE;
 	}
 
+	if (!batch->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
+		return FALSE;
+	}
+
 	g_mutex_lock(&batch->priv->batch_mutex);
 	if (!batch->priv->running) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is not running");
@@ -537,6 +577,7 @@ gboolean xmi_msim_batch_abstract_resume(XmiMsimBatchAbstract *batch, GError **er
 
 gboolean xmi_msim_batch_abstract_is_running(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
+	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
 	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->running;
@@ -546,6 +587,7 @@ gboolean xmi_msim_batch_abstract_is_running(XmiMsimBatchAbstract *batch) {
 	
 gboolean xmi_msim_batch_abstract_is_suspended(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
+	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
 	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->paused;
@@ -555,6 +597,7 @@ gboolean xmi_msim_batch_abstract_is_suspended(XmiMsimBatchAbstract *batch) {
 
 gboolean xmi_msim_batch_abstract_has_finished(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
+	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
 	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->finished;
@@ -564,6 +607,7 @@ gboolean xmi_msim_batch_abstract_has_finished(XmiMsimBatchAbstract *batch) {
 
 gboolean xmi_msim_batch_abstract_was_successful(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
+	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
 	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->successful;
@@ -573,6 +617,7 @@ gboolean xmi_msim_batch_abstract_was_successful(XmiMsimBatchAbstract *batch) {
 
 void xmi_msim_batch_abstract_send_all_stdout_events(XmiMsimBatchAbstract *batch, gboolean setting) {
 	g_return_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch));
+	g_return_if_fail(batch->priv->valid_object);
 	g_return_if_fail(!batch->priv->running && !batch->priv->finished);
 
 	batch->priv->send_all_stdout_events = setting;
@@ -580,12 +625,14 @@ void xmi_msim_batch_abstract_send_all_stdout_events(XmiMsimBatchAbstract *batch,
 
 void xmi_msim_batch_abstract_set_executable(XmiMsimBatchAbstract *batch, const gchar *executable) {
 	g_return_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch));
+	g_return_if_fail(batch->priv->valid_object);
 
 	g_object_set(batch, "executable", executable, NULL);
 }
 
 void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gchar **extra_options) {
 	g_return_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch));
+	g_return_if_fail(batch->priv->valid_object);
 
 	g_object_set(batch, "extra-options", extra_options, NULL);
 }
@@ -614,6 +661,8 @@ static void xmi_msim_batch_multi_dispose(GObject *object);
 
 static void xmi_msim_batch_multi_finalize(GObject *object);
 
+static void xmi_msim_batch_multi_constructed(GObject *object);
+
 static void xmi_msim_batch_multi_set_property(GObject          *object,
                                               guint             prop_id,
                                               const GValue     *value,
@@ -639,6 +688,7 @@ static void xmi_msim_batch_multi_class_init(XmiMsimBatchMultiClass *klass) {
 
 	object_class->dispose = xmi_msim_batch_multi_dispose;
 	object_class->finalize = xmi_msim_batch_multi_finalize;
+	object_class->constructed = xmi_msim_batch_multi_constructed;
 	object_class->set_property = xmi_msim_batch_multi_set_property;
 	object_class->get_property = xmi_msim_batch_multi_get_property;
 
@@ -683,6 +733,16 @@ static void xmi_msim_batch_multi_finalize(GObject *object) {
 		g_ptr_array_unref(batch->options);
 
 	G_OBJECT_CLASS(xmi_msim_batch_multi_parent_class)->finalize(object);
+}
+
+static void xmi_msim_batch_multi_constructed(GObject *object) {
+	XmiMsimBatchMulti *batch = XMI_MSIM_BATCH_MULTI(object);
+	XmiMsimBatchAbstract *abstract = XMI_MSIM_BATCH_ABSTRACT(object);
+
+	g_return_if_fail(batch->xmsi_files != NULL && batch->xmsi_files->len >= 1);
+	g_return_if_fail(batch->options != NULL && (batch->options->len == 1 || batch->options->len == batch->xmsi_files->len));
+
+	abstract->priv->valid_object = TRUE;
 }
 
 static XmiMsimJob* xmi_msim_batch_multi_real_get_job(XmiMsimBatchAbstract *batch, guint job_index, GError **error) {
@@ -752,8 +812,276 @@ static void xmi_msim_batch_multi_get_property(GObject *object, guint prop_id, GV
   }
 }
 
+/**
+ * xmi_msim_batch_multi_new: (constructor)
+ * @xmsi_files: (array) (element-type filename): NULL terminated array of filenames
+ * @options: (array) (element-type XmiMsim.MainOptions): options to pass to the simulations. Must contain either a single MainOptions struct, or as many as xmsi_files is long.
+ *
+ * Returns: (transfer full): a freshly allocated XmiMsim.BatchAbstract instance.
+ */
 XmiMsimBatchAbstract* xmi_msim_batch_multi_new(GPtrArray* xmsi_files, GPtrArray* options) {
 	g_return_val_if_fail(xmsi_files != NULL && xmsi_files->len >= 1, NULL);
 	g_return_val_if_fail(options != NULL && (options->len == 1 || options->len == xmsi_files->len), NULL);
 	return g_object_new(XMI_MSIM_TYPE_BATCH_MULTI, "xmsi-files", xmsi_files, "options", options, NULL);
+}
+
+struct _XmiMsimBatchSingle {
+	XmiMsimBatchAbstract parent_instance;
+	gchar *xmsi_base_file;
+	GPtrArray *data;
+	xmi_main_options *options;
+	XmiMsimJob *current_job;
+	xmi_archive *archive;
+};
+
+struct _XmiMsimBatchSingleClass {
+	XmiMsimBatchAbstractClass parent_class;
+};
+
+G_DEFINE_TYPE(XmiMsimBatchSingle, xmi_msim_batch_single, XMI_MSIM_TYPE_BATCH_ABSTRACT)
+
+static XmiMsimJob* xmi_msim_batch_single_real_get_job(XmiMsimBatchAbstract *batch, guint job_index, GError **error);
+
+static guint xmi_msim_batch_single_real_get_number_of_jobs(XmiMsimBatchAbstract *batch);
+
+static void xmi_msim_batch_single_dispose(GObject *object);
+
+static void xmi_msim_batch_single_finalize(GObject *object);
+
+static void xmi_msim_batch_single_constructed(GObject *object);
+
+static void xmi_msim_batch_single_set_property(GObject          *object,
+                                               guint             prop_id,
+                                               const GValue     *value,
+                                               GParamSpec       *pspec);
+
+static void xmi_msim_batch_single_get_property(GObject          *object,
+                                               guint             prop_id,
+                                               GValue     *value,
+                                               GParamSpec       *pspec);
+
+enum {
+	PROP_SINGLE_0,
+	PROP_SINGLE_XMSI_BASE_FILE,
+	PROP_SINGLE_DATA,
+	PROP_SINGLE_OPTIONS,
+	N_SINGLE_PROPERTIES
+};
+
+static GParamSpec *single_props[N_SINGLE_PROPERTIES] = {NULL, };
+
+static void single_active_job_changed_handler_cb(XmiMsimBatchSingle *batch, XmiMsimJob *active_job, gpointer data) {
+
+	g_debug("Entering single_active_job_changed_handler_cb");
+
+	if (batch->current_job != NULL) {
+		// read in the XMSO file and add it to the archive struct
+		gchar *xmso_file = xmi_msim_job_get_output_file(batch->current_job);
+		gchar *xmsi_file = xmi_msim_job_get_input_file(batch->current_job);
+		GError *error = NULL;
+		xmi_output *output = xmi_output_read_from_xml_file(xmso_file, &error);
+		if (output == NULL) {
+			g_critical("Could not read XMSO file %s -> %s", xmso_file, error->message);
+			return;
+		}
+		// add to archive...
+		
+		// cleanup
+		xmi_output_free(output);
+		unlink(xmso_file);
+		g_free(xmso_file);
+		unlink(xmsi_file);
+		g_free(xmsi_file);
+		g_object_unref(batch->current_job);
+	}
+
+	if (active_job)
+		batch->current_job = g_object_ref(active_job);
+	else
+		batch->current_job = NULL;
+}
+
+static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+	XmiMsimBatchAbstractClass *abstract_class = XMI_MSIM_BATCH_ABSTRACT_CLASS(klass);
+
+	object_class->dispose = xmi_msim_batch_single_dispose;
+	object_class->finalize = xmi_msim_batch_single_finalize;
+	object_class->constructed = xmi_msim_batch_single_constructed;
+	object_class->set_property = xmi_msim_batch_single_set_property;
+	object_class->get_property = xmi_msim_batch_single_get_property;
+
+	abstract_class->get_job = xmi_msim_batch_single_real_get_job;
+	abstract_class->get_number_of_jobs = xmi_msim_batch_single_real_get_number_of_jobs;
+	
+
+	single_props[PROP_SINGLE_XMSI_BASE_FILE] = g_param_spec_string(
+		"xmsi-base-file",
+		"Base XMSI input-file",
+		"Base XMSI input-file",
+		NULL,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	single_props[PROP_SINGLE_DATA] = g_param_spec_boxed(
+		"data",
+		"XmiMsimBatchSingleData array",
+		"Array of xmi_batch_single_data instances",
+		G_TYPE_PTR_ARRAY,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	single_props[PROP_SINGLE_OPTIONS] = g_param_spec_boxed(
+		"options",
+		"Job Main Options",
+		"Job Main Options",
+		XMI_MSIM_TYPE_MAIN_OPTIONS,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	g_object_class_install_properties(object_class, N_SINGLE_PROPERTIES, single_props);
+
+	// ensure that whenever a job is finished, we read in the XMSO file, add it to the archive, and afterwards delete both XMSI and XMSO files.
+	g_signal_override_class_closure(
+		signals[ACTIVE_JOB_CHANGED],
+		XMI_MSIM_TYPE_BATCH_SINGLE,
+		g_cclosure_new(G_CALLBACK(single_active_job_changed_handler_cb), NULL, NULL));
+}
+
+/**
+ * xmi_msim_batch_single_new: (constructor)
+ * @xmsi_base_file: base XMSI file to work off
+ * @data: (array) (element-type XmiMsim.BatchSingleData): an array containing xmi_msim_batch_single_data instances, with the information necessary to define the parameter variations. Currently only 1 or 2 elements are supported.
+ * @options: the options that will be passed to the XmiMsim.Job instances
+ *
+ * Returns: (transfer full): a freshly allocated XmiMsim.BatchAbstract instance.
+ */
+XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error) {
+	g_return_val_if_fail(xmsi_base_file != NULL, NULL);
+	g_return_val_if_fail(data != NULL, NULL);
+	g_return_val_if_fail(options != NULL, NULL);
+	g_return_val_if_fail(data->len > 0 && data->len < 3, NULL);
+	return g_object_new(
+		XMI_MSIM_TYPE_BATCH_SINGLE,
+		"xmsi-base-file", xmsi_base_file,
+		"data", data,
+		"options", options,
+		NULL);
+}
+
+static void xmi_msim_batch_single_constructed(GObject *object) {
+	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
+	XmiMsimBatchAbstract *abstract = XMI_MSIM_BATCH_ABSTRACT(object);
+
+	g_return_if_fail(batch->xmsi_base_file != NULL);
+	g_return_if_fail(batch->options != NULL);
+	g_return_if_fail(batch->data != NULL && batch->data->len > 0 && batch->data->len < 3);
+
+	abstract->priv->valid_object = TRUE;
+}
+
+static void xmi_msim_batch_single_init(XmiMsimBatchSingle *self) {
+}
+
+static void xmi_msim_batch_single_dispose(GObject *object) {
+	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
+
+	G_OBJECT_CLASS(xmi_msim_batch_single_parent_class)->dispose(object);
+}
+
+static void xmi_msim_batch_single_finalize(GObject *object) {
+	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
+
+	if (batch->xmsi_base_file)
+		g_free(batch->xmsi_base_file);
+
+	if (batch->options)
+		xmi_main_options_free(batch->options);
+
+	if (batch->data)
+		g_ptr_array_unref(batch->data);
+
+	xmi_archive_unref(batch->archive);
+
+	G_OBJECT_CLASS(xmi_msim_batch_single_parent_class)->finalize(object);
+}
+
+static void xmi_msim_batch_single_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
+
+	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
+
+	switch (prop_id) {
+		case PROP_SINGLE_XMSI_BASE_FILE:
+			if (batch->xmsi_base_file)
+				g_free(batch->xmsi_base_file);
+			batch->xmsi_base_file = g_value_dup_string(value);
+      			break;
+		case PROP_SINGLE_DATA:
+			if (batch->data)
+				g_ptr_array_unref(batch->data);
+			batch->data = g_value_dup_boxed(value);
+			break;
+		case PROP_SINGLE_OPTIONS:
+			if (batch->options)
+				xmi_main_options_free(batch->options);
+			batch->options = g_value_dup_boxed(value);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+  	}
+}
+
+static void xmi_msim_batch_single_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
+
+	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
+
+	switch (prop_id) {
+		case PROP_SINGLE_XMSI_BASE_FILE:
+			g_value_set_string(value, batch->xmsi_base_file);
+			break;
+		case PROP_SINGLE_DATA:
+			g_value_set_boxed(value, batch->data);
+			break;
+		case PROP_SINGLE_OPTIONS:
+			g_value_set_boxed(value, batch->options);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static XmiMsimJob* xmi_msim_batch_single_real_get_job(XmiMsimBatchAbstract *batch, guint job_index, GError **error) {
+	return NULL;
+}
+
+static guint xmi_msim_batch_single_real_get_number_of_jobs(XmiMsimBatchAbstract *batch) {
+	return 0;
+}
+
+/**
+ * xmi_msim_batch_single_write_archive:
+ * @batch: an instance of XmiMsim.BatchSingle, must have finished successfully
+ * @xmsa_file: the name of the file that will be written with the contents of the archive
+ *
+ * Returns: %TRUE if the file was successfully written, %FALSE otherwise
+ */
+gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const char *xmsa_file, GError **error) {
+	if (!XMI_MSIM_IS_BATCH_SINGLE(batch)) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchSingle");
+		return FALSE;
+	}
+
+	XmiMsimBatchAbstract *abstract = XMI_MSIM_BATCH_ABSTRACT(batch);
+
+	if (!abstract->priv->valid_object) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch was not instantiated with valid input");
+		return FALSE;
+	}
+
+	if (!abstract->priv->successful) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch did not finish successfully");
+		return FALSE;
+	}
+
+	return xmi_archive_write_to_xml_file(batch->archive, xmsa_file, error);
 }

@@ -1326,6 +1326,8 @@ xmi_input* xmi_input_read_from_xml_file(const char *xmsifile, GError **error) {
 
 	if (xmi_read_input_xml_body(doc, root, input, error) == FALSE) {
 		xmi_input_free(input);
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
 		return NULL;
 	}
 
@@ -2110,37 +2112,31 @@ int xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_input *input, GE
 	while (subroot != NULL) {
 		if (!xmlStrcmp(subroot->name,(const xmlChar *) "general")) {
 			if (xmi_read_input_general(doc, subroot, &(input->general), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "composition")) {
 			if (xmi_read_input_composition(doc, subroot, &(input->composition), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "geometry")) {
 			if (xmi_read_input_geometry(doc, subroot, &(input->geometry), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "excitation")) {
 			if (xmi_read_input_excitation(doc, subroot, &(input->excitation), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
 			if (xmi_read_input_absorbers(doc, subroot, &(input->absorbers), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
 			if (xmi_read_input_detector(doc, subroot, &(input->detector), error) == 0) {
-				xmlFreeDoc(doc);
 				return 0;
 			}
 		}
