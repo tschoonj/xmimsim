@@ -30,6 +30,22 @@ static void destroy( GtkWidget *widget,
     gtk_main_quit ();
 }
 
+static void print_xdata(XmiMsimGuiXmsiSelectionXPathData *data, gpointer unused) {
+	fprintf(stdout, "xpath: %s\n", data->xpath);
+}
+
+static void xpath_changed_cb(XmiMsimGuiXmsiSelectionScrolledWindow *sw, GParamSpec *pspec, gpointer user_data) {
+	fprintf(stdout, "Calling xpath_changed_cb\n");
+	
+	GPtrArray *arr = xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(sw);
+	if (arr) {
+		g_ptr_array_ref(arr);
+		g_ptr_array_foreach(arr, (GFunc) print_xdata, NULL);
+	}
+	else {
+		fprintf(stdout, "No XPATH data found!\n");
+	}
+}
 
 int main(int argc, char *argv[]) {
 
@@ -54,7 +70,8 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "error message: %s\n", error->message);
 		return 1;
 	}
-	GtkWidget *sw = xmi_msim_gui_xmsi_selection_scrolled_window_new(input, TRUE);
+	GtkWidget *sw = xmi_msim_gui_xmsi_selection_scrolled_window_new(input, FALSE);
+	g_signal_connect(sw, "notify::xpath-expressions", G_CALLBACK(xpath_changed_cb), NULL);
 	gtk_widget_show(sw);
 	gtk_container_add(GTK_CONTAINER(window), sw);
 	gtk_widget_show(window);

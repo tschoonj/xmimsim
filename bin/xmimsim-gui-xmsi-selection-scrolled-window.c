@@ -21,11 +21,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include "xmi_gobject.h"
 
+enum {
+	INPUT_PARAMETER_COLUMN,
+	INPUT_VALUE_COLUMN,
+	INPUT_SELECTABLE_COLUMN,
+	INPUT_XPATH_COLUMN,
+	INPUT_ALLOWED_COLUMN,
+	INPUT_N_COLUMNS
+};
+
 struct _XmiMsimGuiXmsiSelectionScrolledWindow {
 	GtkScrolledWindow parent_instance;
 	GtkTreeView *treeview;
 	gboolean with_colors;
 	xmi_input *input;
+	GPtrArray *xpath_expressions;
 };
 
 struct _XmiMsimGuiXmsiSelectionScrolledWindowClass
@@ -39,6 +49,7 @@ enum {
 	PROP_0,
 	PROP_INPUT,
 	PROP_WITH_COLOR,
+	PROP_XPATH_EXPRESSIONS,
 	N_PROPERTIES
 };
 
@@ -49,6 +60,13 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_dispose(GObject *gobject
 }
 
 static void xmi_msim_gui_xmsi_selection_scrolled_window_finalize(GObject *gobject) {
+  	XmiMsimGuiXmsiSelectionScrolledWindow *self = XMI_MSIM_GUI_XMSI_SELECTION_SCROLLED_WINDOW(gobject);
+
+	xmi_input_free(self->input);
+
+	if (self->xpath_expressions)
+		g_ptr_array_unref(self->xpath_expressions);
+
 	G_OBJECT_CLASS(xmi_msim_gui_xmsi_selection_scrolled_window_parent_class)->finalize(gobject);
 }
 
@@ -61,6 +79,15 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_get_property(GObject    
                                                 guint             prop_id,
                                                 GValue     *value,
                                                 GParamSpec       *pspec);
+
+static void xpath_data_free(gpointer data) {
+	XmiMsimGuiXmsiSelectionXPathData *xdata = data;
+	if (xdata) {
+		if (xdata->xpath)
+			g_free(xdata->xpath);
+		g_free(xdata);
+	}
+}
 
 static void xmi_msim_gui_xmsi_selection_scrolled_window_class_init(XmiMsimGuiXmsiSelectionScrolledWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
@@ -84,6 +111,14 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_class_init(XmiMsimGuiXms
 		"with-colors",
 		TRUE,
     		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	props[PROP_XPATH_EXPRESSIONS] = g_param_spec_boxed(
+		"xpath-expressions",
+		"xpath-expressions",
+		"xpath-expressions",
+		G_TYPE_PTR_ARRAY,
+    		G_PARAM_READABLE
 	);
 
 	g_object_class_install_properties(object_class, N_PROPERTIES, props);
@@ -118,6 +153,115 @@ static void update_colors(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 	}
 }
 
+static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, XmiMsimGuiXmsiSelectionScrolledWindow *self) {
+
+	if (gtk_tree_view_row_expanded(tree_view, path)) {
+		gtk_tree_view_collapse_row(tree_view, path);
+	}
+	else {
+		gtk_tree_view_expand_row(tree_view, path, FALSE);
+	}
+}
+
+static void extend_xpath_array(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) {
+	XmiMsimGuiXmsiSelectionScrolledWindow *self = data;
+
+	gchar *xpath = NULL;
+	int allowed = 0;
+	gtk_tree_model_get(model, iter, INPUT_XPATH_COLUMN, &xpath, INPUT_ALLOWED_COLUMN, &allowed, -1);
+
+	XmiMsimGuiXmsiSelectionXPathData *xdata = g_malloc0(sizeof(XmiMsimGuiXmsiSelectionXPathData));
+	xdata->xpath = xpath;
+	xdata->flags = allowed;
+
+	g_ptr_array_add(self->xpath_expressions, xdata);
+}
+
+static void parameter_selection_changed_cb(GtkTreeSelection *selection, XmiMsimGuiXmsiSelectionScrolledWindow *self) {
+	// start by clearing xpath-expressions
+	if (self->xpath_expressions) {
+		g_ptr_array_unref(self->xpath_expressions);
+		self->xpath_expressions = NULL;
+	}
+
+	gint count = gtk_tree_selection_count_selected_rows(selection);
+
+	if (count > 0) {
+		self->xpath_expressions = g_ptr_array_new_with_free_func(xpath_data_free);
+		gtk_tree_selection_selected_foreach(selection, extend_xpath_array, self);
+	}
+
+	g_object_notify_by_pspec(G_OBJECT(self), props[PROP_XPATH_EXPRESSIONS]);
+}
+
+static gboolean select_function(GtkTreeSelection *select, GtkTreeModel *model, GtkTreePath *path, gboolean currently_selected, gpointer data) {
+	XmiMsimGuiXmsiSelectionScrolledWindow *self = data;
+
+	// see https://stackoverflow.com/questions/12783444/making-rows-in-a-gtk-treeview-unselectable
+
+	// ALWAYS allow deselecting!
+	if (currently_selected)
+		return TRUE;
+
+	// check if selectable
+	{
+		GtkTreeIter iter;
+		gboolean selectable;
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
+		if (!selectable)
+			return FALSE;
+	}
+
+	// if there are already two rows selected, do not allow a third one!
+	if (gtk_tree_selection_count_selected_rows(select) >= 2)
+		return FALSE;
+
+	// special case: weights within the same layer -> only allow if there are more than two elements present!
+	if (gtk_tree_selection_count_selected_rows(select) == 1) {
+		GtkTreeIter iter;
+		gtk_tree_model_get_iter(model, &iter, path);
+		int allowed;
+		gtk_tree_model_get(model, &iter, INPUT_ALLOWED_COLUMN, &allowed, -1);
+		if (!(allowed & XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION)) {
+			return TRUE;
+		}
+
+		GList *paths = gtk_tree_selection_get_selected_rows(select, NULL);
+
+		GtkTreePath *path_old = g_list_nth_data(paths, 0);
+		gtk_tree_model_get_iter(model, &iter, path_old);
+		gtk_tree_model_get(model, &iter, INPUT_ALLOWED_COLUMN, &allowed, -1);
+
+		if (!(allowed & XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION)) {
+			g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+			return TRUE;
+		}
+
+		GtkTreePath *pathup_old = gtk_tree_path_copy(path_old);
+		gtk_tree_path_up(pathup_old);
+		gtk_tree_path_up(pathup_old);
+
+		GtkTreePath *pathup_new = gtk_tree_path_copy(path);
+		gtk_tree_path_up(pathup_new);
+		gtk_tree_path_up(pathup_new);
+
+		gtk_tree_model_get_iter(model, &iter, pathup_new);
+		if (gtk_tree_path_compare(pathup_new, pathup_old) == 0 && gtk_tree_model_iter_n_children(model, &iter) < 5) {
+			gtk_tree_path_free(pathup_new);
+			gtk_tree_path_free(pathup_old);
+			g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+			return FALSE;
+		}
+
+		gtk_tree_path_free(pathup_new);
+		gtk_tree_path_free(pathup_old);
+		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
+	}
+
+	return TRUE;
+}
+
 static void xmi_msim_gui_xmsi_selection_scrolled_window_init(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 	self->with_colors = TRUE;
 
@@ -129,13 +273,13 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_init(XmiMsimGuiXmsiSelec
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, NULL);
+	column = gtk_tree_view_column_new_with_attributes("Parameter", renderer, "text", INPUT_PARAMETER_COLUMN, "sensitive", INPUT_SELECTABLE_COLUMN, NULL);
 	gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_set_alignment(renderer, 0.5, 0.5);
-	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, NULL);
+	column = gtk_tree_view_column_new_with_attributes("Value", renderer, "text", INPUT_VALUE_COLUMN, "sensitive", INPUT_SELECTABLE_COLUMN, NULL);
 	gtk_tree_view_column_add_attribute(column, renderer, "cell-background-set", INPUT_SELECTABLE_COLUMN);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
@@ -146,6 +290,15 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_init(XmiMsimGuiXmsiSelec
 	gtk_widget_set_vexpand(GTK_WIDGET(self), TRUE);
 	gtk_container_set_border_width(GTK_CONTAINER(self), 5);
 	gtk_widget_show_all(GTK_WIDGET(self));
+
+	// hook up signal handlers
+	GtkTreeSelection *select = gtk_tree_view_get_selection(self->treeview);
+	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
+	gtk_tree_selection_set_select_function(select, select_function, self, NULL);
+	g_signal_connect(G_OBJECT(select), "changed",
+			G_CALLBACK(parameter_selection_changed_cb),
+			self);
+	g_signal_connect(G_OBJECT(treeview), "row-activated", G_CALLBACK(parameter_row_activated_cb), self);
 }
 
 static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
@@ -154,10 +307,17 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 	// clear whats in there
 	gtk_tree_store_clear(model);
 
+	g_debug("Populating model with data");
+
 	if (self->input == NULL)
 		return;
-	
-	g_debug("Populating model with data");
+
+	if (self->xpath_expressions) {
+		g_ptr_array_unref(self->xpath_expressions);
+		self->xpath_expressions = NULL;
+		g_object_notify_by_pspec(G_OBJECT(self), props[PROP_XPATH_EXPRESSIONS]);
+	}
+
 
 	int i, j;
 	GtkTreeIter iter1, iter2, iter3, iter4, iter5;
@@ -187,7 +347,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
 		INPUT_XPATH_COLUMN, "/xmimsim/general/n_photons_interval",
-		INPUT_ALLOWED_COLUMN, PARAMETER_LONG | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_LONG | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -199,7 +359,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
 		INPUT_XPATH_COLUMN, "/xmimsim/general/n_photons_line",
-		INPUT_ALLOWED_COLUMN, PARAMETER_LONG | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_LONG | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -211,7 +371,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, FALSE,
 		INPUT_XPATH_COLUMN, "/xmimsim/general/n_interactions_trajectory",
-		INPUT_ALLOWED_COLUMN, PARAMETER_INT | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_INT | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -279,7 +439,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->composition->layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
-				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
+				INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -294,7 +454,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -308,7 +468,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -354,7 +514,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/x",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -365,7 +525,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/y",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -376,7 +536,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/z",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -388,7 +548,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/x",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -399,7 +559,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/y",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -410,7 +570,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/p_detector_window/z",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -422,7 +582,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/x",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -433,7 +593,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/y",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -444,7 +604,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_detector_orientation/z",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -455,7 +615,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/area_detector",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -466,7 +626,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/collimator_height",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -477,7 +637,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, input->geometry->collimator_height > 0.0 && input->geometry->collimator_diameter > 0.0 ? TRUE : FALSE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/collimator_diameter",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -488,7 +648,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/d_source_slit",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -499,7 +659,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size/slit_size_x",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -510,7 +670,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/slit_size/slit_size_y",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -543,7 +703,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, input->excitation->n_discrete == 1 ? TRUE : FALSE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -556,7 +716,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -569,7 +729,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -650,7 +810,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 					INPUT_SELECTABLE_COLUMN, TRUE,
 					INPUT_VALUE_COLUMN, buffer,
 					INPUT_XPATH_COLUMN, buffer2,
-					INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+					INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 					-1
 				);
 				g_free(buffer);
@@ -669,7 +829,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 					INPUT_SELECTABLE_COLUMN, TRUE,
 					INPUT_VALUE_COLUMN, buffer,
 					INPUT_XPATH_COLUMN, buffer2,
-					INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+					INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 					-1
 				);
 				g_free(buffer);
@@ -709,7 +869,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -722,7 +882,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -837,7 +997,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->absorbers->exc_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
-				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
+				INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -852,7 +1012,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -866,7 +1026,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -923,7 +1083,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->absorbers->det_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
-				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
+				INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -938,7 +1098,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -952,7 +1112,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -1001,7 +1161,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/live_time",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1012,7 +1172,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/pulse_width",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1033,7 +1193,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/gain",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1044,7 +1204,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/zero",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
 		-1
 	);
 	g_free(buffer);
@@ -1055,7 +1215,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/fano",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1066,7 +1226,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/detector/noise",
-		INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1122,7 +1282,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 				INPUT_VALUE_COLUMN, buffer,
 				INPUT_SELECTABLE_COLUMN, input->detector->crystal_layers[i].n_elements > 1 ? TRUE : FALSE,
 				INPUT_XPATH_COLUMN, buffer2,
-				INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_WEIGHT_FRACTION,
+				INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION,
 				-1
 			);
 			g_free(buffer);
@@ -1137,7 +1297,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -1151,7 +1311,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 			INPUT_VALUE_COLUMN, buffer,
 			INPUT_SELECTABLE_COLUMN, TRUE,
 			INPUT_XPATH_COLUMN, buffer2,
-			INPUT_ALLOWED_COLUMN, PARAMETER_DOUBLE | PARAMETER_STRICT_POSITIVE,
+			INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 			-1
 		);
 		g_free(buffer);
@@ -1161,10 +1321,6 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 
 GtkWidget* xmi_msim_gui_xmsi_selection_scrolled_window_new(xmi_input *input, gboolean with_colors) {
 	return g_object_new(XMI_MSIM_GUI_TYPE_XMSI_SELECTION_SCROLLED_WINDOW, "xmi-input", input, "with-colors", with_colors, NULL);
-}
-
-GtkTreeView *xmi_msim_gui_xmsi_selection_scrolled_window_get_tree_view(XmiMsimGuiXmsiSelectionScrolledWindow *scrolled_window) {
-	return scrolled_window->treeview;
 }
 
 static void xmi_msim_gui_xmsi_selection_scrolled_window_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec) {
@@ -1195,8 +1351,20 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_get_property(GObject *ob
     case PROP_WITH_COLOR:
       g_value_set_boolean(value, self->with_colors);
       break;
+    case PROP_XPATH_EXPRESSIONS:
+      g_value_set_boxed(value, self->xpath_expressions);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
+}
 
+GPtrArray* xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(XmiMsimGuiXmsiSelectionScrolledWindow *scrolled_window) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSI_SELECTION_SCROLLED_WINDOW(scrolled_window), NULL);
+
+	GPtrArray *rv = NULL;
+
+	g_object_get(scrolled_window, "xpath-expressions", &rv, NULL);
+
+	return rv;
 }

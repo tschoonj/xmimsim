@@ -673,103 +673,6 @@ static int archive_options(GtkWidget *main_window, xmi_input *input, gchar *file
 }
 
 
-static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidget *okButton) {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	GList *paths;
-
-	gint count = gtk_tree_selection_count_selected_rows(selection);
-
-	if (count == 1) {
-		gboolean selectable;
-		//one row selected
-		//get row
-		paths = gtk_tree_selection_get_selected_rows(selection, &model);
-		GtkTreePath *path = (GtkTreePath *) g_list_nth_data(paths, 0);
-		gtk_tree_model_get_iter(model, &iter, path);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
-		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
-
-		if (selectable)
-			gtk_widget_set_sensitive(okButton, TRUE);
-		else
-			gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	else if (count == 2) {
-		gboolean selectable1, selectable2;
-		int allowed1, allowed2;
-		GtkTreePath *path1, *path2;
-		//two rows selected
-		paths = gtk_tree_selection_get_selected_rows(selection, &model);
-		path1 = (GtkTreePath *) g_list_nth_data(paths, 0);
-		gtk_tree_model_get_iter(model, &iter, path1);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable1, INPUT_ALLOWED_COLUMN, &allowed1, -1);
-		path2 = (GtkTreePath *) g_list_nth_data(paths, 1);
-		gtk_tree_model_get_iter(model, &iter, path2);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable2, INPUT_ALLOWED_COLUMN, &allowed2, -1);
-
-		if (selectable1 && selectable2 && (allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION)) {
-			//possible problem here
-			GtkTreePath *path1up, *path2up;
-			path1up = gtk_tree_path_copy(path1);
-			gtk_tree_path_up(path1up);
-			gtk_tree_path_up(path1up);
-			path2up = gtk_tree_path_copy(path2);
-			gtk_tree_path_up(path2up);
-			gtk_tree_path_up(path2up);
-			gtk_tree_model_get_iter(model, &iter, path2up);
-			if (gtk_tree_path_compare(path1up, path2up) == 0 && gtk_tree_model_iter_n_children(model, &iter) < 5) {
-				//5 because density and thickness are also children
-				//aha! not allowed...
-				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "When selecting two weight fractions within the same layer, the number of elements in that layer must be at least three.");
-				gtk_dialog_run(GTK_DIALOG(dialog));
-				gtk_widget_destroy(dialog);
-				gtk_widget_set_sensitive(okButton, FALSE);
-			}
-			else {
-				gtk_widget_set_sensitive(okButton, TRUE);
-
-			}
-			gtk_tree_path_free(path1up);
-			gtk_tree_path_free(path2up);
-		}
-		else if (selectable1 && selectable2) {
-			gtk_widget_set_sensitive(okButton, TRUE);
-		}
-		else {
-			gtk_widget_set_sensitive(okButton, FALSE);
-		}
-
-		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
-	}
-	else if (count == 0) {
-		//no rows selected
-		gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	else {
-		//too many rows selected
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please select either one or two rows.");
-		gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	return;
-}
-
-static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, GtkButton *okButton) {
-
-	if (gtk_tree_view_row_expanded(tree_view, path)) {
-		gtk_tree_view_collapse_row(tree_view, path);
-	}
-	else {
-		gtk_tree_view_expand_row(tree_view, path, FALSE);
-	}
-
-	return;
-}
 
 static int select_parameter(GtkWidget *window, xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
@@ -781,17 +684,9 @@ static int select_parameter(GtkWidget *window, xmi_input *input, gchar **xpath1,
 	gtk_widget_show_all(scrolled_window);
 	gtk_container_set_border_width(GTK_CONTAINER(dialog), 3);
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 500, 500);
-	GtkTreeView* treeview = xmi_msim_gui_xmsi_selection_scrolled_window_get_tree_view(XMI_MSIM_GUI_XMSI_SELECTION_SCROLLED_WINDOW(scrolled_window));
 	GtkWidget *okButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	gtk_widget_set_sensitive(okButton, FALSE);
-	GtkTreeSelection *select = gtk_tree_view_get_selection(treeview);
-	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
-	g_signal_connect(G_OBJECT(select), "changed",
-			G_CALLBACK(parameter_selection_changed_cb),
-			(gpointer) okButton
-		);
-	g_signal_connect(G_OBJECT(treeview), "row-activated", G_CALLBACK(parameter_row_activated_cb), (gpointer) okButton);
 
 
 

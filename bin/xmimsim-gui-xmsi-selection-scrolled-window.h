@@ -34,29 +34,25 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsiSelectionScrolledWindow		XmiMsimGuiXmsiSelectionScrolledWindow;
 typedef struct _XmiMsimGuiXmsiSelectionScrolledWindowClass   	XmiMsimGuiXmsiSelectionScrolledWindowClass;
 
+typedef enum {
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE          = 1 << 0,
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_INT             = 1 << 1,
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_LONG            = 1 << 2,
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE = 1 << 3,
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE        = 1 << 4,
+	XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION = 1 << 5,
+} XmiMsimGuiXmsiSelectionXPathFlags;
+
+typedef struct {
+	gchar *xpath;
+	XmiMsimGuiXmsiSelectionXPathFlags flags;
+} XmiMsimGuiXmsiSelectionXPathData;
+
 GtkWidget* xmi_msim_gui_xmsi_selection_scrolled_window_new(xmi_input *input, gboolean with_colors);
 
-GtkTreeView *xmi_msim_gui_xmsi_selection_scrolled_window_get_tree_view(XmiMsimGuiXmsiSelectionScrolledWindow *scrolled_window);
+GPtrArray* xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(XmiMsimGuiXmsiSelectionScrolledWindow *scrolled_window);
 
 GType xmi_msim_gui_xmsi_selection_scrolled_window_get_type(void) G_GNUC_CONST;
-
-enum {
-	INPUT_PARAMETER_COLUMN,
-	INPUT_VALUE_COLUMN,
-	INPUT_SELECTABLE_COLUMN,
-	INPUT_XPATH_COLUMN,
-	INPUT_ALLOWED_COLUMN,
-	INPUT_N_COLUMNS
-};
-
-enum {
-	PARAMETER_DOUBLE = 1,
-	PARAMETER_INT = 2,
-	PARAMETER_LONG = 4,
-	PARAMETER_STRICT_POSITIVE = 8,
-	PARAMETER_POSITIVE = 16,
-	PARAMETER_WEIGHT_FRACTION = 32,
-};
 
 G_END_DECLS
 

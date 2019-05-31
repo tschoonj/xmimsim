@@ -51,7 +51,6 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
 	xmimsim-gui-xmso-results-scrolled-window.h \
-	xmimsim-gui-batch.h \
 	xmimsim-gui-undo-manager.h \
 	xmimsim-gui-energies-box.h \
 	xmimsim-gui-layer-box.h \
@@ -87,7 +86,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmsi-selection-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
-	xmimsim-gui-batch.c \
 	xmimsim-gui-undo-manager.c \
 	xmimsim-gui-energies-box.c \
 	xmimsim-gui-layer-box.c \
@@ -243,7 +241,6 @@ endif
 #xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
 #	@xml2_CFLAGS@ \
 #	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
 #	$(AM_CPPFLAGS) \
 #	$(NULL)
 #xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
