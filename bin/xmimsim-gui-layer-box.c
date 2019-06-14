@@ -560,6 +560,8 @@ static void xmi_msim_gui_layer_box_constructed(GObject *obj) {
 	g_object_unref(self->store);
 
 	g_signal_connect(G_OBJECT(self->store), "rows-reordered", G_CALLBACK(layer_reordering_cb), self);
+
+	G_OBJECT_CLASS(xmi_msim_gui_layer_box_parent_class)->constructed(obj);
 }
 
 static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {

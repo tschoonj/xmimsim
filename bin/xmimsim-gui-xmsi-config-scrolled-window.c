@@ -421,6 +421,7 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_constructed(GObject *obj) {
 	xmi_msim_gui_clipboard_manager_register_widget(self->clipboard_manager, self->crystal_compositionW);
 	xmi_msim_gui_undo_manager_register_layer_box(self->undo_manager, XMI_MSIM_GUI_LAYER_BOX(self->crystal_compositionW), crystal_composition_writer, crystal_composition_reader);
 
+	G_OBJECT_CLASS(xmi_msim_gui_xmsi_config_scrolled_window_parent_class)->constructed(obj);
 }
 
 static void xmi_msim_gui_xmsi_config_scrolled_window_class_init(XmiMsimGuiXmsiConfigScrolledWindowClass *klass) {

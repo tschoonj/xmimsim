@@ -87,6 +87,8 @@ static void xmi_msim_google_analytics_tracker_constructed(GObject *obj) {
 	else if (tracker->uuid == NULL) {
 		tracker->uuid = g_uuid_string_random();
 	}
+
+	G_OBJECT_CLASS(xmi_msim_google_analytics_tracker_parent_class)->constructed(obj);
 }
 
 static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsTrackerClass *klass) {

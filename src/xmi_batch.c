@@ -743,6 +743,8 @@ static void xmi_msim_batch_multi_constructed(GObject *object) {
 	g_return_if_fail(batch->options != NULL && (batch->options->len == 1 || batch->options->len == batch->xmsi_files->len));
 
 	abstract->priv->valid_object = TRUE;
+
+	G_OBJECT_CLASS(xmi_msim_batch_abstract_parent_class)->constructed(object);
 }
 
 static XmiMsimJob* xmi_msim_batch_multi_real_get_job(XmiMsimBatchAbstract *batch, guint job_index, GError **error) {
@@ -978,6 +980,8 @@ static void xmi_msim_batch_single_constructed(GObject *object) {
 	g_return_if_fail(batch->data != NULL && batch->data->len > 0 && batch->data->len < 3);
 
 	abstract->priv->valid_object = TRUE;
+
+	G_OBJECT_CLASS(xmi_msim_batch_abstract_parent_class)->constructed(object);
 }
 
 static void xmi_msim_batch_single_init(XmiMsimBatchSingle *self) {
