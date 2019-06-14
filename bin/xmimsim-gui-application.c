@@ -34,6 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-long-task-window.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-utils-pp.h"
+#include "xmimsim-gui-batch-assistant.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 
@@ -242,6 +243,9 @@ static void open_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 
 static void batch_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	g_debug("Calling batch_activated");
+	GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(user_data));
+	GtkWidget *batch = xmi_msim_gui_batch_assistant_new(active_window);
+	gtk_widget_show_all(batch);
 }
 
 static void help_url_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

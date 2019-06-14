@@ -61,6 +61,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-application.h \
 	xmimsim-gui-application-window.h \
 	xmimsim-gui-xmso-results-application-window.h \
+	xmimsim-gui-batch-assistant.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -97,6 +98,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-application-window.c \
 	xmimsim-gui-private.h \
 	xmimsim-gui-xmso-results-application-window.c \
+	xmimsim-gui-batch-assistant.c \
 	$(NULL)
 
 nodist_libxmimsim_gui_la_SOURCES = \
