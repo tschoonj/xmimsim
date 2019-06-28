@@ -44,14 +44,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
-#if LIBXML_VERSION < 20901
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
-xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
-
-#endif
-
 #ifdef HAVE_GOOGLE_ANALYTICS
   #include "xmi_google_analytics.h"
 #endif

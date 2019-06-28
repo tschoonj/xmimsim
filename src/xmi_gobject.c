@@ -131,20 +131,4 @@ static void xmi_history_element_copy(xmi_history_element *A, xmi_history_element
 
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimHistoryElement, history_element);
 
-
-static void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B) {
-	g_return_if_fail(A != NULL && B != NULL);
-	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
-	*rv = *A;
-	rv->xpath = g_strdup(A->xpath);
-	*B = rv;
-}
-
-static void xmi_batch_single_data_free(xmi_batch_single_data *A) {
-	if (!A)
-		return;
-	g_free(A->xpath);
-	g_free(A);
-}
-
 XMI_MSIM_DEFINE_BOXED_TYPE(XmiMsimBatchSingleData, batch_single_data);

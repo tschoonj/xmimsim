@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-xmsi-selection-scrolled-window.h"
+#include "xmimsim-gui-type-builtins.h"
 #include <string.h>
 #include <xraylib.h>
 #include "xmi_gobject.h"
@@ -80,15 +81,6 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_get_property(GObject    
                                                 GValue     *value,
                                                 GParamSpec       *pspec);
 
-static void xpath_data_free(gpointer data) {
-	XmiMsimGuiXmsiSelectionXPathData *xdata = data;
-	if (xdata) {
-		if (xdata->xpath)
-			g_free(xdata->xpath);
-		g_free(xdata);
-	}
-}
-
 static void xmi_msim_gui_xmsi_selection_scrolled_window_class_init(XmiMsimGuiXmsiSelectionScrolledWindowClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
@@ -102,7 +94,7 @@ static void xmi_msim_gui_xmsi_selection_scrolled_window_class_init(XmiMsimGuiXms
 		"xmi-input",
 		"xmi-input",
 		XMI_MSIM_TYPE_INPUT,
-    		G_PARAM_READWRITE 
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
 	);
 
 	props[PROP_WITH_COLOR] = g_param_spec_boolean(
@@ -166,13 +158,11 @@ static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path
 static void extend_xpath_array(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) {
 	XmiMsimGuiXmsiSelectionScrolledWindow *self = data;
 
-	gchar *xpath = NULL;
+	gchar *xpath = NULL, *value = NULL;
 	int allowed = 0;
-	gtk_tree_model_get(model, iter, INPUT_XPATH_COLUMN, &xpath, INPUT_ALLOWED_COLUMN, &allowed, -1);
+	gtk_tree_model_get(model, iter, INPUT_XPATH_COLUMN, &xpath, INPUT_VALUE_COLUMN, &value, INPUT_ALLOWED_COLUMN, &allowed, -1);
 
-	XmiMsimGuiXmsiSelectionXPathData *xdata = g_malloc0(sizeof(XmiMsimGuiXmsiSelectionXPathData));
-	xdata->xpath = xpath;
-	xdata->flags = allowed;
+	XmiMsimGuiXmsiSelectionXPathData *xdata = xmi_msim_gui_xmsi_selection_xpath_data_new(xpath, value, allowed);
 
 	g_ptr_array_add(self->xpath_expressions, xdata);
 }
@@ -187,7 +177,7 @@ static void parameter_selection_changed_cb(GtkTreeSelection *selection, XmiMsimG
 	gint count = gtk_tree_selection_count_selected_rows(selection);
 
 	if (count > 0) {
-		self->xpath_expressions = g_ptr_array_new_with_free_func(xpath_data_free);
+		self->xpath_expressions = g_ptr_array_new_with_free_func(g_object_unref);
 		gtk_tree_selection_selected_foreach(selection, extend_xpath_array, self);
 	}
 
@@ -536,7 +526,7 @@ static void populate_model(XmiMsimGuiXmsiSelectionScrolledWindow *self) {
 		INPUT_VALUE_COLUMN, buffer,
 		INPUT_SELECTABLE_COLUMN, TRUE,
 		INPUT_XPATH_COLUMN, "/xmimsim/geometry/n_sample_orientation/z",
-		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE,
+		INPUT_ALLOWED_COLUMN, XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE | XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE,
 		-1
 	);
 	g_free(buffer);
@@ -1365,6 +1355,170 @@ GPtrArray* xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(Xmi
 	GPtrArray *rv = NULL;
 
 	g_object_get(scrolled_window, "xpath-expressions", &rv, NULL);
+
+	return rv;
+}
+
+
+
+
+struct _XmiMsimGuiXmsiSelectionXPathData {
+	GObject parent_instance;
+	gchar *xpath;
+	gchar *value;
+	XmiMsimGuiXmsiSelectionXPathFlags flags;
+};
+
+struct _XmiMsimGuiXmsiSelectionXPathDataClass {
+	GObjectClass parent_class;
+};
+
+G_DEFINE_TYPE(XmiMsimGuiXmsiSelectionXPathData, xmi_msim_gui_xmsi_selection_xpath_data, G_TYPE_OBJECT)
+
+enum {
+	PROP_DATA_0,
+	PROP_DATA_XPATH,
+	PROP_DATA_VALUE,
+	PROP_DATA_FLAGS,
+	N_DATA_PROPERTIES
+};
+
+static GParamSpec *props_data[N_DATA_PROPERTIES] = {NULL, };
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_dispose(GObject *gobject) {
+	G_OBJECT_CLASS(xmi_msim_gui_xmsi_selection_xpath_data_parent_class)->dispose(gobject);
+}
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_finalize(GObject *gobject) {
+  	XmiMsimGuiXmsiSelectionXPathData *self = XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DATA(gobject);
+
+	g_free(self->xpath);
+	g_free(self->value);
+
+	G_OBJECT_CLASS(xmi_msim_gui_xmsi_selection_xpath_data_parent_class)->finalize(gobject);
+}
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_set_property(GObject          *object,
+                                                guint             prop_id,
+                                                const GValue     *value,
+                                                GParamSpec       *pspec);
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_get_property(GObject          *object,
+                                                guint             prop_id,
+                                                GValue     *value,
+                                                GParamSpec       *pspec);
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_class_init(XmiMsimGuiXmsiSelectionXPathDataClass *klass) {
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+	object_class->dispose = xmi_msim_gui_xmsi_selection_xpath_data_dispose;
+	object_class->finalize = xmi_msim_gui_xmsi_selection_xpath_data_finalize;
+	object_class->set_property = xmi_msim_gui_xmsi_selection_xpath_data_set_property;
+	object_class->get_property = xmi_msim_gui_xmsi_selection_xpath_data_get_property;
+
+	props_data[PROP_DATA_XPATH] = g_param_spec_string(
+		"xpath-string",
+		"xpath-string",
+		"xpath-string",
+		NULL,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	props_data[PROP_DATA_VALUE] = g_param_spec_string(
+		"value",
+		"value",
+		"value",
+		NULL,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	props_data[PROP_DATA_FLAGS] = g_param_spec_flags(
+		"flags",
+		"flags",
+		"flags",
+		XMI_MSIM_GUI_TYPE_XMSI_SELECTION_XPATH_FLAGS,
+		0,
+    		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+
+	g_object_class_install_properties(object_class, N_DATA_PROPERTIES, props_data);
+}
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_init(XmiMsimGuiXmsiSelectionXPathData *self) {
+}
+
+XmiMsimGuiXmsiSelectionXPathData* xmi_msim_gui_xmsi_selection_xpath_data_new(const gchar *string, const gchar *value, XmiMsimGuiXmsiSelectionXPathFlags flags) {
+	g_return_val_if_fail(string != NULL, NULL);
+	g_return_val_if_fail(value != NULL, NULL);
+
+	return g_object_new(XMI_MSIM_GUI_TYPE_XMSI_SELECTION_XPATH_DATA, "xpath-string", string, "value", value, "flags", flags, NULL);
+}
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_set_property(GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec) {
+  XmiMsimGuiXmsiSelectionXPathData *self = XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DATA(object);
+
+  switch (prop_id) {
+    case PROP_DATA_XPATH:
+      g_free(self->xpath);
+      self->xpath = g_value_dup_string(value);
+      break;
+    case PROP_DATA_VALUE:
+      g_free(self->value);
+      self->value = g_value_dup_string(value);
+      break;
+    case PROP_DATA_FLAGS:
+      self->flags = g_value_get_flags(value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void xmi_msim_gui_xmsi_selection_xpath_data_get_property(GObject *object, guint prop_id, GValue *value, GParamSpec *pspec) {
+  XmiMsimGuiXmsiSelectionXPathData *self = XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DATA(object);
+
+  switch (prop_id) {
+    case PROP_DATA_XPATH:
+      g_value_set_string(value, self->xpath);
+      break;
+    case PROP_DATA_VALUE:
+      g_value_set_string(value, self->value);
+      break;
+    case PROP_DATA_FLAGS:
+      g_value_set_flags(value, self->flags);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+gchar* xmi_msim_gui_xmsi_selection_xpath_data_get_string(XmiMsimGuiXmsiSelectionXPathData* data) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSI_SELECTION_XPATH_DATA(data), NULL);
+
+	gchar *rv = NULL;
+
+	g_object_get(data, "xpath-string", &rv, NULL);
+
+	return rv;
+}
+
+gchar* xmi_msim_gui_xmsi_selection_xpath_data_get_value(XmiMsimGuiXmsiSelectionXPathData* data) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSI_SELECTION_XPATH_DATA(data), NULL);
+
+	gchar *rv = NULL;
+
+	g_object_get(data, "value", &rv, NULL);
+
+	return rv;
+}
+
+XmiMsimGuiXmsiSelectionXPathFlags xmi_msim_gui_xmsi_selection_xpath_data_get_flags(XmiMsimGuiXmsiSelectionXPathData* data) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_XMSI_SELECTION_XPATH_DATA(data), 0);
+
+	XmiMsimGuiXmsiSelectionXPathFlags rv = 0;
+
+	g_object_get(data, "flags", &rv, NULL);
 
 	return rv;
 }

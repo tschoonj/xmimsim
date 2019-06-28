@@ -62,6 +62,8 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-application-window.h \
 	xmimsim-gui-xmso-results-application-window.h \
 	xmimsim-gui-batch-assistant.h \
+	xmimsim-gui-gobject.h \
+	xmimsim-gui-batch-archive-settings-box.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -99,7 +101,10 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-private.h \
 	xmimsim-gui-xmso-results-application-window.c \
 	xmimsim-gui-batch-assistant.c \
+	xmimsim-gui-gobject.c \
+	xmimsim-gui-batch-archive-settings-box.c
 	$(NULL)
+
 
 nodist_libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-resources.c \
@@ -208,7 +213,7 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
-#noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
+noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
 #noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
 endif
 #xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
@@ -239,18 +244,18 @@ endif
 #	@xml2_LIBS@ \
 #	$(NULL)
 
-#xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
-#xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
-#	@xml2_CFLAGS@ \
-#	@gtkmm3_CFLAGS@ \
-#	$(AM_CPPFLAGS) \
-#	$(NULL)
-#xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
-#	libxmimsim-gui.la \
-#	../src/libxmimsim.la \
-#	@gtkmm3_LIBS@ \
-#	@xml2_LIBS@ \
-#	$(NULL)
+xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
+xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
+	@xml2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	$(AM_CPPFLAGS) \
+	$(NULL)
+xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
+	libxmimsim-gui.la \
+	../src/libxmimsim.la \
+	@gtkmm3_LIBS@ \
+	@xml2_LIBS@ \
+	$(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui

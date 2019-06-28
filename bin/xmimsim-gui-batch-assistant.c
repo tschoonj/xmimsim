@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-batch-assistant.h"
 #include "xmimsim-gui-options-box.h"
 #include "xmimsim-gui-xmsi-selection-scrolled-window.h"
+#include "xmimsim-gui-batch-archive-settings-box.h"
 
 #include "xmi_xml.h"
 
@@ -111,15 +112,57 @@ static void filter_filename(gpointer data, gpointer user_data) {
 	}
 }
 
-static void xpath_changed_cb(XmiMsimGuiBatchAssistant *self, GParamSpec *pspec, XmiMsimGuiXmsiSelectionScrolledWindow *page) {
+static void single_batch_data_changed_cb(XmiMsimGuiBatchAssistant *self, GParamSpec *pspec, XmiMsimGuiBatchArchiveSettingsBox *archive_setting_page) {
 
-	GPtrArray *arr = xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(page);
+	GPtrArray *arr = xmi_msim_gui_batch_archive_settings_box_get_data(XMI_MSIM_GUI_BATCH_ARCHIVE_SETTINGS_BOX(archive_setting_page));
+
 	if (arr) {
+		g_debug("single_batch_data_changed_cb: valid data found");
+		unsigned int i;
+		for (i = 0 ; i < arr->len ; i++) {
+			xmi_batch_single_data *data = g_ptr_array_index(arr, i);
+			g_debug("single_batch_data_changed_cb: %d -> %s", i, data->xpath);
+			g_debug("single_batch_data_changed_cb: %g -> %g in %d steps", data->start, data->end, data->nsteps);
+		}
+
 		g_ptr_array_unref(arr);
-		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(page), TRUE);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(archive_setting_page), TRUE);
 	}
 	else {
-		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(page), FALSE);
+		g_debug("single_batch_data_changed_cb: NO valid data found");
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(archive_setting_page), FALSE);
+	}
+
+
+}
+
+static void xpath_changed_cb(XmiMsimGuiBatchAssistant *self, GParamSpec *pspec, XmiMsimGuiXmsiSelectionScrolledWindow *selection_page) {
+
+	if (self->archive_settings_page) {
+		gint page_index = xmi_msim_gui_batch_assistant_get_page(self, self->archive_settings_page);
+		g_assert(page_index >= 0);
+		gtk_assistant_remove_page(GTK_ASSISTANT(self), page_index);
+		self->archive_settings_page = NULL;
+	}
+
+	GPtrArray *arr = xmi_msim_gui_xmsi_selection_scrolled_window_get_xpath_expressions(selection_page);
+
+	if (arr) {
+		gchar *filename = g_ptr_array_index(self->xmsi_files, 0);
+		GtkWidget *page = xmi_msim_gui_batch_archive_settings_box_new(arr, filename);
+		g_signal_connect_swapped(page, "notify::single-batch-data", G_CALLBACK(single_batch_data_changed_cb), self);
+		gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 4);
+		gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
+		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Archive Settings");
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, TRUE);
+		self->archive_settings_page = page;
+		gtk_widget_show(page);
+
+		g_ptr_array_unref(arr);
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(selection_page), TRUE);
+	}
+	else {
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(selection_page), FALSE);
 	}
 }
 
@@ -181,7 +224,7 @@ static void file_chooser_selection_changed_cb(XmiMsimGuiBatchAssistant *self, Gt
 		GtkWidget *page = xmi_msim_gui_options_box_new();
 		gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 2);
 		gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
-		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Set the options");
+		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Set the Options");
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, TRUE);
 
 		self->options_pages = g_ptr_array_new();
@@ -195,7 +238,7 @@ static void file_chooser_selection_changed_cb(XmiMsimGuiBatchAssistant *self, Gt
 		xmi_input_free(input);
 		gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 3);
 		gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
-		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Parameter selection");
+		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Parameter Selection");
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, FALSE);
 		g_signal_connect_swapped(page, "notify::xpath-expressions", G_CALLBACK(xpath_changed_cb), self);
 		self->xmsi_selection_page = page;

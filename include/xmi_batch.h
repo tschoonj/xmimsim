@@ -103,6 +103,10 @@ struct _xmi_batch_single_data {
 	guint nsteps;
 };
 
+void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B);
+
+void xmi_batch_single_data_free(xmi_batch_single_data *A);
+
 XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error);
 
 gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const char *xmsa_file, GError **error);

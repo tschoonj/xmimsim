@@ -1089,3 +1089,18 @@ gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const ch
 
 	return xmi_archive_write_to_xml_file(batch->archive, xmsa_file, error);
 }
+
+void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B) {
+	g_return_if_fail(A != NULL && B != NULL);
+	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
+	*rv = *A;
+	rv->xpath = g_strdup(A->xpath);
+	*B = rv;
+}
+
+void xmi_batch_single_data_free(xmi_batch_single_data *A) {
+	if (!A)
+		return;
+	g_free(A->xpath);
+	g_free(A);
+}

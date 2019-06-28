@@ -5,6 +5,7 @@
 #include "xmimsim-gui-discrete-energy-dialog.h"
 #include "xmimsim-gui-continuous-energy-dialog.h"
 #include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
 
 /* inspired by https://github.com/endlessm/xapian-glib/blob/master/xapian-glib/xapian-enums.cc#L22 */
 
@@ -75,3 +76,10 @@ XMI_DEFINE_ENUM_TYPE(XmiMsimGuiSourceAbstractError, xmi_msim_gui_source_abstract
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_INVALID_FILENAME, "invalid-filename")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_SOURCE_ABSTRACT_ERROR_NO_RAW_DATA, "no-raw-data"))
 
+XMI_DEFINE_FLAGS_TYPE(XmiMsimGuiXmsiSelectionXPathFlags, xmi_msim_gui_xmsi_selection_xpath_flags,
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_DOUBLE, "double")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_INT, "int")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_LONG, "long")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE, "strict-positive")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE, "positive")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION, "weight-fraction"))

@@ -981,6 +981,11 @@ after_composition:
 		goto after_geometry;
 	}
 
+
+	if (input->geometry->n_sample_orientation[2] <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
 	if (input->geometry->d_sample_source <= 0.0) {
 		rv |= XMI_INPUT_GEOMETRY;
 		goto after_geometry;
@@ -994,6 +999,20 @@ after_composition:
 		goto after_geometry;
 	}
 	if (input->geometry->collimator_diameter < 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+	if (input->geometry->d_source_slit <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+
+	if (input->geometry->slit_size_x <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+
+	if (input->geometry->slit_size_y <= 0.0) {
 		rv |= XMI_INPUT_GEOMETRY;
 		goto after_geometry;
 	}

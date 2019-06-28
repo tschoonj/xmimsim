@@ -31,7 +31,7 @@ static void destroy( GtkWidget *widget,
 }
 
 static void print_xdata(XmiMsimGuiXmsiSelectionXPathData *data, gpointer unused) {
-	fprintf(stdout, "xpath: %s\n", data->xpath);
+	fprintf(stdout, "xpath: %s -> %u\n", xmi_msim_gui_xmsi_selection_xpath_data_get_string(data), xmi_msim_gui_xmsi_selection_xpath_data_get_flags(data));
 }
 
 static void xpath_changed_cb(XmiMsimGuiXmsiSelectionScrolledWindow *sw, GParamSpec *pspec, gpointer user_data) {

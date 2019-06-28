@@ -114,7 +114,7 @@ PKG_PROG_PKG_CONFIG
 #search for xraylib and other modules
 PKG_CHECK_MODULES([xraylib],libxrl >= 3.99.0)
 PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.99.0)
-PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
+PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.9.1)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 EASYRNG_FOUND=no
 PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.1],

@@ -229,32 +229,6 @@ void *xmi_realloc(void *ptr, size_t size){
 	return g_realloc(ptr, size);
 }
 
-
-#if LIBXML_VERSION < 20901
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-//taken from the libxml2 source code...
-int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx) {
-    if ((node == NULL) || (ctx == NULL))
-        return(-1);
-
-    if (node->doc == ctx->doc) {
-        ctx->node = node;
-        return(0);
-    }
-    return(-1);
-}
-
-xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx) {
-    if (str == NULL)
-        return(NULL);
-    if (xmlXPathSetContextNode(node, ctx) < 0)
-        return(NULL);
-    return(xmlXPathEval(str, ctx));
-}
-
-#endif
-
 static gboolean xmi_init_hdf5_done = FALSE;
 
 /**
