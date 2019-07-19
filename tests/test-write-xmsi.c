@@ -39,9 +39,23 @@ int main(int argc, char *argv[]) {
 	g_assert_false(xmi_input_write_to_xml_file(input, "non-existent-folder" G_DIR_SEPARATOR_S TEST_XMSI_COPY, &error));
 	g_assert_true(g_error_matches(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML));
 	fprintf(stdout, "message: %s\n", error->message);
-	g_error_free(error);
+	g_clear_error(&error);
 	
+
+	//test xml_string methods
+	gchar *xml_string = NULL;
+	g_assert_true(xmi_input_write_to_xml_string(input, &xml_string, NULL));
+	g_assert_nonnull(input_copy = xmi_input_read_from_xml_string(xml_string, NULL));
+
+	//ensure they are identical
+	g_assert(xmi_input_compare(input, input_copy) == 0);
+
+	xmi_input_free(input_copy);
+		
 	xmi_input_free(input);
+
+	//delete the original file
+	unlink(TEST_XMSI);
 
 	return 0;
 }

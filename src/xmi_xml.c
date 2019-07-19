@@ -1343,6 +1343,7 @@ xmi_input* xmi_input_read_from_xml_file(const char *xmsifile, GError **error) {
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
+
 	return input;
 }
 
@@ -1800,7 +1801,7 @@ int xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_input *input
  */
 xmi_input* xmi_input_read_from_xml_string(const char *xmsistring, GError **error) {
 	xmlDocPtr doc;
-	xmlNodePtr root, subroot;
+	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
 
 	LIBXML_TEST_VERSION
@@ -1810,7 +1811,7 @@ xmi_input* xmi_input_read_from_xml_string(const char *xmsistring, GError **error
 		return NULL;
 	}
 
-	if ((doc = xmlCtxtReadDoc(ctx, BAD_CAST xmsistring, "weirdness.xml" ,NULL,XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
+	if ((doc = xmlCtxtReadDoc(ctx, BAD_CAST xmsistring, "weirdness.xml", NULL, XML_PARSE_DTDVALID | XML_PARSE_NOBLANKS | XML_PARSE_DTDATTR)) == NULL) {
 		xmlFreeParserCtxt(ctx);
 		handle_error(error);
 		return NULL;
@@ -1830,70 +1831,32 @@ xmi_input* xmi_input_read_from_xml_string(const char *xmsistring, GError **error
 		return NULL;
 	}
 
-	if (xmlStrcmp(root->name,(const xmlChar*) "xmimsim")) {
+	if (xmlStrcmp(root->name, (const xmlChar*) "xmimsim")) {
 		xmlFreeParserCtxt(ctx);
 		xmlFreeDoc(doc);
 		handle_error(error);
 		return FALSE;
 	}
 
-	subroot= xmlFirstElementChild(root);
-
 	//allocate memory for input
 	xmi_input *input = g_malloc0(sizeof(xmi_input));
 
-	while (subroot != NULL) {
-		if (!xmlStrcmp(subroot->name, (const xmlChar *) "general")) {
-			if (xmi_read_input_general(doc, subroot, &input->general, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "composition")) {
-			if (xmi_read_input_composition(doc, subroot, &input->composition, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "geometry")) {
-			if (xmi_read_input_geometry(doc, subroot, &input->geometry, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-		else if (!xmlStrcmp(subroot->name, (const xmlChar *) "excitation")) {
-			if (xmi_read_input_excitation(doc, subroot, &input->excitation, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "absorbers")) {
-			if (xmi_read_input_absorbers(doc, subroot, &input->absorbers, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "detector")) {
-			if (xmi_read_input_detector(doc, subroot, &input->detector, error) == 0) {
-				xmlFreeParserCtxt(ctx);
-				xmlFreeDoc(doc);
-				xmi_input_free(input);
-				return NULL;
-			}
-		}
-
-		subroot = xmlNextElementSibling(subroot);
+	if (xmi_read_input_xml_body(doc, root, input, error) == FALSE) {
+		xmi_input_free(input);
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
+		return NULL;
 	}
+
+#ifndef QUICKLOOK
+	if (xmi_input_validate(input) != 0) {
+		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error validating input data");
+		xmlFreeParserCtxt(ctx);
+		xmlFreeDoc(doc);
+		xmi_input_free(input);
+		return NULL;
+	}
+#endif
 
 	xmlFreeParserCtxt(ctx);
 	xmlFreeDoc(doc);
