@@ -85,28 +85,6 @@ GType xmi_msim_batch_abstract_get_type(void) G_GNUC_CONST;
 typedef struct _XmiMsimBatchSingle		XmiMsimBatchSingle;
 typedef struct _XmiMsimBatchSingleClass   	XmiMsimBatchSingleClass;
 
-typedef struct _xmi_batch_single_data xmi_batch_single_data;
-
-/**
- * xmi_batch_single_data:
- * @xpath: XPath expression
- * @start: start value
- * @end: end value
- * @nsteps: number of steps to go from start to end
- *
- * A struct describing a single parameter for a XmiMsimBatchSingle task.
- */
-struct _xmi_batch_single_data {
-	gchar *xpath;
-	gdouble start;
-	gdouble end;
-	guint nsteps;
-};
-
-void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B);
-
-void xmi_batch_single_data_free(xmi_batch_single_data *A);
-
 XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error);
 
 gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const char *xmsa_file, GError **error);

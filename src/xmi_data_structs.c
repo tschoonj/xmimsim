@@ -1598,61 +1598,46 @@ void xmi_archive_unref(xmi_archive *archive) {
 	g_return_if_fail(archive != NULL);
 
 	if (g_atomic_int_dec_and_test(&archive->ref_count)) {
-		g_free(archive->xpath1);
-		g_free(archive->xpath2);
+		if (archive->single_data)
+			g_ptr_array_unref(archive->single_data);
 
-		int i,j;
-		for (i = 0 ; i <= archive->nsteps1 ; i++) {
-			for (j = 0 ; j <= archive->nsteps2 ; j++) {
-				xmi_output_free(archive->output[i][j]);
-			}
-			g_free(archive->input[i]);
-			g_free(archive->output[i]);
-			g_free(archive->inputfiles[i]);
-			g_free(archive->outputfiles[i]);
-		}
-		g_free(archive->input);
-		g_free(archive->output);
-		g_free(archive->inputfiles);
-		g_free(archive->outputfiles);
+		if (archive->output)
+			g_ptr_array_unref(archive->output);
+
+		if (archive->dims)
+			g_array_unref(archive->dims);
+
 		g_free(archive);
 	}
 }
 
-xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
+/**
+ * xmi_archive_new: (constructor):
+ * @single_data: (element-type XmiMsim.BatchSingleData):
+ * @output: (element-type XmiMsim.Output):
+ *
+ * Returns: a newly allocated xmi_output struct, initialized with the provided arguments
+ */
+xmi_archive* xmi_archive_new(GPtrArray *single_data, GPtrArray *output) {
+	g_return_val_if_fail(single_data != NULL, NULL);
+	g_return_val_if_fail(output != NULL, NULL);
+
 	xmi_archive *archive = g_malloc0(sizeof(xmi_archive));
 	archive->version = g_ascii_strtod(VERSION, NULL);
-	archive->start_value1 = start_value1;
-	archive->end_value1 = end_value1;
-	archive->nsteps1 = nsteps1;
-	archive->xpath1 = g_strdup(xpath1);
-	archive->start_value2 = start_value2;
-	archive->end_value2= end_value2;
-	archive->nsteps2 = nsteps2;
 	archive->ref_count = 1;
-	if (xpath2)
-		archive->xpath2 = g_strdup(xpath2);
-	else
-		archive->xpath2 = NULL;
-	archive->output = g_malloc0(sizeof(xmi_output **)*(nsteps1+1));
-	archive->input = g_malloc0(sizeof(xmi_input **)*(nsteps1+1));
-	archive->inputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
-	archive->outputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
+	archive->single_data = g_ptr_array_ref(single_data);
+	archive->output = g_ptr_array_ref(output);
 
-	int i, j;
+	GArray *dims = g_array_sized_new(FALSE, TRUE, sizeof(int), single_data->len);
 
-	for (i = 0 ; i <= nsteps1 ; i++) {
-		archive->output[i] = g_malloc0(sizeof(xmi_output *)*(nsteps2+1));
-		archive->input[i] = g_malloc0(sizeof(xmi_input *)*(nsteps2+1));
-		archive->inputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
-		archive->outputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
-		for (j = 0 ; j <= nsteps2 ; j++) {
-			xmi_output_copy(output[i][j], &archive->output[i][j]);
-			archive->input[i][j] = archive->output[i][j]->input;
-			archive->inputfiles[i][j] = archive->output[i][j]->inputfile;
-			archive->outputfiles[i][j] = archive->output[i][j]->outputfile;
-		}
+	guint i;
+	for (i = 0 ; i < single_data->len ; i++) {
+		xmi_batch_single_data *data = g_ptr_array_index(single_data, i);
+		int dim = data->nsteps + 1;
+		g_array_append_val(dims, dim);
 	}
+
+	archive->dims = dims;
 
 	return archive;
 }
@@ -2487,55 +2472,24 @@ gboolean xmi_archive_equals(xmi_archive *A, xmi_archive *B) {
 	if (A == B)
 		return TRUE;
 
-	if (A->start_value1 != B->start_value1) {
-		return FALSE;
-	}
-
-	if (A->end_value1 != B->end_value1) {
-		return FALSE;
-	}
-
-	if (g_strcmp0(A->xpath1, B->xpath1) != 0) {
-		return FALSE;
-	}
-
-	if (A->nsteps1 != B->nsteps1) {
-		return FALSE;
-	}
-
-	if (A->nsteps2 != B->nsteps2) {
-		return FALSE;
-	}
-
-	if (A->xpath2 != NULL) {
-		if (B->xpath2 == NULL) {
+	if (A->single_data != B->single_data) {
+		if (A->single_data->len != B->single_data->len)
 			return FALSE;
-		}
-
-		if (A->start_value2 != B->start_value2) {
-			return FALSE;
-		}
-
-		if (A->end_value2 != B->end_value2) {
-			return FALSE;
-		}
-
-		if (g_strcmp0(A->xpath2, B->xpath2) != 0) {
-			return FALSE;
-		}
-	}
-	else if (B->xpath2 != NULL) {
-		return FALSE;
-	}
-
-	int i,j;
-
-	for (i = 0 ; i <= A->nsteps1 ; i++) {
-		for (j = 0 ; j <= A->nsteps2 ; j++) {
-			if (!xmi_output_equals(A->output[i][j],
-			                       B->output[i][j])) {
+		unsigned int i;
+		for (i = 0 ; i < A->single_data->len ; i++) {
+			if (!xmi_batch_single_data_equals(g_ptr_array_index(A->single_data, i), g_ptr_array_index(B->single_data, i)))
 				return FALSE;
-			}
+		}
+	
+	}
+
+	if (A->output != B->output) {
+		if (A->output->len != B->output->len)
+			return FALSE;
+		unsigned int i;
+		for (i = 0 ; i < A->output->len ; i++) {
+			if (!xmi_output_equals(g_ptr_array_index(A->output, i), g_ptr_array_index(B->output, i)))
+				return FALSE;
 		}
 	}
 
@@ -2636,5 +2590,41 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 	if (!*B)
 		return;
 	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
+}
+
+void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B) {
+	g_return_if_fail(A != NULL && B != NULL);
+	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
+	*rv = *A;
+	rv->xpath = g_strdup(A->xpath);
+	*B = rv;
+}
+
+void xmi_batch_single_data_free(xmi_batch_single_data *A) {
+	if (!A)
+		return;
+	g_free(A->xpath);
+	g_free(A);
+}
+
+gboolean xmi_batch_single_data_equals(xmi_batch_single_data *A, xmi_batch_single_data *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+	
+	if (A == B)
+		return TRUE;
+
+	if (g_strcmp0(A->xpath, B->xpath) != 0)
+		return FALSE;
+
+	if (fabs(A->start - B->start) > 1E-10)
+		return FALSE;
+
+	if (fabs(A->end - B->end) > 1E-10)
+		return FALSE;
+	
+	if (A->nsteps != B->nsteps)
+		return FALSE;
+
+	return TRUE;
 }
 #endif

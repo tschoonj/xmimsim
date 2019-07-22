@@ -64,6 +64,8 @@ static float i2c(double intensity, double maximum_log, double minimum_log);
 
 static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
 static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, const gchar *message_format, ...) G_GNUC_PRINTF(3, 4);
+static xmlNodePtr xmi_new_child_with_index_printf(xmlNodePtr nodePtr, const xmlChar *node_name, unsigned int _index, const gchar *message_format, ...) G_GNUC_PRINTF(4, 5);
+static void xmi_new_prop_with_index_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, unsigned int _index, const gchar *message_format, ...) G_GNUC_PRINTF(4, 5);
 #endif
 
 static gboolean xml_catalog_loaded = FALSE;
@@ -1438,9 +1440,18 @@ gboolean xmi_input_write_to_xml_file(xmi_input *input, const char *xmsifile, GEr
 	return TRUE;
 }
 
-
-int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *output, int step1, int step2, int with_svg, GError **error) {
-	int i,j,k;
+/**
+ * xmi_write_output_xml_body:
+ * @doc:
+ * @subroot:
+ * @output:
+ * @steps: (element-type gint):
+ * @with_svg:
+ *
+ * Returns: 1 on success, 0 otherwise
+ */
+gboolean xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *output, GArray *steps, int with_svg, GError **error) {
+	unsigned int i,j,k;
 	double *maxima;
 	double gl_conv_max;
 	double gl_unconv_max;
@@ -1453,9 +1464,10 @@ int xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *out
 
 	xmi_new_prop_printf(subroot, BAD_CAST "version", "%s", VERSION);
 
-	if (step1 != -1 && step2 != -1) {
-		xmi_new_prop_printf(subroot, BAD_CAST "step1", "%i", step1);
-		xmi_new_prop_printf(subroot, BAD_CAST "step2", "%i", step2);
+	if (steps) {
+		for (i = 0 ; i < steps->len ; i++) {
+			xmi_new_prop_with_index_printf(subroot, BAD_CAST "step", i + 1, "%i", g_array_index(steps, int, i));
+		}
 	}
 
 	xmlNewChild(subroot, NULL, BAD_CAST "inputfile", BAD_CAST output->inputfile);
@@ -1649,7 +1661,7 @@ gboolean xmi_output_write_to_xml_file(xmi_output *output, const char *xmsofile, 
 		return FALSE;
 	}
 
-	if(xmi_write_output_xml_body(doc, root_node, output, -1, -1, 1, error) == 0){
+	if(xmi_write_output_xml_body(doc, root_node, output, NULL, 1, error) == 0){
 		return FALSE;
 	}
 
@@ -2057,7 +2069,7 @@ xmi_output* xmi_output_read_from_xml_file(const char *xmsofile, GError **error) 
 
 	xmi_output *op = g_malloc0(sizeof(xmi_output));
 
-	if (xmi_read_output_xml_body(doc, root, op, NULL, NULL, error) == 0) {
+	if (xmi_read_output_xml_body(doc, root, op, NULL, error) == 0) {
 		xmi_output_free(op);
 		return NULL;
 	}
@@ -2134,7 +2146,16 @@ int xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node, GError **err
 }
 #endif
 
-int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int *step1, int *step2, GError **error) {
+/**
+ * xmi_read_output_xml_body:
+ * @doc:
+ * @root:
+ * @op:
+ * @steps: (element-type gint):
+ *
+ * Returns: 1 on success, 0 otherwise
+ */
+gboolean xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, GArray *steps, GError **error) {
 	xmlNodePtr subroot;
 	xmlChar *txt;
 
@@ -2152,26 +2173,34 @@ int xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, int
 		}
 		attr=attr->next;
 	}
-	//read step1 and step2 if necessary
-	if (step1 != NULL || step2 != NULL) {
+	//read steps if necessary
+	if (steps != NULL) {
 		attr = root->properties;
 		while (attr != NULL) {
-			if (xmlStrcmp(attr->name, BAD_CAST "step1") == 0) {
-				txt = xmlNodeGetContent(attr->children);
-				if(sscanf((const char *)txt,"%i",step1) != 1) {
-					fprintf(stderr,"error reading in step1 attribute of xml file\n");
-					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step1 attribute of xml file");
+			if (xmlStrncmp(attr->name, BAD_CAST "step", 4) == 0) {
+				int stepnr = -1;
+				if (sscanf(attr->name, "step%d", &stepnr) != 1) {
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error parsing step attribute of xml file");
 					return 0;
 				}
-				xmlFree(txt);
-			}
-			else if (xmlStrcmp(attr->name, BAD_CAST "step2") == 0 && step2 != NULL) {
-				txt = xmlNodeGetContent(attr->children);
-				if(sscanf((const char *)txt,"%i",step2) != 1) {
-					fprintf(stderr,"error reading in step2 attribute of xml file\n");
-					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step2 attribute of xml file");
+				stepnr--;
+				if (stepnr < 0) {
+					g_set_error(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "invalid step number %d in xml file", stepnr);
 					return 0;
 				}
+				else if (stepnr >= steps->len) {
+					// this is for backwards compatibility -> I always wrote step1 and step2, even if it was just a 1D simulation...
+					attr = attr->next;
+					continue;
+				}
+
+				txt = xmlNodeGetContent(attr->children);
+				int step = -1;
+				if(sscanf((const char *) txt, "%d", &step) != 1) {
+					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error reading in step attribute of xml file");
+					return 0;
+				}
+				g_array_index(steps, int, stepnr) = step;
 				xmlFree(txt);
 			}
 			attr = attr->next;
@@ -2282,7 +2311,6 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 	xmlDocPtr doc;
 	xmlNodePtr root;
 	xmlParserCtxtPtr ctx;
-	int step1, step2;
 	int files_read = 0;
 
 	LIBXML_TEST_VERSION
@@ -2341,41 +2369,44 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 
 	subroot = xmlFirstElementChild(root);
 
+	ar->single_data = g_ptr_array_new_with_free_func((GDestroyNotify) xmi_batch_single_data_free);
+	guint len = 1;
+
 	while (subroot != NULL) {
-		if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value1")) {
+		if (!xmlStrncmp(subroot->name,(const xmlChar *) "start_value", 11)) {
 			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%lg", &ar->start_value1) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value1");
+			xmi_batch_single_data *data = g_malloc0(sizeof(xmi_batch_single_data));
+			g_ptr_array_add(ar->single_data, data);
+			if (sscanf((const char*) txt, "%lg", &data->start) != 1) {
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value");
 				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value1")) {
+		else if (!xmlStrncmp(subroot->name,(const xmlChar *) "end_value", 9)) {
 			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%lg", &ar->end_value1) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value1");
+			xmi_batch_single_data *data = g_ptr_array_index(ar->single_data, ar->single_data->len - 1);
+			if (sscanf((const char*) txt, "%lg", &data->end) != 1) {
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value");
 				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps1")) {
+		else if (!xmlStrncmp(subroot->name,(const xmlChar *) "nsteps", 5)) {
 			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%i", &ar->nsteps1) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps1");
+			xmi_batch_single_data *data = g_ptr_array_index(ar->single_data, ar->single_data->len - 1);
+			if (sscanf((const char*) txt, "%d", &data->nsteps) != 1) {
+				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps");
 				xmi_archive_unref(ar);
 				return NULL;
 			}
 			xmlFree(txt);
-			//allocate memory
-			ar->output = g_malloc0(sizeof(xmi_output**)*(ar->nsteps1+1));
-			ar->input = g_malloc0(sizeof(xmi_input**)*(ar->nsteps1+1));
-			ar->inputfiles = g_malloc0(sizeof(char**)*(ar->nsteps1+1));
-			ar->outputfiles = g_malloc0(sizeof(char**)*(ar->nsteps1+1));
 		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath1")) {
+		else if (!xmlStrncmp(subroot->name,(const xmlChar *) "xpath", 5)) {
 			txt = xmlNodeGetContent(subroot->children);
+			xmi_batch_single_data *data = g_ptr_array_index(ar->single_data, ar->single_data->len - 1);
 			// This cannot work on the archive since it applies on the master input-file
 			/*xmlXPathContextPtr xpathContext = xmlXPathNewContext(subroot->doc);
 			if (xpathContext == NULL) {
@@ -2395,82 +2426,48 @@ xmi_archive* xmi_archive_read_from_xml_file(const char *xmsafile, GError **error
 			xmlXPathFreeObject(xpathResult);
 			xmlXPathFreeContext(xpathContext);
 			*/
-			ar->xpath1 = g_strdup((char*) txt);
-			xmlFree(txt);
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "start_value2")) {
-			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%lg", &ar->start_value2) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read start_value2");
-				xmi_archive_unref(ar);
-				return NULL;
-			}
-			xmlFree(txt);
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "end_value2")) {
-			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%lg", &ar->end_value2) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read end_value2");
-				xmi_archive_unref(ar);
-				return NULL;
-			}
-			xmlFree(txt);
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "nsteps2")) {
-			txt = xmlNodeGetContent(subroot->children);
-			if (sscanf((const char*) txt, "%i", &ar->nsteps2) !=1) {
-				g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "could not read nsteps2");
-				xmi_archive_unref(ar);
-				return NULL;
-			}
-			xmlFree(txt);
-		}
-		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xpath2")) {
-			txt = xmlNodeGetContent(subroot->children);
-			// This cannot work on the archive since it applies on the master input-file
-			/*xmlXPathContextPtr xpathContext = xmlXPathNewContext(subroot->doc);
-			xmlXPathObjectPtr xpathResult = xmlXPathEvalExpression(txt, xpathContext);
-			if (xpathResult == NULL || xmlXPathNodeSetIsEmpty(xpathResult->nodesetval)) {
-				fprintf(stderr, "Invalid xpath2");
-				handle_error(error);
-				if (xpathResult)
-					xmlXPathFreeObject(xpathResult);
-				xmlXPathFreeContext(xpathContext);
-				return 0;
-			}
-			xmlXPathFreeObject(xpathResult);
-			xmlXPathFreeContext(xpathContext);*/
-
-			ar->xpath2 = g_strdup((char*) txt);
+			data->xpath = g_strdup((char*) txt);
 			xmlFree(txt);
 		}
 		else if (!xmlStrcmp(subroot->name,(const xmlChar *) "xmimsim-results")) {
+			// first time we get here, we need to create the GPtrArray
+			if (ar->output == NULL) {
+				guint i;
+				ar->dims = g_array_sized_new(FALSE, TRUE, sizeof(int), ar->single_data->len);
+				for (i = 0 ; i < ar->single_data->len ; i++) {
+					xmi_batch_single_data *data = g_ptr_array_index(ar->single_data, i);
+					int dim = data->nsteps + 1;
+					len *= dim;
+					g_array_append_val(ar->dims, dim);
+				}
+				ar->output = g_ptr_array_new_full(len, (GDestroyNotify) xmi_output_free);
+				g_ptr_array_set_size(ar->output, len);
+			}
 			xmi_output *output = g_malloc0(sizeof(xmi_output));
-			step1 = step2 = 0;
-			if (xmi_read_output_xml_body(doc, subroot, output, &step1, &step2, error) == 0) {
+			GArray *steps = g_array_sized_new(TRUE, TRUE, sizeof(int), ar->single_data->len);
+			g_array_set_size(steps, ar->single_data->len);
+			if (xmi_read_output_xml_body(doc, subroot, output, steps, error) == 0) {
 				xmi_archive_unref(ar);
 				return NULL;
 			}
 			output->outputfile = g_strdup(output->input->general->outputfile);
-			if (step2 == 0) {
-				ar->output[step1] = g_malloc0(sizeof(xmi_output*)*(ar->nsteps2+1));
-				ar->input[step1] = g_malloc0(sizeof(xmi_input*)*(ar->nsteps2+1));
-				ar->inputfiles[step1] = g_malloc0(sizeof(char*)*(ar->nsteps2+1));
-				ar->outputfiles[step1] = g_malloc0(sizeof(char*)*(ar->nsteps2+1));
-			}
-			ar->output[step1][step2] = output;
+			gint offset = xmi_row_major_array_get_offset(ar->dims, steps);
+			g_assert(offset >= 0);
+			g_ptr_array_index(ar->output, offset) = output;
+			g_array_unref(steps);
 			//fix links
-			ar->input[step1][step2] = ar->output[step1][step2]->input;
+			/*ar->input[step1][step2] = ar->output[step1][step2]->input;
 			ar->inputfiles[step1][step2] = ar->output[step1][step2]->inputfile;
-			ar->outputfiles[step1][step2] = ar->output[step1][step2]->outputfile;
+			ar->outputfiles[step1][step2] = ar->output[step1][step2]->outputfile;*/
 			files_read++;
 		}
 		subroot = xmlNextElementSibling(subroot);
 	}
 
+
 	xmlFreeDoc(doc);
 
-	if (files_read != (ar->nsteps1+1)*(ar->nsteps2+1)) {
+	if (files_read != len) {
 		g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "nfiles/nsteps mismatch");
 		xmi_archive_unref(ar);
 		return NULL;
@@ -2519,25 +2516,28 @@ gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafil
 	}
 
 	//body
-	xmi_new_child_printf(root_node, BAD_CAST "start_value1", "%g", archive->start_value1);
-	xmi_new_child_printf(root_node, BAD_CAST "end_value1", "%g", archive->end_value1);
-	xmi_new_child_printf(root_node, BAD_CAST "nsteps1", "%i", archive->nsteps1);
-	xmi_new_child_printf(root_node, BAD_CAST "xpath1", "%s", archive->xpath1);
-	if (archive->nsteps2 > 0) {
-		xmi_new_child_printf(root_node, BAD_CAST "start_value2", "%g", archive->start_value2);
-		xmi_new_child_printf(root_node, BAD_CAST "end_value2", "%g", archive->end_value2);
-		xmi_new_child_printf(root_node, BAD_CAST "nsteps2", "%i", archive->nsteps2);
-		xmi_new_child_printf(root_node, BAD_CAST "xpath2", "%s", archive->xpath2);
-	}
-	int i,j;
+	unsigned int i, j;
 
-	for (i = 0 ; i <= archive->nsteps1 ; i++) {
-		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			nodePtr1 = xmlNewChild(root_node, NULL, BAD_CAST "xmimsim-results", NULL);
-			if (xmi_write_output_xml_body(doc, nodePtr1, archive->output[i][j], i, j, 0, error) == 0) {
-				return FALSE;
-			}
+	for (i = 0 ; i < archive->single_data->len ; i++) {
+		xmi_batch_single_data *data = g_ptr_array_index(archive->single_data, i);
+
+		xmi_new_child_with_index_printf(root_node, BAD_CAST "start_value", i + 1, "%g", data->start);
+		xmi_new_child_with_index_printf(root_node, BAD_CAST "end_value", i + 1, "%g", data->end);
+		xmi_new_child_with_index_printf(root_node, BAD_CAST "nsteps", i + 1, "%d", data->nsteps);
+		xmi_new_child_with_index_printf(root_node, BAD_CAST "xpath", i + 1, "%s", data->xpath);
+	}
+
+	for (i = 0 ; i < archive->output->len ; i++) {
+		nodePtr1 = xmlNewChild(root_node, NULL, BAD_CAST "xmimsim-results", NULL);
+
+		GArray *indices = xmi_row_major_array_get_indices(archive->dims, i);
+		g_assert(indices != NULL);
+
+		if (xmi_write_output_xml_body(doc, nodePtr1, g_ptr_array_index(archive->output, i), indices, 0, error) == 0) {
+			g_array_unref(indices);
+			return FALSE;
 		}
+		g_array_unref(indices);
 	}
 
 	if (xmlSaveFileEnc(xmsafile, doc, NULL) == -1) {
@@ -2590,6 +2590,24 @@ static xmlNodePtr xmi_new_child_printf(xmlNodePtr nodePtr, const xmlChar *node_n
 	return rv;
 }
 
+static xmlNodePtr xmi_new_child_with_index_printf(xmlNodePtr nodePtr, const xmlChar *node_name, unsigned int _index, const gchar *message_format, ...) {
+	//we'll be mixing some glib and libxml strings here, but that should be ok
+	gchar *msg = NULL;
+	va_list args;
+	xmlNodePtr rv = NULL;
+	gchar *node_name_full = g_strdup_printf("%s%d", node_name, _index);
+
+	if (message_format) {
+		va_start(args, message_format);
+		msg = g_strdup_vprintf(message_format, args);
+		va_end(args);
+		rv = xmlNewChild(nodePtr, NULL, node_name_full, BAD_CAST msg);
+		g_free(msg);
+	}
+	g_free(node_name_full);
+	return rv;
+}
+
 static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, const gchar *message_format, ...) {
 	gchar *msg = NULL;
 	va_list args;
@@ -2601,6 +2619,21 @@ static void xmi_new_prop_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, co
 		xmlNewProp(nodePtr, prop_name, BAD_CAST msg);
 		g_free(msg);
 	}
+}
+
+static void xmi_new_prop_with_index_printf(xmlNodePtr nodePtr, const xmlChar *prop_name, unsigned int _index, const gchar *message_format, ...) {
+	gchar *msg = NULL;
+	va_list args;
+	gchar *prop_name_full = g_strdup_printf("%s%d", prop_name, _index);
+
+	if (message_format) {
+		va_start(args, message_format);
+		msg = g_strdup_vprintf(message_format, args);
+		va_end(args);
+		xmlNewProp(nodePtr, prop_name_full, BAD_CAST msg);
+		g_free(msg);
+	}
+	g_free(prop_name_full);
 }
 #endif
 

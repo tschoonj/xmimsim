@@ -44,11 +44,11 @@ gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafil
 
 gboolean xmi_write_input_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, GError **error);
 gboolean xmi_write_input_xml_svg(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, char *name, int interaction,  double *channels, double maximum, GError **error);
-gboolean xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_output *output, int step1, int step2, int with_svg, GError **error);
+gboolean xmi_write_output_xml_body(xmlDocPtr doc, xmlNodePtr subroot, xmi_output *output, GArray *steps, int with_svg, GError **error);
 gboolean xmi_write_default_comments(xmlDocPtr doc, xmlNodePtr root_node, GError **error);
 gboolean xmi_write_layer_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_layer *layers, int n_layers, GError **error);
 gboolean xmi_read_input_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_input *input, GError **error);
-gboolean xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr node, xmi_output *output, int *step1, int *step2, GError **error);
+gboolean xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op, GArray *steps, GError **error);
 
 #ifdef __cplusplus
 }

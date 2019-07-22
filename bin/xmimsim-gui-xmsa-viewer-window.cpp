@@ -184,7 +184,7 @@ static GPtrArray* get_fluor_data(xmi_archive *archive) {
 
 	gboolean found;
 	unsigned int loc = 0;
-	unsigned int i,i2,j,k,l;
+	unsigned int i,j,k,l;
 	GPtrArray *rv = g_ptr_array_new_with_free_func(
 		[](gpointer data) {
 			struct fluor_data *fd = (struct fluor_data *) data;
@@ -193,12 +193,12 @@ static GPtrArray* get_fluor_data(xmi_archive *archive) {
 			return;
 		});
 
-	for (i = 0 ; i <= archive->nsteps1 ; i++) {
-	for (i2 = 0 ; i2 <= archive->nsteps2 ; i2++) {
-		for (j = 0 ; j < archive->output[i][i2]->nvar_red_history ; j++) {
+	for (i = 0 ; i < archive->output->len ; i++) {
+		xmi_output *output = (xmi_output *) g_ptr_array_index(archive->output, i);
+		for (j = 0 ; j < output->nvar_red_history ; j++) {
 			found = FALSE;
 			for (k = 0 ; k < rv->len ; k++) {
-				if (archive->output[i][i2]->var_red_history[j].atomic_number == ((struct fluor_data *) g_ptr_array_index(rv, k))->atomic_number) {
+				if (output->var_red_history[j].atomic_number == ((struct fluor_data *) g_ptr_array_index(rv, k))->atomic_number) {
 					found = TRUE;
 					loc = k;
 					break;
@@ -207,35 +207,35 @@ static GPtrArray* get_fluor_data(xmi_archive *archive) {
 			if (!found) {
 				//add new element to array
 				struct fluor_data *fd = (struct fluor_data *) g_malloc(sizeof(struct fluor_data));
-				fd->atomic_number = archive->output[i][i2]->var_red_history[j].atomic_number;
-				unsigned int n_lines = archive->output[i][i2]->var_red_history[j].n_lines;
+				fd->atomic_number = output->var_red_history[j].atomic_number;
+				unsigned int n_lines = output->var_red_history[j].n_lines;
 				fd->line_types = g_ptr_array_new_full(n_lines, g_free);
 				for (k = 0 ; k < n_lines ; k++) {
-					g_ptr_array_add(fd->line_types, g_strdup(archive->output[i][i2]->var_red_history[j].lines[k].line_type));
+					g_ptr_array_add(fd->line_types, g_strdup(output->var_red_history[j].lines[k].line_type));
 				}
 				g_ptr_array_add(rv, fd);
 			}
 			else {
 				//element found -> check for new lines
-				for (k = 0 ; k < archive->output[i][i2]->var_red_history[j].n_lines ; k++) {
+				for (k = 0 ; k < output->var_red_history[j].n_lines ; k++) {
 					found = FALSE;
 					for (l = 0 ; l < ((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types->len ; l++) {
-						if (strcmp(archive->output[i][i2]->var_red_history[j].lines[k].line_type, (gchar *) g_ptr_array_index(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, l)) != 0) {
+						if (strcmp(output->var_red_history[j].lines[k].line_type, (gchar *) g_ptr_array_index(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, l)) != 0) {
 							found = TRUE;
 							break;
 						}
 					}
 					if (!found) {
 						//extend array
-						g_ptr_array_add(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, g_strdup(archive->output[i][i2]->var_red_history[j].lines[k].line_type));
+						g_ptr_array_add(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, g_strdup(output->var_red_history[j].lines[k].line_type));
 					}
 				}
 			}
 		}
-		for (j = 0 ; j < archive->output[i][i2]->nbrute_force_history ; j++) {
+		for (j = 0 ; j < output->nbrute_force_history ; j++) {
 			found = FALSE;
 			for (k = 0 ; k < rv->len ; k++) {
-				if (archive->output[i][i2]->brute_force_history[j].atomic_number == ((struct fluor_data *) g_ptr_array_index(rv, k))->atomic_number) {
+				if (output->brute_force_history[j].atomic_number == ((struct fluor_data *) g_ptr_array_index(rv, k))->atomic_number) {
 					found = TRUE;
 					loc = k;
 					break;
@@ -244,32 +244,31 @@ static GPtrArray* get_fluor_data(xmi_archive *archive) {
 			if (!found) {
 				//add new element to array
 				struct fluor_data *fd = (struct fluor_data *) g_malloc(sizeof(struct fluor_data));
-				fd->atomic_number = archive->output[i][i2]->brute_force_history[j].atomic_number;
-				unsigned int n_lines = archive->output[i][i2]->brute_force_history[j].n_lines;
+				fd->atomic_number = output->brute_force_history[j].atomic_number;
+				unsigned int n_lines = output->brute_force_history[j].n_lines;
 				fd->line_types = g_ptr_array_new_full(n_lines, g_free);
 				for (k = 0 ; k < n_lines ; k++) {
-					g_ptr_array_add(fd->line_types, g_strdup(archive->output[i][i2]->brute_force_history[j].lines[k].line_type));
+					g_ptr_array_add(fd->line_types, g_strdup(output->brute_force_history[j].lines[k].line_type));
 				}
 				g_ptr_array_add(rv, fd);
 			}
 			else {
 				//element found -> check for new lines
-				for (k = 0 ; k < archive->output[i][i2]->brute_force_history[j].n_lines ; k++) {
+				for (k = 0 ; k < output->brute_force_history[j].n_lines ; k++) {
 					found = FALSE;
 					for (l = 0 ; l < ((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types->len ; l++) {
-						if (strcmp(archive->output[i][i2]->brute_force_history[j].lines[k].line_type, (gchar *) g_ptr_array_index(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, l)) != 0) {
+						if (strcmp(output->brute_force_history[j].lines[k].line_type, (gchar *) g_ptr_array_index(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, l)) != 0) {
 							found = TRUE;
 							break;
 						}
 					}
 					if (!found) {
 						//extend array
-						g_ptr_array_add(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, g_strdup(archive->output[i][i2]->brute_force_history[j].lines[k].line_type));
+						g_ptr_array_add(((struct fluor_data *) g_ptr_array_index(rv, loc))->line_types, g_strdup(output->brute_force_history[j].lines[k].line_type));
 					}
 				}
 			}
 		}
-	}
 	}
 	//qsort everything
 	for (i = 0 ; i < rv->len ; i++) {
@@ -284,10 +283,12 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self);
 static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self);
 
 static void plot_archive_data_cb(XmiMsimGuiXmsaViewerWindow *self) {
-	if (self->archive->xpath2)
+	if (self->archive->single_data->len == 1)
+		plot_archive_data_2D(self);
+	else if (self->archive->single_data->len == 2)
 		plot_archive_data_3D(self);
 	else
-		plot_archive_data_2D(self);
+		g_warning("Can only plot 1D or 2D data!");
 	return;
 }
 
@@ -314,7 +315,7 @@ static void roi_xrf_toggled_cb(XmiMsimGuiXmsaViewerWindow *self, GtkToggleButton
 		gtk_widget_set_sensitive(self->roi_interactions_comboW, TRUE);
 		gtk_widget_set_sensitive(self->roi_cumulative_radioW, TRUE);
 		gtk_widget_set_sensitive(self->roi_individual_radioW, TRUE);
-		if (!self->archive->xpath2) {
+		if (self->archive->single_data->len == 1) {
 			gtk_widget_set_sensitive(self->roi_linearW, TRUE);
 			gtk_widget_set_sensitive(self->roi_log10W, TRUE);
 		}
@@ -360,7 +361,7 @@ static void roi_xrf_toggled_cb(XmiMsimGuiXmsaViewerWindow *self, GtkToggleButton
 			gtk_widget_set_sensitive(self->xrf_line_comboW, TRUE);
 		else
 			gtk_widget_set_sensitive(self->xrf_line_comboW, FALSE);
-		if (!self->archive->xpath2) {
+		if (self->archive->single_data->len == 1) {
 			gtk_widget_set_sensitive(self->xrf_linearW, TRUE);
 			gtk_widget_set_sensitive(self->xrf_log10W, TRUE);
 		}
@@ -427,7 +428,8 @@ static void roi_start_channel_changed_cb(XmiMsimGuiXmsaViewerWindow *self, GtkSp
 	gint value_start = gtk_spin_button_get_value_as_int(roi_start_channel_spinnerW);
 
 	g_signal_handler_block(self->roi_end_channel_spinnerW, self->roi_end_channel_spinnerG);
-	gtk_spin_button_set_range(GTK_SPIN_BUTTON(self->roi_end_channel_spinnerW), (double) value_start, (double) self->archive->output[0][0]->input->detector->nchannels-1);
+	xmi_output *output0 = (xmi_output *) g_ptr_array_index(self->archive->output, 0);
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(self->roi_end_channel_spinnerW), (double) value_start, (double) output0->input->detector->nchannels-1);
 	g_signal_handler_unblock(self->roi_end_channel_spinnerW, self->roi_end_channel_spinnerG);
 
 	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) self);
@@ -438,7 +440,8 @@ static void roi_start_energy_changed_cb(XmiMsimGuiXmsaViewerWindow *self, GtkSpi
 	gint value_start = gtk_spin_button_get_value_as_int(roi_start_energy_spinnerW);
 
 	g_signal_handler_block(self->roi_end_energy_spinnerW, self->roi_end_energy_spinnerG);
-	gtk_spin_button_set_range(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW), (double) value_start, (self->archive->output[0][0]->input->detector->nchannels-1)*(self->archive->input[0][0]->detector->gain)+(self->archive->input[0][0]->detector->zero));
+	xmi_output *output0 = (xmi_output *) g_ptr_array_index(self->archive->output, 0);
+	gtk_spin_button_set_range(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW), (double) value_start, (output0->input->detector->nchannels-1)*(output0->input->detector->gain)+(output0->input->detector->zero));
 	g_signal_handler_unblock(self->roi_end_energy_spinnerW, self->roi_end_energy_spinnerG);
 
 	g_idle_add((GSourceFunc) plot_archive_data_cb_helper, (gpointer) self);
@@ -522,21 +525,23 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 			gtk_widget_destroy(message_dialog);
 			return;
 		}
-		int i,j;
-		if (self->archive->xpath2) {
+		unsigned int i,j;
+		if (self->archive->single_data->len == 2) {
 			//3D
 			//ROW1
 			//start with an empty block
+			xmi_batch_single_data *data1 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 0);
+			xmi_batch_single_data *data2 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 1);
 			if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, ",")) {
 				export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 				return;
 			}
-			for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->x[i*(self->archive->nsteps2+1)])) {
+			for (i = 0 ; i <= data1->nsteps ; i++) {
+				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->x[i*(data2->nsteps + 1)])) {
 					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 					return;
 				}
-				if (i == self->archive->nsteps1) {
+				if (i == data1->nsteps) {
 					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "\n")) {
 						export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 						return;
@@ -550,17 +555,17 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 				}
 			}
 			//OTHER ROWS
-			for (j = 0 ; j <= self->archive->nsteps2 ; j++) {
+			for (j = 0 ; j <= data2->nsteps ; j++) {
 				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g,", self->y[j])) {
 					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 					return;
 				}
-				for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->z[i*(self->archive->nsteps2+1)+j])) {
+				for (i = 0 ; i <= data1->nsteps ; i++) {
+					if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g", self->z[i*(data2->nsteps + 1)+j])) {
 						export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 						return;
 					}
-					if (i == self->archive->nsteps1) {
+					if (i == data1->nsteps) {
 						if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "\n")) {
 							export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
 							return;
@@ -576,8 +581,9 @@ static void export_archive_plot(XmiMsimGuiXmsaViewerWindow *self) {
 			}
 		}
 		else {
+			xmi_batch_single_data *data1 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 0);
 			//2D
-			for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
+			for (i = 0 ; i <= data1->nsteps ; i++) {
 				//this %g may cause serious trouble on Windows...
 				if (!g_output_stream_printf(G_OUTPUT_STREAM(file_stream), NULL, NULL, &error, "%g,%g\n", self->x[i], self->y[i])) {
 					export_archive_plot_printf_error_dialog(self, filename, error, file_stream);
@@ -611,6 +617,7 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gchar *interaction;
 
 	self->fd = get_fluor_data(self->archive);
+	xmi_output *output0 = (xmi_output *) g_ptr_array_index(self->archive->output, 0);
 
 	GtkWidget *mainHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_container_set_border_width(GTK_CONTAINER(mainHBox),5);
@@ -644,12 +651,12 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gtk_container_add(GTK_CONTAINER(self->roi_channel_radioW), tinyVBox);
 
 	tinyVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	self->roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, self->archive->output[0][0]->input->detector->nchannels-2, 1);
+	self->roi_start_channel_spinnerW = gtk_spin_button_new_with_range(0, output0->input->detector->nchannels-2, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(self->roi_start_channel_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), self->roi_start_channel_spinnerW, FALSE, FALSE, 2);
-	self->roi_end_channel_spinnerW = gtk_spin_button_new_with_range(1, self->archive->output[0][0]->input->detector->nchannels-1, 1);
+	self->roi_end_channel_spinnerW = gtk_spin_button_new_with_range(1, output0->input->detector->nchannels-1, 1);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(self->roi_end_channel_spinnerW), GTK_UPDATE_IF_VALID);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(self->roi_end_channel_spinnerW), self->archive->output[0][0]->input->detector->nchannels-1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(self->roi_end_channel_spinnerW), output0->input->detector->nchannels-1);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), self->roi_end_channel_spinnerW, FALSE, FALSE, 2);
 	gtk_box_pack_end(GTK_BOX(lilHBox), tinyVBox, FALSE, FALSE, 2);
 	gtk_widget_set_margin_start(lilHBox, 20);
@@ -670,13 +677,13 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 
 	tinyVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	double energy_min = 0.0;
-	double energy_max = (self->archive->output[0][0]->input->detector->nchannels-2)*(self->archive->input[0][0]->detector->gain)+(self->archive->input[0][0]->detector->zero);
+	double energy_max = (output0->input->detector->nchannels-2)*(output0->input->detector->gain)+(output0->input->detector->zero);
 	self->roi_start_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(self->roi_start_energy_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_digits(GTK_SPIN_BUTTON(self->roi_start_energy_spinnerW), 2);
 	gtk_box_pack_start(GTK_BOX(tinyVBox), self->roi_start_energy_spinnerW, FALSE, FALSE, 2);
-	energy_min = self->archive->input[0][0]->detector->gain;
-	energy_max = (self->archive->output[0][0]->input->detector->nchannels-1)*(self->archive->input[0][0]->detector->gain)+(self->archive->input[0][0]->detector->zero);
+	energy_min = output0->input->detector->gain;
+	energy_max = (output0->input->detector->nchannels-1)*(output0->input->detector->gain)+(output0->input->detector->zero);
 	self->roi_end_energy_spinnerW = gtk_spin_button_new_with_range(energy_min, energy_max, 0.01);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW), GTK_UPDATE_IF_VALID);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW), energy_max);
@@ -700,9 +707,9 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gtk_widget_set_margin_start(self->roi_interactions_labelW, 20);
 	gtk_box_pack_start(GTK_BOX(lilHBox), self->roi_interactions_labelW, FALSE, FALSE, 3);
 	self->roi_interactions_comboW = gtk_combo_box_text_new();
-	if (self->archive->output[0][0]->use_zero_interactions)
+	if (output0->use_zero_interactions)
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(self->roi_interactions_comboW), "0");
-	for (i = 1 ; i <= self->archive->output[0][0]->ninteractions ; i++) {
+	for (i = 1 ; i <= output0->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(self->roi_interactions_comboW), interaction);
 		g_free(interaction);
@@ -772,7 +779,7 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gtk_widget_set_margin_start(self->xrf_interactions_labelW, 20);
 	gtk_box_pack_start(GTK_BOX(lilHBox), self->xrf_interactions_labelW, FALSE, FALSE, 3);
 	self->xrf_interactions_comboW = gtk_combo_box_text_new();
-	for (i = 1 ; i <= self->archive->output[0][0]->ninteractions ; i++) {
+	for (i = 1 ; i <= output0->ninteractions ; i++) {
 		interaction = g_strdup_printf("%i", i);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(self->xrf_interactions_comboW), interaction);
 		g_free(interaction);
@@ -841,9 +848,15 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gtk_box_pack_start(GTK_BOX(mainVBox), lilHBox, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainHBox), mainVBox, TRUE, TRUE, 2);
 
-	gtk_entry_set_text(GTK_ENTRY(self->xaxis_titleW), self->archive->xpath1);
-	if (self->archive->xpath2) {
-		gtk_entry_set_text(GTK_ENTRY(self->yaxis_titleW), self->archive->xpath2);
+	xmi_batch_single_data *data1 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 0);
+	xmi_batch_single_data *data2 = NULL;
+	if (self->archive->single_data->len == 2) {
+		data2 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 1);
+	}
+
+	gtk_entry_set_text(GTK_ENTRY(self->xaxis_titleW), data1->xpath);
+	if (data2) {
+		gtk_entry_set_text(GTK_ENTRY(self->yaxis_titleW), data2->xpath);
 		gtk_widget_set_sensitive(self->roi_linearW, FALSE);
 		gtk_widget_set_sensitive(self->roi_log10W, FALSE);
 		gtk_widget_set_sensitive(self->xrf_linearW, FALSE);
@@ -876,24 +889,24 @@ static void xmi_msim_gui_xmsa_viewer_window_constructed(GObject *obj) {
 	gtk_widget_set_sensitive(self->roi_log10W, FALSE);
 
 	int j;
-	if (self->archive->xpath2) {
+	if (data2) {
 		//3D
-		self->x = (double *) g_malloc(sizeof(double)*(self->archive->nsteps1+1)*(self->archive->nsteps2+1));
-		self->y = (double *) g_malloc(sizeof(double)*(self->archive->nsteps1+1)*(self->archive->nsteps2+1));
-		self->z = (double *) g_malloc(sizeof(double)*(self->archive->nsteps1+1)*(self->archive->nsteps2+1));
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-			for (j = 0 ; j <= self->archive->nsteps2 ; j++) {
-				self->x[i*(self->archive->nsteps2+1)+j] = self->archive->start_value1 + (self->archive->end_value1 - self->archive->start_value1)*i/self->archive->nsteps1;
-				self->y[i*(self->archive->nsteps2+1)+j] = self->archive->start_value2 + (self->archive->end_value2 - self->archive->start_value2)*j/self->archive->nsteps2;
+		self->x = (double *) g_malloc(sizeof(double)*(data1->nsteps+1)*(data2->nsteps+1));
+		self->y = (double *) g_malloc(sizeof(double)*(data1->nsteps+1)*(data2->nsteps+1));
+		self->z = (double *) g_malloc(sizeof(double)*(data1->nsteps+1)*(data2->nsteps+1));
+		for (i = 0 ; i <= data1->nsteps ; i++) {
+			for (j = 0 ; j <= data2->nsteps ; j++) {
+				self->x[i*(data2->nsteps+1)+j] = data1->start + (data1->end - data1->start)*i/data1->nsteps;
+				self->y[i*(data2->nsteps+1)+j] = data2->start + (data2->end - data2->start)*j/data2->nsteps;
 			}
 		}
 	}
 	else {
 		//2D
-		self->x = (double *) g_malloc(sizeof(double)*(self->archive->nsteps1+1));
-		self->y = (double *) g_malloc(sizeof(double)*(self->archive->nsteps1+1));
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-			self->x[i] = self->archive->start_value1 + (self->archive->end_value1 - self->archive->start_value1)*i/self->archive->nsteps1;
+		self->x = (double *) g_malloc(sizeof(double)*(data1->nsteps+1));
+		self->y = (double *) g_malloc(sizeof(double)*(data1->nsteps+1));
+		for (i = 0 ; i <= data1->nsteps ; i++) {
+			self->x[i] = data1->start + (data1->end - data1->start)*i/data1->nsteps;
 		}
 	}
 
@@ -1031,12 +1044,15 @@ static void xmi_msim_gui_xmsa_viewer_window_get_property(GObject *object, guint 
 static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 	//first section will deal with generating the x- and y-values
 	double *x, *y;
-	int i,j,k,l;
+	unsigned int i,j,k,l;
 	gchar *buffer;
 	gdouble minval = 1E50;
 
 	x = self->x;
 	y = self->y;
+
+	xmi_output *output0 = (xmi_output *) g_ptr_array_index(self->archive->output, 0);
+	xmi_batch_single_data *data1 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 0);
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_radioW))) {
 		//ROI mode
@@ -1050,26 +1066,27 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 		else {
 			gdouble start_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(self->roi_start_energy_spinnerW));
 			gdouble end_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW));
-			start_channel = (int) ((start_energy - self->archive->input[0][0]->detector->zero)/self->archive->input[0][0]->detector->gain);
-			end_channel = (int) ((end_energy - self->archive->input[0][0]->detector->zero)/self->archive->input[0][0]->detector->gain);
+			start_channel = (int) ((start_energy - output0->input ->detector->zero)/output0->input->detector->gain);
+			end_channel = (int) ((end_energy - output0->input->detector->zero)/output0->input->detector->gain);
 		}
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(self->roi_interactions_comboW));
 		gint interaction = strtol(buffer, NULL, 10);
 		g_free(buffer);
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
+		for (i = 0 ; i <= data1->nsteps ; i++) {
 			double yval = 0.0;
+			xmi_output *outputi = (xmi_output *) g_ptr_array_index(self->archive->output, i);
 			//the spectra are already stored cumulative
 			for (k = start_channel ; k <= end_channel ; k++) {
 				if (convoluted) {
-					yval += self->archive->output[i][0]->channels_conv[interaction][k];
-					if (!cumulative && interaction > (self->archive->output[i][0]->use_zero_interactions ? 0 : 1))
-						yval -= self->archive->output[i][0]->channels_conv[interaction-1][k];
+					yval += outputi->channels_conv[interaction][k];
+					if (!cumulative && interaction > (outputi->use_zero_interactions ? 0 : 1))
+						yval -= outputi->channels_conv[interaction-1][k];
 				}
 				else {
-					yval += self->archive->output[i][0]->channels_unconv[interaction][k];
-					if (!cumulative && interaction > (self->archive->output[i][0]->use_zero_interactions ? 0 : 1))
-						yval -= self->archive->output[i][0]->channels_unconv[interaction-1][k];
+					yval += outputi->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (outputi->use_zero_interactions ? 0 : 1))
+						yval -= outputi->channels_unconv[interaction-1][k];
 				}
 			}
 
@@ -1083,17 +1100,19 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 		xmi_fluorescence_line_counts **history = NULL;
 		int *nhistory = NULL;
 
-		nhistory = (int *) g_malloc(sizeof(int)*(self->archive->nsteps1+1));
-		history = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(self->archive->nsteps1+1));
+		nhistory = (int *) g_malloc(sizeof(int)*(data1->nsteps + 1));
+		history = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(data1->nsteps + 1));
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-			if (self->archive->output[i][0]->nvar_red_history > 0) {
-				history[i] = self->archive->output[i][0]->var_red_history;
-				nhistory[i] = self->archive->output[i][0]->nvar_red_history;
+		for (i = 0 ; i <= data1->nsteps ; i++) {
+			xmi_output *outputi = (xmi_output *) g_ptr_array_index(self->archive->output, i);
+
+			if (outputi->nvar_red_history > 0) {
+				history[i] = outputi->var_red_history;
+				nhistory[i] = outputi->nvar_red_history;
 			}
-			else if (self->archive->output[i][0]->nbrute_force_history > 0) {
-				history[i] = self->archive->output[i][0]->brute_force_history;
-				nhistory[i] = self->archive->output[i][0]->nbrute_force_history;
+			else if (outputi->nbrute_force_history > 0) {
+				history[i] = outputi->brute_force_history;
+				nhistory[i] = outputi->nbrute_force_history;
 			}
 			else {
 				history[i] = NULL;
@@ -1114,7 +1133,7 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 		g_free(buffer);
 		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(self->xrf_element_comboW))-1;
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
+		for (i = 0 ; i <= data1->nsteps ; i++) {
 			double yval = 0.0;
 			if (atomic_number_index == -1) {
 				//Element = All
@@ -1184,7 +1203,7 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_log10W))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->xrf_log10W)))) {
 		//log10 selected
-		for (i = 0 ; i < (self->archive->nsteps1+1) ; i++) {
+		for (i = 0 ; i < (data1->nsteps+1) ; i++) {
 			if (y[i] < minval)
 				y[i] = minval;
 		}
@@ -1205,13 +1224,13 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 	plot_window->set_box_style(Gtk::PLplot::BoxStyle::BOX_TICKS_TICK_LABELS_MAIN_AXES_MAJOR_TICK_GRID);
 	self->canvas->add_plot(*plot_window);
 
-	double real_ymax = xmi_maxval_double(y,self->archive->nsteps1+1);
-	double real_ymin = xmi_minval_double(y,self->archive->nsteps1+1);
+	double real_ymax = xmi_maxval_double(y, data1->nsteps + 1);
+	double real_ymin = xmi_minval_double(y, data1->nsteps + 1);
 
 	double plot_ymax = 0.95*(real_ymax-real_ymin)/0.9 + real_ymin;
 	double plot_ymin = -0.05*(real_ymax-real_ymin)/0.9 + real_ymin;
-	double plot_xmin = -0.05*(x[self->archive->nsteps1]-x[0])/0.9 + x[0];
-	double plot_xmax = 0.95*(x[self->archive->nsteps1]-x[0])/0.9 + x[0];
+	double plot_xmin = -0.05*(x[data1->nsteps]-x[0])/0.9 + x[0];
+	double plot_xmax = 0.95*(x[data1->nsteps]-x[0])/0.9 + x[0];
 
 	if (x[0] >= 0) {
 		plot_xmin = MAX(0, plot_xmin);
@@ -1227,8 +1246,8 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 	plot_window->show();
 	self->plot_window = plot_window;
 
-	std::vector<double> x_vals(x, x + self->archive->nsteps1+1);
-	std::vector<double> y_vals(y, y + self->archive->nsteps1+1);
+	std::vector<double> x_vals(x, x + data1->nsteps+1);
+	std::vector<double> y_vals(y, y + data1->nsteps+1);
 	if (plot_window->get_axis_logarithmic_y()) {
 		std::for_each(std::begin(y_vals), std::end(y_vals), [real_ymin](double &a) { if (a < MAX(pow(10.0,log10(real_ymin)*0.95), 1.0)) a = MAX(pow(10.0,log10(real_ymin)*0.95), 1.0);});
 	}
@@ -1266,20 +1285,26 @@ static void plot_archive_data_2D(XmiMsimGuiXmsaViewerWindow *self) {
 
 static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 	//first section will deal with generating the x-, y- and z-values
-	int i,j,k,l,i2;
+	unsigned int i, j, k, l;
 	gchar *buffer;
 	gdouble minval = 1.0E50;
 	double *x, *y, *z;
+
+	xmi_batch_single_data *data1 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 0);
+	xmi_batch_single_data *data2 = (xmi_batch_single_data *) g_ptr_array_index(self->archive->single_data, 1);
+
+	xmi_output *output0 = (xmi_output *) g_ptr_array_index(self->archive->output, 0);
 
 	x = self->x;
 	y = self->y;
 	z = self->z;
 
-	double *xx = (double *) g_malloc(sizeof(double ) * (self->archive->nsteps1+1));
-	double **zz = (double **) g_malloc(sizeof(double *) * (self->archive->nsteps1+1));
-	for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-		zz[i] = z + i * (self->archive->nsteps2+1);
-		xx[i] = self->archive->start_value1 + (self->archive->end_value1 - self->archive->start_value1)*i/self->archive->nsteps1;
+	double *xx = (double *) g_malloc(sizeof(double ) * (data1->nsteps + 1));
+	double **zz = (double **) g_malloc(sizeof(double *) * (data1->nsteps + 1));
+
+	for (i = 0 ; i <= data1->nsteps ; i++) {
+		zz[i] = z + i * (data2->nsteps + 1);
+		xx[i] = data1->start + (data1->end - data1->start)*i/data1->nsteps;
 	}
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_radioW))) {
@@ -1294,55 +1319,56 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 		else {
 			gdouble start_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(self->roi_start_energy_spinnerW));
 			gdouble end_energy = gtk_spin_button_get_value(GTK_SPIN_BUTTON(self->roi_end_energy_spinnerW));
-			start_channel = (int) ((start_energy - self->archive->input[0][0]->detector->zero)/self->archive->input[0][0]->detector->gain);
-			end_channel = (int) ((end_energy - self->archive->input[0][0]->detector->zero)/self->archive->input[0][0]->detector->gain);
+			start_channel = (int) ((start_energy - output0->input->detector->zero)/output0->input->detector->gain);
+			end_channel = (int) ((end_energy - output0->input->detector->zero)/output0->input->detector->gain);
 		}
 		buffer = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(self->roi_interactions_comboW));
 		gint interaction = strtol(buffer, NULL, 10);
 		g_free(buffer);
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-		for (i2 = 0 ; i2 <= self->archive->nsteps2 ; i2++) {
+		for (i = 0 ; i < self->archive->output->len ; i++) {
+			xmi_output *outputi = (xmi_output *) g_ptr_array_index(self->archive->output, i);
 			double zval = 0.0;
 			//the spectra are already stored cumulative
 			for (k = start_channel ; k <= end_channel ; k++) {
 				if (convoluted) {
-					zval += self->archive->output[i][i2]->channels_conv[interaction][k];
-					if (!cumulative && interaction > (self->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
-						zval -= self->archive->output[i][i2]->channels_conv[interaction-1][k];
+					zval += outputi->channels_conv[interaction][k];
+					if (!cumulative && interaction > (outputi->use_zero_interactions ? 0 : 1))
+						zval -= outputi->channels_conv[interaction-1][k];
 				}
 				else {
-					zval += self->archive->output[i][i2]->channels_unconv[interaction][k];
-					if (!cumulative && interaction > (self->archive->output[i][i2]->use_zero_interactions ? 0 : 1))
-						zval -= self->archive->output[i][i2]->channels_unconv[interaction-1][k];
+					zval += outputi->channels_unconv[interaction][k];
+					if (!cumulative && interaction > (outputi->use_zero_interactions ? 0 : 1))
+						zval -= outputi->channels_unconv[interaction-1][k];
 				}
 			}
 
-			z[i*(self->archive->nsteps2+1)+i2] = MAX(zval, 0);
+			z[i] = MAX(zval, 0);
 			if (zval > 0.0 && zval < minval)
 				minval = zval;
-		}
 		}
 	}
 	else {
 		//XRF mode
+		unsigned int i2;
 		xmi_fluorescence_line_counts ***history = NULL;
 		int **nhistory = NULL;
 
-		nhistory = (int **) g_malloc(sizeof(int*)*(self->archive->nsteps1+1));
-		history = (xmi_fluorescence_line_counts ***) g_malloc(sizeof(xmi_fluorescence_line_counts **)*(self->archive->nsteps1+1));
+		nhistory = (int **) g_malloc(sizeof(int*)*(data1->nsteps+1));
+		history = (xmi_fluorescence_line_counts ***) g_malloc(sizeof(xmi_fluorescence_line_counts **)*(data1->nsteps+1));
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-			nhistory[i] = (int *) g_malloc(sizeof(int)*(self->archive->nsteps2+1));
-			history[i] = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(self->archive->nsteps2+1));
-			for (i2 = 0 ; i2 <= self->archive->nsteps2 ; i2++) {
-				if (self->archive->output[i][i2]->nvar_red_history > 0) {
-					history[i][i2] = self->archive->output[i][i2]->var_red_history;
-					nhistory[i][i2] = self->archive->output[i][i2]->nvar_red_history;
+		for (i = 0 ; i <= data1->nsteps ; i++) {
+			nhistory[i] = (int *) g_malloc(sizeof(int) * (data2->nsteps + 1));
+			history[i] = (xmi_fluorescence_line_counts **) g_malloc(sizeof(xmi_fluorescence_line_counts *)*(data2->nsteps + 1));
+			for (i2 = 0 ; i2 <= data2->nsteps ; i2++) {
+				xmi_output *outputij = (xmi_output *) g_ptr_array_index(self->archive->output, i * (data2->nsteps + 1) + i2);
+				if (outputij->nvar_red_history > 0) {
+					history[i][i2] = outputij->var_red_history;
+					nhistory[i][i2] = outputij->nvar_red_history;
 				}
-				else if (self->archive->output[i][i2]->nbrute_force_history > 0) {
-					history[i][i2] = self->archive->output[i][i2]->brute_force_history;
-					nhistory[i][i2] = self->archive->output[i][i2]->nbrute_force_history;
+				else if (outputij->nbrute_force_history > 0) {
+					history[i][i2] = outputij->brute_force_history;
+					nhistory[i][i2] = outputij->nbrute_force_history;
 				}
 				else {
 					history[i][i2] = NULL;
@@ -1363,8 +1389,8 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 		g_free(buffer);
 		atomic_number_index = gtk_combo_box_get_active(GTK_COMBO_BOX(self->xrf_element_comboW))-1;
 
-		for (i = 0 ; i <= self->archive->nsteps1 ; i++) {
-			for (i2 = 0 ; i2 <= self->archive->nsteps2 ; i2++) {
+		for (i = 0 ; i <= data1->nsteps ; i++) {
+			for (i2 = 0 ; i2 <= data2->nsteps ; i2++) {
 				double zval = 0.0;
 				if (atomic_number_index == -1) {
 					//Element = All
@@ -1423,7 +1449,7 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 				}
 				if (zval > 0.0 && zval < minval)
 					minval = zval;
-				z[i*(self->archive->nsteps2+1)+i2] = zval;
+				z[i*(data2->nsteps + 1) + i2] = zval;
 			}
 			g_free(nhistory[i]);
 			g_free(history[i]);
@@ -1435,7 +1461,7 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 
 	if ((gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->roi_log10W))) || (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->xrf_radioW)) && gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->xrf_log10W)))) {
 		//log10 selected
-		for (i = 0 ; i < (self->archive->nsteps1+1)*(self->archive->nsteps2+1) ; i++) {
+		for (i = 0 ; i < (data1->nsteps + 1)*(data2->nsteps + 1) ; i++) {
 			if (z[i] < minval)
 				z[i] = minval;
 		}
@@ -1450,8 +1476,8 @@ static void plot_archive_data_3D(XmiMsimGuiXmsaViewerWindow *self) {
 
 	//create first the dataset
 	Gtk::PLplot::PlotDataSurface *dataset = Gtk::manage(new Gtk::PLplot::PlotDataSurface(
-          std::vector<double>(xx, xx + self->archive->nsteps1+1),
-          std::vector<double>(y, y + self->archive->nsteps2+1),
+          std::vector<double>(xx, xx + data1->nsteps + 1),
+          std::vector<double>(y, y + data2->nsteps + 1),
           zz
         ));
 

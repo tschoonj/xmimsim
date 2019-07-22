@@ -240,19 +240,25 @@ static void read_xmsa_callback(GtkWidget *window, GAsyncResult *result, xmi_tool
 
 	//set the spinner
 	gtk_widget_set_sensitive(xt->spinner1, TRUE);
-	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps1, 1 , 1, 0));
+	xmi_batch_single_data *data1 = g_ptr_array_index(archive->single_data, 0);
+	xmi_batch_single_data *data2 = NULL;
+	if (archive->single_data->len == 2) {
+		data2 = g_ptr_array_index(archive->single_data, 1);
+	}
+
+	GtkAdjustment *adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, data1->nsteps, 1 , 1, 0));
 	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner1), GTK_ADJUSTMENT(adj));
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner1), 0);
-	gchar *label_text = g_strdup_printf("XPath1: %s", archive->xpath1);
+	gchar *label_text = g_strdup_printf("XPath1: %s", data1->xpath);
 	gtk_label_set_text(GTK_LABEL(xt->label1), label_text);
 	g_free(label_text);
 
-	if (archive->xpath2) {
+	if (data2) {
 		gtk_widget_set_sensitive(xt->spinner2, TRUE);
-		adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, archive->nsteps2, 1 , 1, 0));
+		adj = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, data2->nsteps, 1 , 1, 0));
 		gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(xt->spinner2), GTK_ADJUSTMENT(adj));
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(xt->spinner2), 0);
-		label_text = g_strdup_printf("XPath2: %s", archive->xpath2);
+		label_text = g_strdup_printf("XPath2: %s", data2->xpath);
 		gtk_label_set_text(GTK_LABEL(xt->label2), label_text);
 		g_free(label_text);
 	}

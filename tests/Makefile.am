@@ -67,7 +67,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 #TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-write-xmsi test-batch test-job
+TESTS = test-read-xmsa test-xmsa2xmso test-write-xmsa test-write-xmsi test-batch test-job test-gobject
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \

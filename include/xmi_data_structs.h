@@ -410,23 +410,47 @@ GArray* xmi_output_get_spectrum_unconvoluted(xmi_output *output, int after_inter
 GHashTable* xmi_output_get_history(xmi_output *output);
 double xmi_output_get_counts_for_element_line(xmi_output *output, int Z, int line);
 
+typedef struct _xmi_batch_single_data xmi_batch_single_data;
+
+/**
+ * xmi_batch_single_data:
+ * @xpath: XPath expression
+ * @start: start value
+ * @end: end value
+ * @nsteps: number of steps to go from start to end
+ *
+ * A struct describing a single parameter for a XmiMsimBatchSingle task.
+ */
+struct _xmi_batch_single_data {
+	gchar *xpath;
+	gdouble start;
+	gdouble end;
+	guint nsteps;
+};
+
+void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B);
+
+void xmi_batch_single_data_free(xmi_batch_single_data *A);
+
+//returns TRUE when identical, returns FALSE if not identical
+gboolean xmi_batch_single_data_equals(xmi_batch_single_data *A, xmi_batch_single_data *B);
+
 typedef struct _xmi_archive xmi_archive;
+/**
+ * xmi_archive:
+ * @version: XMI-MSIM version that was used to create this file
+ * @single_data: (element-type XmiMsim.BatchSingleData): array containing details of the grid that was used to generate the archive
+ * @output: (element-type XmiMsim.Output): array containing the output data
+ * @dims: (element-type gint): output dimensions array
+ * @ref_count: (skip): number of steps to go from start to end
+ *
+ * A struct describing a single parameter for a XmiMsimBatchSingle task.
+ */
 struct _xmi_archive {
 	float version;
-	double start_value1;
-	double end_value1;
-	int nsteps1;
-	char *xpath1;
-	double start_value2;
-	double end_value2;
-	int nsteps2;
-	char *xpath2;
-	//input are just pointers to the input structs with output!
-	xmi_input ***input;
-	xmi_output ***output;
-	//inputfiles and outputfiles are also just pointers to strings in input and output! don't free them!
-	char ***inputfiles;
-	char ***outputfiles;
+	GPtrArray *single_data;
+	GPtrArray *output;
+	GArray *dims;
 	gint ref_count;
 };
 
@@ -554,7 +578,7 @@ void xmi_fluorescence_line_counts_free(xmi_fluorescence_line_counts *history, in
 xmi_archive* xmi_archive_ref(xmi_archive *A);
 void xmi_archive_unref(xmi_archive *archive);
 
-xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2);
+xmi_archive* xmi_archive_new(GPtrArray *single_data, GPtrArray *output);
 
 void xmi_exc_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
 void xmi_det_absorbers_copy(xmi_absorbers *A, xmi_absorbers *B);
