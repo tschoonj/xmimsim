@@ -5,8 +5,8 @@ trigger: ['master']
 
 jobs:
   - job: osx_64
-    timeoutInMinutes: 60
-    cancelTimeoutInMinutes: 20
+    timeoutInMinutes: 120
+    cancelTimeoutInMinutes: 30
     pool:
       vmImage: macOS-10.13
     strategy:
@@ -146,3 +146,62 @@ jobs:
         cat test*.log
       displayName: Print test
       condition: failed()
+
+  - job: windows_64
+    timeoutInMinutes: 120
+    cancelTimeoutInMinutes: 30
+    pool:
+      vmImage: vs2017-win2016
+    variables:
+      compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+    strategy:
+      matrix:
+        fgsl_gui_noupdater:
+          UPDATER: false
+          RNG: fgsl
+          PLOT: gtkmm-plplot
+        fgsl_gui_withupdater:
+          UPDATER: true
+          RNG: fgsl
+          PLOT: gtkmm-plplot
+        fgsl_nogui:
+          RNG: fgsl
+        easyrng_gui_noupdater:
+          UPDATER: false
+          RNG: easyRNG
+          PLOT: gtkmm-plplot
+        easyrng_gui_withupdater:
+          UPDATER: true
+          RNG: easyRNG
+          PLOT: gtkmm-plplot
+        easyrng_nogui:
+          RNG: easyRNG
+    steps:
+    - script: |
+        choco install msys2 --params="/InstallDir:C:\msys64 /NoUpdate /NoPath"
+      displayName: Install MSYS2
+    - script: |
+        set PATH=C:\msys64\usr\bin;%PATH%
+        pacman --noconfirm -Syyuu
+        pacman --noconfirm -Syuu
+      displayName: Update MSYS2
+    - script: |
+        set PATH=C:\msys64\usr\bin;%PATH%
+        pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python2-gobject,python3-gobject,pygobject-devel,gobject-introspection,python2-numpy,python3-numpy} automake autoconf make wget tar git swig
+      displayName: Install MSYS2 packages
+    - script: |
+        set PATH=C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
+        bash -lc "cd $SOURCE_HOME && unset BOOST_ROOT && exec ./appveyor-before-build.sh"
+      displayName: Build dependencies
+      env:
+        SOURCE_HOME: $(Build.SourcesDirectory)
+    - script: |
+        set PATH=C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
+        bash -lc "cd $SOURCE_HOME && exec ./appveyor-build-script.sh"
+      displayName: Build XMI-MSIM
+      env:
+        SOURCE_HOME: $(Build.SourcesDirectory)
