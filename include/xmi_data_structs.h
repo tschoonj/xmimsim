@@ -428,6 +428,8 @@ struct _xmi_batch_single_data {
 	guint nsteps;
 };
 
+xmi_batch_single_data* xmi_batch_single_data_new(gchar *xpath, gdouble start, gdouble end, guint nsteps);
+
 void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B);
 
 void xmi_batch_single_data_free(xmi_batch_single_data *A);

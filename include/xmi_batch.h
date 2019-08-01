@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define XMI_MSIM_BATCH_H
 
 #include "xmi_job.h"
+#include "xmi_data_structs.h"
 
 G_BEGIN_DECLS
 
@@ -58,6 +59,8 @@ gboolean xmi_msim_batch_abstract_is_suspended(XmiMsimBatchAbstract *batch);
 gboolean xmi_msim_batch_abstract_has_finished(XmiMsimBatchAbstract *batch);
 gboolean xmi_msim_batch_abstract_was_successful(XmiMsimBatchAbstract *batch);
 
+gboolean xmi_msim_batch_abstract_is_valid_object(XmiMsimBatchAbstract *batch);
+
 void xmi_msim_batch_abstract_send_all_stdout_events(XmiMsimBatchAbstract *batch, gboolean setting);
 void xmi_msim_batch_abstract_set_executable(XmiMsimBatchAbstract *batch, const gchar *executable);
 void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gchar **extra_options);
@@ -85,7 +88,7 @@ GType xmi_msim_batch_abstract_get_type(void) G_GNUC_CONST;
 typedef struct _XmiMsimBatchSingle		XmiMsimBatchSingle;
 typedef struct _XmiMsimBatchSingleClass   	XmiMsimBatchSingleClass;
 
-XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error);
+XmiMsimBatchAbstract* xmi_msim_batch_single_new(GPtrArray *xmsi_data, GPtrArray *single_data, xmi_main_options *options);
 
 gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const char *xmsa_file, GError **error);
 

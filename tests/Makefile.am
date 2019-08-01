@@ -30,11 +30,11 @@ AM_PY_LOG_FLAGS =
 AM_TESTS_ENVIRONMENT = XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH ;
 
 if OS_WINDOWS
-AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
-AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 else
-AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
-AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 endif
 
 
@@ -67,7 +67,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 #TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-read-xmsa test-xmsa2xmso test-write-xmsa test-write-xmsi test-batch test-job test-gobject
+TESTS = test-batch test-read-xmsa test-xmsa2xmso test-write-xmsa test-write-xmsi test-job test-gobject
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -204,7 +204,7 @@ test_custom_detector_response_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/includ
 test_custom_detector_response_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
 test_batch_SOURCES = test-batch.c
-test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DHDF5_DATA_DIR="\"$(abs_top_builddir)/tests\""
 test_batch_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
 test_version_SOURCES = test-version.c

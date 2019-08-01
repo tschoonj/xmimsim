@@ -2592,6 +2592,27 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
 }
 
+/**
+ * xmi_batch_single_data_new: (constructor)
+ * @xpath:
+ * @start:
+ * @end:
+ * @nsteps:
+ *
+ * Allocates a new #xmi_batch_single_data instance.
+ *
+ * Returns: (transfer full): 
+ */
+xmi_batch_single_data* xmi_batch_single_data_new(gchar *xpath, gdouble start, gdouble end, guint nsteps) {
+	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
+	rv->xpath = g_strdup(xpath);
+	rv->start = start;
+	rv->end = end;
+	rv->nsteps = nsteps;
+
+	return rv;
+}
+
 void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B) {
 	g_return_if_fail(A != NULL && B != NULL);
 	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));

@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_gobject.h"
 #include <gio/gio.h>
+#include <glib/gstdio.h>
 
 struct _XmiMsimBatchAbstractPrivate {
 	XmiMsimJob *active_job;
@@ -498,6 +499,12 @@ gboolean xmi_msim_batch_abstract_stop(XmiMsimBatchAbstract *batch, GError **erro
 	return rv;
 }
 
+gboolean xmi_msim_batch_abstract_is_valid_object(XmiMsimBatchAbstract *batch) {
+	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
+
+	return batch->priv->valid_object;
+}
+
 gboolean xmi_msim_batch_abstract_kill(XmiMsimBatchAbstract *batch, GError **error) {
 	if (!XMI_MSIM_IS_BATCH_ABSTRACT(batch)) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchAbstract");
@@ -829,11 +836,12 @@ XmiMsimBatchAbstract* xmi_msim_batch_multi_new(GPtrArray* xmsi_files, GPtrArray*
 
 struct _XmiMsimBatchSingle {
 	XmiMsimBatchAbstract parent_instance;
-	gchar *xmsi_base_file;
-	GPtrArray *data;
+	GPtrArray *xmsi_data;
+	GPtrArray *single_data;
 	xmi_main_options *options;
-	XmiMsimJob *current_job;
 	xmi_archive *archive;
+	guint njobs;
+	gchar *tmpdir;
 };
 
 struct _XmiMsimBatchSingleClass {
@@ -864,43 +872,48 @@ static void xmi_msim_batch_single_get_property(GObject          *object,
 
 enum {
 	PROP_SINGLE_0,
-	PROP_SINGLE_XMSI_BASE_FILE,
-	PROP_SINGLE_DATA,
+	PROP_SINGLE_XMSI_DATA,
+	PROP_SINGLE_SINGLE_DATA,
 	PROP_SINGLE_OPTIONS,
 	N_SINGLE_PROPERTIES
 };
 
 static GParamSpec *single_props[N_SINGLE_PROPERTIES] = {NULL, };
 
-static void single_active_job_changed_handler_cb(XmiMsimBatchSingle *batch, XmiMsimJob *active_job, gpointer data) {
+static void single_active_job_finished_event_handler_cb(XmiMsimBatchSingle *batch, gboolean results, gchar *message, XmiMsimJob *active_job) {
 
+	if (!results)
+		return;
+
+	// read in the XMSO file and add it to the archive struct
+	gchar *xmso_file = xmi_msim_job_get_output_file(active_job);
+	gchar *xmsi_file = xmi_msim_job_get_input_file(active_job);
+	GError *error = NULL;
+	xmi_output *output = xmi_output_read_from_xml_file(xmso_file, &error);
+	if (output == NULL) {
+		g_critical("Could not read XMSO file %s -> %s", xmso_file, error->message);
+		return;
+	}
+	// add to archive...
+	g_ptr_array_add(batch->archive->output, output);
+
+	g_debug("Adding %s to archive", xmso_file);
+
+	// cleanup
+	unlink(xmso_file);
+	g_free(xmso_file);
+	unlink(xmsi_file);
+	g_free(xmsi_file);
+}
+
+static void single_active_job_changed_handler_cb(XmiMsimBatchSingle *batch, XmiMsimJob *active_job, gpointer data) {
 	g_debug("Entering single_active_job_changed_handler_cb");
 
-	if (batch->current_job != NULL) {
-		// read in the XMSO file and add it to the archive struct
-		gchar *xmso_file = xmi_msim_job_get_output_file(batch->current_job);
-		gchar *xmsi_file = xmi_msim_job_get_input_file(batch->current_job);
-		GError *error = NULL;
-		xmi_output *output = xmi_output_read_from_xml_file(xmso_file, &error);
-		if (output == NULL) {
-			g_critical("Could not read XMSO file %s -> %s", xmso_file, error->message);
-			return;
-		}
-		// add to archive...
-		
-		// cleanup
-		xmi_output_free(output);
-		unlink(xmso_file);
-		g_free(xmso_file);
-		unlink(xmsi_file);
-		g_free(xmsi_file);
-		g_object_unref(batch->current_job);
-	}
+	// this is called when is the job is created... not when it finished!
+	if (!active_job)
+		return;
 
-	if (active_job)
-		batch->current_job = g_object_ref(active_job);
-	else
-		batch->current_job = NULL;
+	g_signal_connect_swapped(active_job, "finished-event", G_CALLBACK(single_active_job_finished_event_handler_cb), batch);
 }
 
 static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
@@ -917,16 +930,16 @@ static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
 	abstract_class->get_number_of_jobs = xmi_msim_batch_single_real_get_number_of_jobs;
 	
 
-	single_props[PROP_SINGLE_XMSI_BASE_FILE] = g_param_spec_string(
-		"xmsi-base-file",
-		"Base XMSI input-file",
-		"Base XMSI input-file",
-		NULL,
+	single_props[PROP_SINGLE_XMSI_DATA] = g_param_spec_boxed(
+		"xmsi-data",
+		"XMSI input array",
+		"XMSI input array",
+		G_TYPE_PTR_ARRAY,
     		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
 	);
 
-	single_props[PROP_SINGLE_DATA] = g_param_spec_boxed(
-		"data",
+	single_props[PROP_SINGLE_SINGLE_DATA] = g_param_spec_boxed(
+		"single data",
 		"XmiMsimBatchSingleData array",
 		"Array of xmi_batch_single_data instances",
 		G_TYPE_PTR_ARRAY,
@@ -952,21 +965,20 @@ static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
 
 /**
  * xmi_msim_batch_single_new: (constructor)
- * @xmsi_base_file: base XMSI file to work off
- * @data: (array) (element-type XmiMsim.BatchSingleData): an array containing xmi_msim_batch_single_data instances, with the information necessary to define the parameter variations. Currently only 1 or 2 elements are supported.
- * @options: the options that will be passed to the XmiMsim.Job instances
+ * @xmsi_data: (array) (element-type XmiMsim.Input): an an array containing XmiMsim.Input instances. The length of this array has to match with the information in single_data.
+ * @single_data: (array) (element-type XmiMsim.BatchSingleData): an array containing xmi_msim_batch_single_data instances, with the information that was used to generate xmsi_data.
+ * @options: the options that will be passed to the XmiMsim.Job instances.
  *
  * Returns: (transfer full): a freshly allocated XmiMsim.BatchAbstract instance.
  */
-XmiMsimBatchAbstract* xmi_msim_batch_single_new(const gchar *xmsi_base_file, GPtrArray *data, xmi_main_options *options, GError **error) {
-	g_return_val_if_fail(xmsi_base_file != NULL, NULL);
-	g_return_val_if_fail(data != NULL, NULL);
+XmiMsimBatchAbstract* xmi_msim_batch_single_new(GPtrArray *xmsi_data, GPtrArray *single_data, xmi_main_options *options) {
+	g_return_val_if_fail(xmsi_data != NULL && xmsi_data->len > 0, NULL);
+	g_return_val_if_fail(single_data != NULL && single_data->len > 0, NULL);
 	g_return_val_if_fail(options != NULL, NULL);
-	g_return_val_if_fail(data->len > 0 && data->len < 3, NULL);
 	return g_object_new(
 		XMI_MSIM_TYPE_BATCH_SINGLE,
-		"xmsi-base-file", xmsi_base_file,
-		"data", data,
+		"xmsi-data", xmsi_data,
+		"single-data", single_data,
 		"options", options,
 		NULL);
 }
@@ -975,9 +987,30 @@ static void xmi_msim_batch_single_constructed(GObject *object) {
 	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
 	XmiMsimBatchAbstract *abstract = XMI_MSIM_BATCH_ABSTRACT(object);
 
-	g_return_if_fail(batch->xmsi_base_file != NULL);
+	g_return_if_fail(batch->xmsi_data != NULL && batch->xmsi_data->len > 0);
+	g_return_if_fail(batch->single_data != NULL && batch->single_data->len > 0);
 	g_return_if_fail(batch->options != NULL);
-	g_return_if_fail(batch->data != NULL && batch->data->len > 0 && batch->data->len < 3);
+
+	GArray *dims = g_array_sized_new(FALSE, FALSE, sizeof(int), batch->single_data->len);
+	unsigned int i;
+	int dims_prod = 1;
+	for (i = 0 ; i < batch->single_data->len ; i++) {
+		xmi_batch_single_data *data = g_ptr_array_index(batch->single_data, i);
+		int dim = data->nsteps + 1;
+		g_array_append_val(dims, dim);
+		dims_prod *= dim;
+	}
+
+	g_return_if_fail(dims_prod == batch->xmsi_data->len);
+
+	batch->archive = g_malloc0(sizeof(xmi_archive));
+	batch->archive->single_data = g_ptr_array_ref(batch->single_data);
+	batch->archive->dims = dims;
+	batch->archive->ref_count = 1;
+	batch->archive->output = g_ptr_array_new_full(batch->xmsi_data->len, (GDestroyNotify) xmi_output_free);
+	batch->njobs = dims_prod;
+	batch->tmpdir = g_dir_make_tmp(NULL, NULL);
+
 
 	abstract->priv->valid_object = TRUE;
 
@@ -996,16 +1029,20 @@ static void xmi_msim_batch_single_dispose(GObject *object) {
 static void xmi_msim_batch_single_finalize(GObject *object) {
 	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
 
-	if (batch->xmsi_base_file)
-		g_free(batch->xmsi_base_file);
+	if (batch->xmsi_data)
+		g_ptr_array_unref(batch->xmsi_data);
 
 	if (batch->options)
 		xmi_main_options_free(batch->options);
 
-	if (batch->data)
-		g_ptr_array_unref(batch->data);
+	if (batch->single_data)
+		g_ptr_array_unref(batch->single_data);
 
-	xmi_archive_unref(batch->archive);
+	if (batch->archive)
+		xmi_archive_unref(batch->archive);
+
+	g_rmdir(batch->tmpdir);
+	g_free(batch->tmpdir);
 
 	G_OBJECT_CLASS(xmi_msim_batch_single_parent_class)->finalize(object);
 }
@@ -1015,15 +1052,15 @@ static void xmi_msim_batch_single_set_property(GObject *object, guint prop_id, c
 	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
 
 	switch (prop_id) {
-		case PROP_SINGLE_XMSI_BASE_FILE:
-			if (batch->xmsi_base_file)
-				g_free(batch->xmsi_base_file);
-			batch->xmsi_base_file = g_value_dup_string(value);
+		case PROP_SINGLE_XMSI_DATA:
+			if (batch->xmsi_data)
+				g_ptr_array_unref(batch->xmsi_data);
+			batch->xmsi_data = g_value_dup_boxed(value);
       			break;
-		case PROP_SINGLE_DATA:
-			if (batch->data)
-				g_ptr_array_unref(batch->data);
-			batch->data = g_value_dup_boxed(value);
+		case PROP_SINGLE_SINGLE_DATA:
+			if (batch->single_data)
+				g_ptr_array_unref(batch->single_data);
+			batch->single_data = g_value_dup_boxed(value);
 			break;
 		case PROP_SINGLE_OPTIONS:
 			if (batch->options)
@@ -1040,11 +1077,11 @@ static void xmi_msim_batch_single_get_property(GObject *object, guint prop_id, G
 	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
 
 	switch (prop_id) {
-		case PROP_SINGLE_XMSI_BASE_FILE:
-			g_value_set_string(value, batch->xmsi_base_file);
+		case PROP_SINGLE_XMSI_DATA:
+			g_value_set_boxed(value, batch->xmsi_data);
 			break;
-		case PROP_SINGLE_DATA:
-			g_value_set_boxed(value, batch->data);
+		case PROP_SINGLE_SINGLE_DATA:
+			g_value_set_boxed(value, batch->single_data);
 			break;
 		case PROP_SINGLE_OPTIONS:
 			g_value_set_boxed(value, batch->options);
@@ -1055,11 +1092,49 @@ static void xmi_msim_batch_single_get_property(GObject *object, guint prop_id, G
 }
 
 static XmiMsimJob* xmi_msim_batch_single_real_get_job(XmiMsimBatchAbstract *batch, guint job_index, GError **error) {
-	return NULL;
+	if (!XMI_MSIM_IS_BATCH_SINGLE(batch)) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "batch must be an instance of XmiMsimBatchSingle");
+		return NULL;
+	}
+	XmiMsimBatchSingle *self = XMI_MSIM_BATCH_SINGLE(batch);
+	if (job_index >= self->xmsi_data->len) {
+		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "job_index out of range");
+		return NULL;
+	}
+
+	xmi_input *input = g_ptr_array_index(self->xmsi_data, job_index);
+	// construct input output filenames, and write the input-file to disk!
+	gchar *filename_xmsi = g_strdup_printf("tmp_%u.xmsi", job_index);
+	gchar *filename_xmsi_full = g_build_filename(self->tmpdir, filename_xmsi, NULL);
+	g_free(filename_xmsi);
+
+	gchar *filename_xmso = g_strdup_printf("tmp_%u.xmso", job_index);
+	gchar *filename_xmso_full = g_build_filename(self->tmpdir, filename_xmso, NULL);
+	g_free(filename_xmso);
+
+	if (input->general->outputfile)
+		g_free(input->general->outputfile);
+	input->general->outputfile = filename_xmso_full;
+
+	g_debug("Writing to %s", filename_xmsi_full);
+	gboolean write_rv = xmi_input_write_to_xml_file(input, filename_xmsi_full, error);
+	g_return_val_if_fail(write_rv == TRUE, NULL);
+
+
+	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : xmi_get_xmimsim_path();
+	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
+
+	XmiMsimJob *job = xmi_msim_job_new(executable, filename_xmsi_full, self->options, NULL, NULL, NULL, NULL, extra_options, error);
+	g_free(executable);
+	g_strfreev(extra_options);
+	g_free(filename_xmsi_full);
+	
+	return job;
 }
 
 static guint xmi_msim_batch_single_real_get_number_of_jobs(XmiMsimBatchAbstract *batch) {
-	return 0;
+	XmiMsimBatchSingle *self = XMI_MSIM_BATCH_SINGLE(batch);
+	return self->njobs;
 }
 
 /**

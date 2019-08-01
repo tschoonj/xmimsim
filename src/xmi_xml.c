@@ -2501,7 +2501,7 @@ gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafil
 		return FALSE;
 	}
 	xmlThrDefIndentTreeOutput(2);
-	xmlSetDocCompressMode(doc, 9);
+	//xmlSetDocCompressMode(doc, 9);
 
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
 		handle_error(error);
@@ -2528,6 +2528,7 @@ gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafil
 	}
 
 	for (i = 0 ; i < archive->output->len ; i++) {
+		g_debug("Printing xmi_output %u", i);
 		nodePtr1 = xmlNewChild(root_node, NULL, BAD_CAST "xmimsim-results", NULL);
 
 		GArray *indices = xmi_row_major_array_get_indices(archive->dims, i);

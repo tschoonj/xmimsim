@@ -1101,11 +1101,11 @@ gboolean xmi_msim_job_is_suspend_available(void) {
 gchar* xmi_msim_job_get_input_file(XmiMsimJob *job) {
 	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), NULL);
 
-	return job->xmsi_file;
+	return g_strdup(job->xmsi_file);
 }
 
 gchar* xmi_msim_job_get_output_file(XmiMsimJob *job) {
 	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), NULL);
 
-	return job->xmso_file;
+	return g_strdup(job->xmso_file);
 }
