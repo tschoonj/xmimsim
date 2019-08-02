@@ -147,13 +147,13 @@ double chi(double E0, double E1, xmi_layer *layer, double alpha, double beta) {
 double fpm(xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta) {
 	double rv = I0;
 	double theta = atan(sqrt(Adet/M_PI)/D);
-	double Omega = 2.0 * M_PI * (1.0 * cos(theta));
+	double Omega = 2.0 * M_PI * (1.0 - cos(theta));
 	double G = Omega / 4.0 / M_PI / sin(alpha);
 	rv *= G;
 	rv *= w;
 	rv *= CS_FluorLine_Kissel(Z, line, E0, NULL);
 	double my_chi = chi(E0, LineEnergy(Z, line, NULL), layer, alpha, beta);
-	rv *= (1.0 - exp(-1.0 * my_chi * layer->density * layer->thickness));
+	rv *= (1.0 - exp(-1.0 * my_chi * layer->density * layer->thickness)) / my_chi;
 
 	return rv;
 }

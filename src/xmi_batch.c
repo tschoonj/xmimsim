@@ -637,6 +637,11 @@ void xmi_msim_batch_abstract_set_executable(XmiMsimBatchAbstract *batch, const g
 	g_object_set(batch, "executable", executable, NULL);
 }
 
+/**
+ * xmi_msim_batch_abstract_set_extra_options:
+ * @batch: an instance of XmiMsim.BatchAbstract
+ * @extra_options: (nullable) (array zero-terminated=1) (element-type utf8): %NULL terminated array of additional options to pass to the executable
+ */
 void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gchar **extra_options) {
 	g_return_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch));
 	g_return_if_fail(batch->priv->valid_object);

@@ -3,6 +3,7 @@
 
 #include "xmi_type_builtins.h"
 #include "xmi_job.h"
+#include "xmi_batch.h"
 #include "xmi_data_structs.h"
 #include "xmi_error.h"
 
@@ -54,6 +55,13 @@ XMI_DEFINE_ENUM_TYPE(XmiMsimJobError, xmi_msim_job_error,
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_ERROR_ANOTHER_JOB_RUNNING, "another-job-running")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_ERROR_HDF5, "hdf5")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_ERROR_PROCESS, "process"))
+
+XMI_DEFINE_ENUM_TYPE(XmiMsimBatchError, xmi_msim_batch_error,
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_BATCH_ERROR_INVALID_INPUT, "invalid-input")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "unavailable")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_BATCH_ERROR_ANOTHER_BATCH_RUNNING, "another-batch-running")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_BATCH_ERROR_METHOD_UNDEFINED, "method-undefined"))
+
 
 XMI_DEFINE_ENUM_TYPE(XmiMsimJobSpecialEvent, xmi_msim_job_special_event,
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE, "solid-angle")

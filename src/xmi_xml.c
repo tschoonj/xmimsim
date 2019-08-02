@@ -2501,7 +2501,7 @@ gboolean xmi_archive_write_to_xml_file(xmi_archive *archive, const char *xmsafil
 		return FALSE;
 	}
 	xmlThrDefIndentTreeOutput(2);
-	//xmlSetDocCompressMode(doc, 9);
+	xmlSetDocCompressMode(doc, 9);
 
 	if ((dtd = xmlCreateIntSubset(doc, BAD_CAST  "xmimsim-archive", NULL, BAD_CAST "http://www.xmi.UGent.be/xml/xmimsim-1.0.dtd")) == NULL) {
 		handle_error(error);

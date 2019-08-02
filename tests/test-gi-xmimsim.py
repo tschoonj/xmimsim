@@ -808,6 +808,185 @@ class TestJob(unittest.TestCase):
 
         os.remove(type(self).COMPOUND + "-test.xmsi")
 
+@unittest.skipUnless(HAVE_XRAYLIB, "Install xraylib's python bindings to run this test")
+class TestBatchSingle(unittest.TestCase):
+
+    COMPOUND = "CaSO4"
+    EXTRA_OPTIONS = (
+    "--with-hdf5-data="+os.environ['HDF5_DATA_DIR'] + "/xmimsimdata-" + COMPOUND + ".h5",
+    "--with-solid-angles-data=solid-angles.h5",
+    "--with-escape-ratios-data=escape-ratios.h5"
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        if not XmiMsim.Job.is_suspend_available():
+            raise 
+        XmiMsim.init_hdf5()
+        cls.cd = xrl.CompoundParser(cls.COMPOUND)
+        if cls.cd is None:
+            raise
+        cls.data_file = os.environ['HDF5_DATA_DIR'] + "/xmimsimdata-" + cls.COMPOUND + ".h5"
+        logging.debug("data_file: {}".format(cls.data_file))
+        if XmiMsim.db(cls.data_file, cls.cd['Elements']) is not 1:
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(cls.data_file)
+
+    def setUp(self):
+        self.main_loop = GLib.MainLoop.new(None, False)
+        self.input = XmiMsim.Input.init_empty()
+        # simulate 10M photons brute force
+        general = self.input.general.copy()
+        general.n_photons_line = 10000000
+        self.input.set_general(general)
+        self.options = XmiMsim.MainOptions.new()
+        self.options.use_variance_reduction = False # brute force!
+        self.options.use_escape_peaks = False # no escape peaks!
+
+        layer = XmiMsim.Layer.new(type(self).cd['Elements'], type(self).cd['massFractions'], 1.0, 1.0)
+        composition = XmiMsim.Composition.new([layer], reference_layer=1)
+        self.input.set_composition(composition)
+
+        self.active_job_changed_called = 0
+
+    def _print_stdout(self, batch, string):
+        logging.debug("stdout: {}".format(string))
+
+    def _print_stderr(self, batch, string):
+        logging.debug("stderr: {}".format(string))
+
+    def _test_succeed_finished_cb(self, batch, result, buffer):
+        logging.debug("message: {}".format(buffer))
+        self.main_loop.quit()
+
+    def _test_active_job_changed(self, batch, active_job):
+        self.active_job_changed_called = self.active_job_changed_called + 1
+
+    @staticmethod
+    def _CS_Total_Layer(layer, E):
+        rv = 0.0
+        for i in zip(layer.Z, layer.weight):
+            (Z, weight) = i
+            rv += weight * xrl.CS_Total(Z, E)
+        return rv
+
+    @staticmethod
+    def _chi(E0, E1, layer, alpha, beta):
+        mu0 = TestBatchSingle._CS_Total_Layer(layer, E0);
+        mu1 = TestBatchSingle._CS_Total_Layer(layer, E1);
+        return mu0/math.sin(alpha) + mu1/math.sin(beta);
+
+    @staticmethod
+    def _calculate_fpm_intensity(input, theta):
+        alpha = math.radians(90.0 - theta)
+        beta = math.radians(theta)
+        discrete = input.excitation.get_energy_discrete(0)
+        I0 = discrete.horizontal_intensity + discrete.vertical_intensity
+        E0 = discrete.energy
+        layer = input.composition.get_layer(0)
+
+        _theta = math.atan(math.sqrt(input.geometry.area_detector / math.pi) / math.fabs(input.geometry.p_detector_window[1]))
+        Omega_DET = 2 * math.pi * (1.0 - math.cos(_theta))
+        G = Omega_DET / 4.0 / math.pi / math.sin(alpha)
+
+        rv = []
+        
+        for i in zip(layer.Z, layer.weight):
+            (Z, weight) = i
+            chi = TestBatchSingle._chi(E0, xrl.LineEnergy(Z, xrl.KL3_LINE), layer, alpha, beta)
+            tmp = I0 * G * weight * xrl.CS_FluorLine_Kissel(Z, xrl.KL3_LINE, E0) * \
+                (1.0 - math.exp(-1.0 * chi * layer.density * layer.thickness)) / chi
+            rv.append(tmp)
+        return rv
+
+
+    def test_data_single1D(self):
+
+        self.single_data = [XmiMsim.BatchSingleData.new("/xmimsim/geometry/n_sample_orientation/theta_deg", 5.0, 85.0, 10)]
+        self.xmsi_data = list()
+
+        for i in range(0, 11):
+            input_copy = self.input.copy()
+            theta = 5.0 + i * 8.0
+            geometry = input_copy.geometry
+            n_sample_orientation = [0.0, 
+                -1 * math.sin(math.radians(theta)),
+                math.cos(math.radians(theta))
+                ]
+            geometry = XmiMsim.Geometry.new(
+                    geometry.d_sample_source,
+                    n_sample_orientation,
+                    geometry.p_detector_window,
+                    geometry.n_detector_orientation,
+                    geometry.area_detector,
+                    geometry.collimator_height,
+                    geometry.collimator_diameter,
+                    geometry.d_source_slit,
+                    geometry.slit_size_x,
+                    geometry.slit_size_y
+                    )
+            input_copy.set_geometry(geometry)
+
+            fpm = TestBatchSingle._calculate_fpm_intensity(input_copy, theta)
+
+            self.xmsi_data.append(input_copy)
+
+        batch = XmiMsim.BatchSingle.new(self.xmsi_data, self.single_data, self.options)
+        batch.set_executable(os.environ['XMIMSIM_EXEC'])
+        batch.set_extra_options(type(self).EXTRA_OPTIONS)
+
+        self.assertIsNotNone(batch)
+        self.assertTrue(batch.is_valid_object())
+
+        # hook up signals
+        batch.connect('active-job-changed', self._test_active_job_changed)
+        batch.connect('finished-event', self._test_succeed_finished_cb)
+        batch.connect('stdout-event', self._print_stdout)
+        batch.connect('stderr-event', self._print_stderr)
+
+        batch.start()
+
+        self.main_loop.run()
+
+        self.assertEqual(self.active_job_changed_called, 12)
+        self.assertFalse(batch.is_running())
+        self.assertFalse(batch.is_suspended())
+        self.assertTrue(batch.has_finished())
+        self.assertTrue(batch.was_successful())
+        try:
+            batch.stop()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.BatchError.quark(), XmiMsim.BatchError.UNAVAILABLE))
+        try:
+            batch.suspend()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.BatchError.quark(), XmiMsim.BatchError.UNAVAILABLE))
+        try:
+            batch.resume()
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.BatchError.quark(), XmiMsim.BatchError.UNAVAILABLE))
+
+        try:
+            batch.start()
+            self.fail("Starting a batch after is has been run already must throw an exception!")
+        except GLib.Error as err:
+            self.assertTrue(err.matches(XmiMsim.BatchError.quark(), XmiMsim.BatchError.UNAVAILABLE))
+
+        xmsa_file = os.environ['HDF5_DATA_DIR'] + '/single-batch1D.xmsa'
+        batch.write_archive(xmsa_file)
+        archive = XmiMsim.Archive.read_from_xml_file(xmsa_file)
+        self.assertEqual(len(archive.single_data), 1)
+        self.assertEqual(len(archive.output), 11)
+        self.assertEqual(archive.dims, [11])
+
+        os.remove(xmsa_file)
+
+
+
 
 if __name__ == '__main__':
+    #unittest.main(verbosity=2, module=TestBatchSingle())
     unittest.main(verbosity=2)
