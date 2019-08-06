@@ -182,6 +182,9 @@ jobs:
           RNG: easyRNG
     steps:
     - script: |
+        choco uninstall openssl.light
+      displayName: Uninstall openssl.light
+    - script: |
         choco install msys2 --params="/InstallDir:C:\msys64 /NoUpdate /NoPath"
       displayName: Install MSYS2
     - script: |
@@ -191,7 +194,7 @@ jobs:
       displayName: Update MSYS2
     - script: |
         set PATH=C:\msys64\usr\bin;%PATH%
-        pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python2-gobject,python3-gobject,pygobject-devel,gobject-introspection,python2-numpy,python3-numpy} automake autoconf make wget tar git swig
+        pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python3-gobject,pygobject-devel,gobject-introspection,python3-numpy,python3-certifi} automake autoconf make wget tar git swig patch
       displayName: Install MSYS2 packages
     - script: |
         set PATH=C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
@@ -205,3 +208,10 @@ jobs:
       displayName: Build XMI-MSIM
       env:
         SOURCE_HOME: $(Build.SourcesDirectory)
+    - script: |
+        set PATH=C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
+        bash -lc "cd $SOURCE_HOME/tests && cat test-*.log"
+      displayName: Print test results
+      env:
+        SOURCE_HOME: $(Build.SourcesDirectory)
+      condition: failed()

@@ -16,16 +16,26 @@ gchar *extra_options[4] = {
 	NULL
 };
 
-#ifdef G_OS_WIN32
+//#ifdef G_OS_WIN32
 /* 
  * do not run this on Windows... it appears to fail a lot...
  */
 
-int main (int argc, char *argv[]) {
-	return 77; // skip
-}
+//int main (int argc, char *argv[]) {
+//	return 77; // skip
+//}
 
-#else
+//#else
+
+// this is a cheap hack to get around the occasional WaitForMultipleObjectsEx warning on Windows
+static gboolean test_log_WaitForMultipleObjectsEx(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+#ifdef G_OS_WIN32
+	if (g_strcmp0(log_domain, "GLib") == 0 && g_strcmp0(message, "WaitForMultipleObjectsEx failed: The handle is invalid.") == 0) {
+		return FALSE;
+	}
+#endif
+	return TRUE;
+}
 
 typedef struct {
 	GMainLoop *main_loop;
@@ -289,6 +299,7 @@ static XmiMsimBatchAbstract* test_good_input_data_single_base(SetupDataSingle *d
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_test_log_set_fatal_handler(test_log_WaitForMultipleObjectsEx, NULL);
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
@@ -588,6 +599,7 @@ static void test_good_input_files_multi(SetupDataMulti *data, gconstpointer user
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_test_log_set_fatal_handler(test_log_WaitForMultipleObjectsEx, NULL);
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
@@ -634,6 +646,7 @@ static void test_good_input_files_multi_stop(SetupDataMulti *data, gconstpointer
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_test_log_set_fatal_handler(test_log_WaitForMultipleObjectsEx, NULL);
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
@@ -688,6 +701,7 @@ static void test_good_input_files_multi_suspend_resume(SetupDataMulti *data, gco
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_test_log_set_fatal_handler(test_log_WaitForMultipleObjectsEx, NULL);
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
@@ -742,6 +756,7 @@ static void test_good_input_files_multi_suspend_stop(SetupDataMulti *data, gcons
 	g_signal_connect(G_OBJECT(batch), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(batch), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
+	g_test_log_set_fatal_handler(test_log_WaitForMultipleObjectsEx, NULL);
 	g_assert_true(xmi_msim_batch_abstract_start(batch, &error));
 	g_main_loop_run(data->main_loop);
 
@@ -876,4 +891,4 @@ int main(int argc, char *argv[]) {
 
 	return rv;
 }
-#endif
+//#endif

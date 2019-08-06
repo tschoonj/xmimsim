@@ -23,9 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
+#define XMI_OBJECT_REF(obj) \
+	xmi_object_ref(obj, G_STRLOC)
+
+#define XMI_OBJECT_UNREF(obj) \
+	xmi_object_unref(obj, G_STRLOC)
+
 struct _XmiMsimBatchAbstractPrivate {
 	XmiMsimJob *active_job;
-	GMutex batch_mutex;
 	gboolean running;
 	gboolean paused;
 	gboolean finished;
@@ -238,7 +243,6 @@ static void xmi_msim_batch_abstract_class_init(XmiMsimBatchAbstractClass *klass)
 
 static void xmi_msim_batch_abstract_init(XmiMsimBatchAbstract *self) {
 	self->priv = xmi_msim_batch_abstract_get_instance_private(self);
-	g_mutex_init(&self->priv->batch_mutex);
 	self->priv->send_all_stdout_events = TRUE;
 }
 
@@ -251,12 +255,8 @@ static void xmi_msim_batch_abstract_dispose(GObject *object) {
 static void xmi_msim_batch_abstract_finalize(GObject *object) {
 	XmiMsimBatchAbstract *batch = XMI_MSIM_BATCH_ABSTRACT(object);
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	if (batch->priv->active_job)
 		g_clear_object(&batch->priv->active_job);
-	g_mutex_unlock(&batch->priv->batch_mutex);
-
-	g_mutex_clear(&batch->priv->batch_mutex);
 
 	g_free(batch->priv->executable);
 	g_strfreev(batch->priv->extra_options);
@@ -324,11 +324,9 @@ static void xmi_msim_batch_abstract_get_property(GObject *object, guint prop_id,
 
 static void batch_finished_cb(XmiMsimBatchAbstract *batch, GAsyncResult *result, gpointer data) {
 	gchar *message = g_task_propagate_pointer(G_TASK(result), NULL);
-	g_mutex_lock(&batch->priv->batch_mutex);
 	if (!batch->priv->do_not_emit) /* necessary to avoid blunt kills from emitting useless signals  */
 		g_signal_emit(batch, signals[FINISHED_EVENT], 0, batch->priv->successful, message);
 	g_free(message);
-	g_mutex_unlock(&batch->priv->batch_mutex);
 }
 
 static void batch_process_stdout_event(XmiMsimBatchAbstract *batch, gchar *buffer, XmiMsimJob *job) {
@@ -350,8 +348,6 @@ static void batch_process_finished_event(XmiMsimJob *job, gboolean success, gcha
 }
 
 static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task_data, GCancellable *cancellable) {
-	GMainContext *main_context = g_main_context_get_thread_default();
-
 	const guint n_jobs = XMI_MSIM_BATCH_ABSTRACT_GET_CLASS(batch)->get_number_of_jobs(batch);
 
 	if (n_jobs == 0) {
@@ -359,6 +355,9 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 		g_task_return_pointer(task, g_strdup("Batch could not be started as number of jobs is 0"), g_free);
 		return;
 	}
+
+	GMainContext *main_context = g_main_context_new();
+	g_main_context_push_thread_default(main_context);
 
 	guint job_i;
 
@@ -372,6 +371,8 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			batch->priv->finished = TRUE;
 			g_task_return_pointer(task, g_strdup(error->message), g_free);
 			g_clear_error(&error);
+			g_main_context_pop_thread_default(main_context);
+			g_main_context_unref(main_context);
 			return;
 		}
 		xmi_msim_job_send_all_stdout_events(job, batch->priv->send_all_stdout_events);
@@ -395,16 +396,18 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			g_signal_handler_disconnect(job, sig3);
 			batch->priv->running = FALSE;
 			batch->priv->finished = TRUE;
-			g_object_unref(job);
+			XMI_OBJECT_UNREF(job);
 			g_task_return_pointer(task, g_strdup(error->message), g_free);
 			g_clear_error(&error);
+			g_main_context_pop_thread_default(main_context);
+			g_main_context_unref(main_context);
 			return;
 		}
 
 		// make this the active job -> mutex??
-		batch->priv->active_job = g_object_ref(job);
+		batch->priv->active_job = XMI_OBJECT_REF(job);
 		g_signal_emit(batch, signals[ACTIVE_JOB_CHANGED], 0, batch->priv->active_job);
-		g_object_unref(job);
+		XMI_OBJECT_UNREF(job);
 
 		// start blocking
 		g_main_loop_run(batch->priv->main_loop);
@@ -426,6 +429,8 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 				g_task_return_pointer(task, g_strdup_printf("Job finished with error %s", batch->priv->last_finished_message), g_free);
 			else
 				g_task_return_pointer(task, g_strdup("Job finished with an unknown error"), g_free);
+			g_main_context_pop_thread_default(main_context);
+			g_main_context_unref(main_context);
 			return;
 		}
 		double progress = (double) job_i / n_jobs;
@@ -439,6 +444,8 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 	batch->priv->finished = TRUE;
 	batch->priv->successful = TRUE;
 	g_task_return_pointer(task, g_strdup("Batch has been terminated successfully"), g_free);
+	g_main_context_pop_thread_default(main_context);
+	g_main_context_unref(main_context);
 }
 
 gboolean xmi_msim_batch_abstract_start(XmiMsimBatchAbstract *batch, GError **error) {
@@ -452,20 +459,17 @@ gboolean xmi_msim_batch_abstract_start(XmiMsimBatchAbstract *batch, GError **err
 		return FALSE;
 	}
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 
 	if (batch->priv->finished) {
 		// do not allow old finished batch jobs to be restarted!
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "this batch has finished already");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;
 	}
 
 	GTask *task = g_task_new(batch, NULL, (GAsyncReadyCallback) batch_finished_cb, NULL);
 	g_task_run_in_thread(task, (GTaskThreadFunc) batch_thread);
-	g_object_unref(task);
+	XMI_OBJECT_UNREF(task);
 
-	g_mutex_unlock(&batch->priv->batch_mutex);
 	return TRUE;
 }
 
@@ -480,22 +484,18 @@ gboolean xmi_msim_batch_abstract_stop(XmiMsimBatchAbstract *batch, GError **erro
 		return FALSE;
 	}
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	if (!batch->priv->running) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is not running");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;	
 	
 	}
 	if (batch->priv->killed) {
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return TRUE;
 	}
-	XmiMsimJob *active_job = g_object_ref(batch->priv->active_job);
+	XmiMsimJob *active_job = XMI_OBJECT_REF(batch->priv->active_job);
 	batch->priv->killed = TRUE;
 	gboolean rv = xmi_msim_job_stop(active_job, error);
-	g_object_unref(active_job);
-	g_mutex_unlock(&batch->priv->batch_mutex);
+	XMI_OBJECT_UNREF(active_job);
 	return rv;
 }
 
@@ -531,23 +531,19 @@ gboolean xmi_msim_batch_abstract_suspend(XmiMsimBatchAbstract *batch, GError **e
 		return FALSE;
 	}
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	if (!batch->priv->running) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is not running");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;	
 	
 	}
 	if (batch->priv->paused) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is already suspended");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;	
 	
 	}
-	XmiMsimJob *active_job = g_object_ref(batch->priv->active_job);
+	XmiMsimJob *active_job = XMI_OBJECT_REF(batch->priv->active_job);
 	batch->priv->paused = xmi_msim_job_suspend(active_job, error);
-	g_object_unref(active_job);
-	g_mutex_unlock(&batch->priv->batch_mutex);
+	XMI_OBJECT_UNREF(active_job);
 	return batch->priv->paused;
 }
 
@@ -562,23 +558,19 @@ gboolean xmi_msim_batch_abstract_resume(XmiMsimBatchAbstract *batch, GError **er
 		return FALSE;
 	}
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	if (!batch->priv->running) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is not running");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;	
 	
 	}
 	if (!batch->priv->paused) {
 		g_set_error_literal(error, XMI_MSIM_BATCH_ERROR, XMI_MSIM_BATCH_ERROR_UNAVAILABLE, "batch is not suspended");
-		g_mutex_unlock(&batch->priv->batch_mutex);
 		return FALSE;	
 	
 	}
-	XmiMsimJob *active_job = g_object_ref(batch->priv->active_job);
+	XmiMsimJob *active_job = XMI_OBJECT_REF(batch->priv->active_job);
 	batch->priv->paused = !xmi_msim_job_resume(active_job, error);
-	g_object_unref(active_job);
-	g_mutex_unlock(&batch->priv->batch_mutex);
+	XMI_OBJECT_UNREF(active_job);
 	return !batch->priv->paused;
 }
 
@@ -586,9 +578,7 @@ gboolean xmi_msim_batch_abstract_is_running(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
 	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->running;
-	g_mutex_unlock(&batch->priv->batch_mutex);
 	return rv;
 }
 	
@@ -596,9 +586,7 @@ gboolean xmi_msim_batch_abstract_is_suspended(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
 	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->paused;
-	g_mutex_unlock(&batch->priv->batch_mutex);
 	return rv;
 }
 
@@ -606,9 +594,7 @@ gboolean xmi_msim_batch_abstract_has_finished(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
 	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->finished;
-	g_mutex_unlock(&batch->priv->batch_mutex);
 	return rv;
 }
 
@@ -616,9 +602,7 @@ gboolean xmi_msim_batch_abstract_was_successful(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), FALSE);
 	g_return_val_if_fail(batch->priv->valid_object, FALSE);
 
-	g_mutex_lock(&batch->priv->batch_mutex);
 	gboolean rv = batch->priv->successful;
-	g_mutex_unlock(&batch->priv->batch_mutex);
 	return rv;
 }
 

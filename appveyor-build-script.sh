@@ -3,6 +3,9 @@
 set -e
 set -x
 
+export SSL_CERT_FILE="C:/msys64/mingw64/ssl/cert.pem"
+export SSL_CERT_DIR="C:/msys64/mingw64/ssl/certs"
+
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
 

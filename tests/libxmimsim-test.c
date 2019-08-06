@@ -49,34 +49,53 @@ int test_init (void) {
 
 int test_download_file(char *url) {
 	FILE *fp;
-	int rv = 1;
+	int rv = 0;
 
-	gchar *outputfile = g_path_get_basename(url);
-	SoupSession *session = soup_session_new();
-	SoupMessage *msg = soup_message_new ("GET", url);
-	soup_session_send_message (session, msg); // blocking!
+	GFile *url_file = g_file_new_for_uri(url);
+	gchar *outputfile = g_file_get_basename(url_file);
 
-	if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
-		fp = g_fopen(outputfile, "wb");
-		if (!fp) {
-			g_warning("Could not open %s for writing!", outputfile);
+	// check if this file is present in the xmimsim.wiki git repo locally first
+	gchar *local_outputfilename = g_build_filename(ABS_TOP_SRCDIR, "..", "xmimsim.wiki", outputfile, NULL);
+	g_debug("local_outputfilename: %s", local_outputfilename);
+	GFile *local_outputfile = g_file_new_for_path(local_outputfilename);
+	g_free(local_outputfilename);
+	GFile *local_outputfile_copy = g_file_new_for_path(outputfile);
+
+	if (!g_file_copy(local_outputfile, local_outputfile_copy, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, NULL)) {
+		g_debug("local copying failed!");
+		SoupSession *session = soup_session_new();
+		SoupMessage *msg = soup_message_new ("GET", url);
+		soup_session_send_message (session, msg); // blocking!
+
+		if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
+			fp = g_fopen(outputfile, "wb");
+			if (!fp) {
+				g_warning("Could not open %s for writing!", outputfile);
+			}
+			else {
+				fwrite (msg->response_body->data,
+					1,
+					msg->response_body->length,
+					fp);
+				fclose (fp);
+				rv = 1;
+			}
 		}
 		else {
-			fwrite (msg->response_body->data,
-				1,
-				msg->response_body->length,
-				fp);
-			fclose (fp);
-			rv = 1;
+			g_warning("libsoup error message: %s", msg->reason_phrase);
 		}
+
+		g_object_unref(msg);
+		g_object_unref(session);
 	}
 	else {
-		g_warning("libsoup error message: %s", msg->reason_phrase);
+		rv = 1;
 	}
 
-	g_object_unref(msg);
-	g_object_unref(session);
 	g_free(outputfile);
+	g_object_unref(url_file);
+	g_object_unref(local_outputfile);
+	g_object_unref(local_outputfile_copy);
 	return rv;
 }
 

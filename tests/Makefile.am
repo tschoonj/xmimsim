@@ -26,8 +26,8 @@ check_PROGRAMS = \
 
 TEST_EXTENSIONS = .py
 PY_LOG_COMPILER = $(PYTHON)
-AM_PY_LOG_FLAGS =
-AM_TESTS_ENVIRONMENT = HDF5_DATA_DIR='$(abs_top_builddir)/tests' XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH HDF5_DATA_DIR ;
+AM_PY_LOG_FLAGS = -Wignore
+AM_TESTS_ENVIRONMENT = ABS_TOP_SRCDIR='$(abs_top_srcdir)' HDF5_DATA_DIR='$(abs_top_builddir)/tests' XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH HDF5_DATA_DIR ABS_TOP_SRCDIR ;
 
 if OS_WINDOWS
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
@@ -66,15 +66,15 @@ if ENABLE_CUSTOM_DETECTOR
   check_PROGRAMS += test-custom-detector-response
 endif
 
-TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-gi-xmimsim.py test-xmimsim-main-CaSO4 test-xmsa2xmso
+#TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+TESTS = test-gi-xmimsim.py test-job test-batch test-gi-xmimsim.py
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
 	libxmimsim-test.c
 libxmimsim_test_la_CPPFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
-			    @xraylib_CFLAGS@
+			    @xraylib_CFLAGS@ -DABS_TOP_SRCDIR="\"${abs_top_srcdir}\""
 libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libsoup_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c

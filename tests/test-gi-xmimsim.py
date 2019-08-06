@@ -14,9 +14,9 @@ except ImportError as e:
 
 # now for some python 2/3 stuff... I am trying to avoid a dependency on six here...
 try:
-    from urllib import urlretrieve
+    from urllib import urlretrieve as _urlretrieve
 except Exception as e:
-    from urllib.request import urlretrieve
+    from urllib.request import urlretrieve as _urlretrieve
 
 # check if lxml is available... necessary for some of the XMSI/XMSO tests
 try:
@@ -32,9 +32,13 @@ try:
 except ImportError as e:
     HAVE_XRAYLIB = False
 
+import ssl
+
+openssl_cafile = ssl.get_default_verify_paths().openssl_cafile
+print("openssl_cafile: {} -> {}".format(openssl_cafile, os.path.exists(openssl_cafile)))
 
 gi.require_version('XmiMsim', '1.0')
-from gi.repository import XmiMsim, GLib
+from gi.repository import XmiMsim, GLib, Gio
 
 TEST_XMSI_URL = "https://github.com/tschoonj/xmimsim/wiki/test.xmsi"
 TEST_XMSI = "test.xmsi"
@@ -49,6 +53,20 @@ SQRT_2_2 = math.sqrt(2.0)/2.0
 
 # Load the XML catalog
 XmiMsim.xmlLoadCatalog()
+
+def urlretrieve(url):
+    url_file = Gio.File.new_for_uri(url)
+    outputfile = url_file.get_basename()
+    local_outputfilename = GLib.build_filenamev([os.environ['ABS_TOP_SRCDIR'], '..', 'xmimsim.wiki', outputfile])
+    local_outputfile = Gio.File.new_for_path(local_outputfilename)
+    local_outputfile_copy = Gio.File.new_for_path(outputfile)
+
+    try:
+        logging.debug("trying to copy {}".format(local_outputfilename))
+        local_outputfile.copy(local_outputfile_copy, Gio.FileCopyFlags.OVERWRITE)
+    except Exception as e:
+        logging.debug("local copying failed: {}".format(e))
+        _urlretrieve(url, outputfile)
 
 @unittest.skipUnless(hasattr(XmiMsim, "GoogleAnalyticsTracker"), "XmiMsim was compiled without support for Google Analytics event tracking")
 class TestGoogleAnalyticsTracker(unittest.TestCase):
@@ -89,7 +107,7 @@ class TestReadXMSI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # download XMSI file
-        urlretrieve(TEST_XMSI_URL, TEST_XMSI)
+        urlretrieve(TEST_XMSI_URL)
 
     @classmethod
     def tearDownClass(cls):
@@ -309,7 +327,7 @@ class TestWriteXMSI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # download XMSI file
-        urlretrieve(TEST_XMSI_URL, TEST_XMSI)
+        urlretrieve(TEST_XMSI_URL)
 
     @classmethod
     def tearDownClass(cls):
@@ -337,7 +355,7 @@ class TestReadXMSO(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # download XMSO file
-        urlretrieve(TEST_XMSO_URL, TEST_XMSO)
+        urlretrieve(TEST_XMSO_URL)
 
     @classmethod
     def tearDownClass(cls):
@@ -416,7 +434,7 @@ class TestWriteXMSO(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # download XMSO file
-        urlretrieve(TEST_XMSO_URL, TEST_XMSO)
+        urlretrieve(TEST_XMSO_URL)
 
     @classmethod
     def tearDownClass(cls):

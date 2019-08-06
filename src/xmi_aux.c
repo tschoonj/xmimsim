@@ -709,3 +709,13 @@ gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices) {
 
 	return offset;
 }
+
+gpointer xmi_object_ref(gpointer obj, const gchar *strloc) {
+	g_message("g_object_ref@%s", strloc);
+	return g_object_ref(obj);
+}
+
+void xmi_object_unref(gpointer obj, gchar *strloc) {
+	g_message("g_object_unref@%s", strloc);
+	g_object_unref(obj);
+}
