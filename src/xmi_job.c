@@ -552,12 +552,12 @@ XmiMsimJob* xmi_msim_job_new(
 		g_ptr_array_add(job->argv, g_strdup("--verbose"));
 	}
 
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	if (options->use_opencl) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-opencl"));
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	if (options->use_gpu) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-gpu"));
 	}
 	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-opencl"));
+		g_ptr_array_add(job->argv, g_strdup("--disable-gpu"));
 	}
 #endif
 

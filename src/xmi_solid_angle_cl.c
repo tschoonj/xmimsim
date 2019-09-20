@@ -307,7 +307,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	GString *kernel_code = g_string_sized_new(4096);
 
 	for (i = 0 ; i < G_N_ELEMENTS(filenames) ; i++) {
-		gchar *kernel_file = g_strdup_printf("/com/github/tschoonj/xmimsim/opencl/%s", filenames[i]);
+		gchar *kernel_file = g_strdup_printf("/com/github/tschoonj/xmimsim/gpu/%s", filenames[i]);
 		GError *error = NULL;
 		GBytes *source_code = g_resource_lookup_data(xmi_resource, kernel_file, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
 		if (!source_code) {

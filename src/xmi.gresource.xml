@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <gresources>
-	<gresource prefix="/com/github/tschoonj/xmimsim/opencl">
+	<gresource prefix="/com/github/tschoonj/xmimsim/gpu">
 		<file alias="array.h">Random123/array.h</file>
 		<file alias="compilerfeatures.h">Random123/compilerfeatures.h</file>
 		<file alias="openclfeatures.h">Random123/openclfeatures.h</file>
+		<file alias="metalfeatures.h">Random123/metalfeatures.h</file>
 		<file alias="sse.h">Random123/sse.h</file>
 		<file alias="threefry.h">Random123/threefry.h</file>
 		<file>xmi_kernels.cl</file>

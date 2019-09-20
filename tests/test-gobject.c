@@ -129,7 +129,7 @@ static gboolean main_options_equal(xmi_main_options *A, xmi_main_options *B) {
 		return FALSE;
 	if (A->use_poisson != B->use_poisson)
 		return FALSE;
-	if (A->use_opencl != B->use_opencl)
+	if (A->use_gpu != B->use_gpu)
 		return FALSE;
 	if (A->omp_num_threads != B->omp_num_threads)
 		return FALSE;

@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	// set options
 	options = xmi_main_options_new();
 	options->verbose = 1;
-	options->use_opencl = 1;
+	options->use_gpu = 1;
 
 	// init test
 	g_assert(test_init() == 1);

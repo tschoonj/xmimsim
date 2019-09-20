@@ -59,7 +59,7 @@ void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **soli
 	gchar *module_path;
 	gchar *opencl_lib;
 
-	if (xmo->use_opencl) {
+	if (xmo->use_gpu) {
 		//try to open the module
 		if (!g_module_supported()) {
 			fprintf(stderr,"No module support on this platform\n");

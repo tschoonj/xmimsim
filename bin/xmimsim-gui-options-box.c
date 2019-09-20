@@ -36,8 +36,8 @@ struct _XmiMsimGuiOptionsBox {
 	GtkWidget *custom_detector_responseE;
 	GtkWidget *custom_detector_responseB;
 	GtkWidget *custom_detector_responseC;
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	GtkWidget *openclW;
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	GtkWidget *gpuW;
 #endif
 };
 
@@ -204,15 +204,15 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->default_seedsW), g_value_get_boolean(&xpv));
 	gtk_box_pack_start(GTK_BOX(self), self->default_seedsW, TRUE, FALSE, 0);
 
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	self->openclW = gtk_check_button_new_with_label("Enable OpenCL");
-	gtk_widget_set_tooltip_text(self->openclW, "Enabling OpenCL will have the simulation use the GPU in order to calculate the solid angle grids, resulting in considerably speed-up. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
-	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	self->gpuW = gtk_check_button_new_with_label("Enable GPU");
+	gtk_widget_set_tooltip_text(self->gpuW, "Enabling the GPU results in considerably speed-up, as it will be used to calculated the solid angle grid. Requires the installation of OpenCL drivers. Consult the website of the manufacturer of your videocard for more information");
+	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_GPU, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->openclW), g_value_get_boolean(&xpv));
-	gtk_box_pack_start(GTK_BOX(self), self->openclW, TRUE, FALSE, 0);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->gpuW), g_value_get_boolean(&xpv));
+	gtk_box_pack_start(GTK_BOX(self), self->gpuW, TRUE, FALSE, 0);
 #endif
 
 	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -263,8 +263,8 @@ xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *sel
 	rv->use_poisson = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->poissonW));
 	rv->use_escape_peaks = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->escape_peaksW));
 	rv->use_advanced_compton = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW));
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	rv->use_opencl = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->openclW));
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	rv->use_gpu = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->gpuW));
 #endif
 	rv->use_default_seeds = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->default_seedsW));
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC)) == TRUE &&
@@ -335,9 +335,9 @@ void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->openclW)));
-	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_OPENCL, &xpv) == 0) {
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	g_value_set_boolean(&xpv, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(self->gpuW)));
+	if (xmimsim_gui_set_prefs(XMIMSIM_GUI_PREFS_GPU, &xpv) == 0) {
 		//abort
 		preferences_error_handler(NULL);
 	}

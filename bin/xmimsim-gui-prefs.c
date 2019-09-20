@@ -398,7 +398,7 @@ int xmimsim_gui_create_prefs_file(GKeyFile *keyfile, gchar *prefs_file) {
 	g_key_file_set_boolean(keyfile, "Preferences","Poisson noise", FALSE);
 	g_key_file_set_boolean(keyfile, "Preferences","Escape peaks", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Advanced Compton", FALSE);
-	g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
+	g_key_file_set_boolean(keyfile, "Preferences","GPU", TRUE);
 	g_key_file_set_boolean(keyfile, "Preferences","Default seeds", FALSE);
 	g_key_file_set_string_list(keyfile, "Preferences", "Download locations", xmimsim_download_locations, g_strv_length((gchar **) xmimsim_download_locations));
 	g_key_file_set_string(keyfile, "Preferences","Custom detector response", "None");
@@ -795,14 +795,14 @@ int xmimsim_gui_get_prefs(int kind, GValue *prefs) {
 				g_value_set_boolean(prefs, FALSE);
 			}
 			break;
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		case XMIMSIM_GUI_PREFS_OPENCL:
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+		case XMIMSIM_GUI_PREFS_GPU:
 			g_value_init(prefs, G_TYPE_BOOLEAN);
-			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "OpenCL", &error));
+			g_value_set_boolean(prefs, g_key_file_get_boolean(keyfile, "Preferences", "GPU", &error));
 			if (error != NULL) {
 				//error
-				g_warning("OpenCL not found in preferences file\n");
-				g_key_file_set_boolean(keyfile, "Preferences","OpenCL", TRUE);
+				g_warning("GPU not found in preferences file\n");
+				g_key_file_set_boolean(keyfile, "Preferences","GPU", TRUE);
 				//save file
 				prefs_file_contents = g_key_file_to_data(keyfile, NULL, NULL);
 				if(!g_file_set_contents(prefs_file, prefs_file_contents, -1, NULL))
@@ -973,9 +973,9 @@ int xmimsim_gui_set_prefs(int kind, const GValue *prefs) {
 		case XMIMSIM_GUI_PREFS_DEFAULT_SAVE_FOLDER:
 			g_key_file_set_string(keyfile, "Preferences", "Default save folder", g_value_get_string(prefs));
 			break;
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		case XMIMSIM_GUI_PREFS_OPENCL:
-			g_key_file_set_boolean(keyfile, "Preferences", "OpenCL", g_value_get_boolean(prefs));
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+		case XMIMSIM_GUI_PREFS_GPU:
+			g_key_file_set_boolean(keyfile, "Preferences", "GPU", g_value_get_boolean(prefs));
 			break;
 #endif
 		case XMIMSIM_GUI_PREFS_NOTIFICATIONS:
