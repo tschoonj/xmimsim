@@ -182,7 +182,6 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escap
 	hsize_t dims3[3];
 	hsize_t xmi_input_strlen;
 	gchar *timestring;
-	GTimeVal time;
 
 	file_id = H5Fopen(hdf5_file, H5F_ACC_RDWR , H5P_DEFAULT);
 	if (file_id < 0 ) {
@@ -193,8 +192,15 @@ int xmi_update_escape_ratios_hdf5_file(char *hdf5_file, xmi_escape_ratios *escap
 
 
 	//create group name based on user and timestamp
+#if GLIB_CHECK_VERSION(2, 62, 0)
+	GDateTime *date_time = g_date_time_new_now_local();
+	timestring = g_date_time_format_iso8601(date_time);
+	g_date_time_unref(date_time);
+#else
+	GTimeVal time;
 	g_get_current_time(&time);
-	timestring = g_time_val_to_iso8601(&time);
+        timestring = g_time_val_to_iso8601(&time);
+#endif
 
 	buffer = g_strdup_printf("%s %s",g_get_user_name(),timestring);
 
@@ -556,13 +562,13 @@ void xmi_free_escape_ratios(xmi_escape_ratios *escape_ratios) {
 	else {
 		//allocated in Fortran
 		//do not free compton_escape_input_energies here!!!
-		xmi_deallocate(escape_ratios->Z);
-		xmi_deallocate(escape_ratios->fluo_escape_ratios);
-		xmi_deallocate(escape_ratios->fluo_escape_input_energies);
-		xmi_deallocate(escape_ratios->compton_escape_ratios);
-		xmi_deallocate(escape_ratios->compton_escape_output_energies);
+		g_free(escape_ratios->Z);
+		g_free(escape_ratios->fluo_escape_ratios);
+		g_free(escape_ratios->fluo_escape_input_energies);
+		g_free(escape_ratios->compton_escape_ratios);
+		g_free(escape_ratios->compton_escape_output_energies);
 		g_free(escape_ratios->xmi_input_string);
-		xmi_deallocate(escape_ratios);
+		g_free(escape_ratios);
 	}
 }
 

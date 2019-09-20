@@ -26,85 +26,17 @@ environment:
         secure: as0hWwT58vrW+qE5mWk2iuyZR1gS8XAiZQoOcKryD6Q=
       AWS_SECRET_ACCESS_KEY:
         secure: jv5vo1d6GE7SPRR2hxBWwJe35Q4PvFurPjyILTTjbfywRsRUumLKuolekfu+CkIk
-    # 3
-    # fgsl
-    # gtkmm-plplot
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: false
-      RNG: fgsl
-      PLOT: gtkmm-plplot
-    # 4
-    # fgsl
-    # gtkmm-plplot
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: fgsl
-      PLOT: gtkmm-plplot
-    # 5
-    # fgsl
-    # no gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      RNG: fgsl
-    # 8
-    # easyRNG
-    # gtkmm-plplot
-    # no updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: false
-      RNG: easyRNG
-      PLOT: gtkmm-plplot
-    # 9
-    # easyRNG
-    # gtkmm-plplot
-    # with updater
-    # with gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      UPDATER: true
-      RNG: easyRNG
-      PLOT: gtkmm-plplot
-    # 10
-    # easyRNG
-    # no gui
-    - compiler: msvc_msys2
-      ARCH: x64
-      MSYS2_ARCH: x86_64
-      MSYS2_DIR: msys64
-      MSYSTEM: MINGW64
-      RNG: easyRNG
 
 before_build:
     - choco install innosetup
     - set PATH=C:\%MSYS2_DIR%\%MSYSTEM%\bin;C:\%MSYS2_DIR%\usr\bin;%PATH%
     - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
     - echo %path%
+    - bash -lc "pacman -Rs --noconfirm --ask 20 `pacman -Qsq mingw-w64-i686`" # get rid of all 32-bit packages
+    - bash -lc "pacman -R --noconfirm --ask 20 mingw-w64-x86_64-gcc-ada mingw-w64-x86_64-gcc-objc" # remove gcc packages that no longer exist in the repo
     - bash -lc "for i in {1..3}; do pacman -Syyuu --noconfirm --ask 20 && break || sleep 15; done"
     - bash -lc "for i in {1..3}; do pacman -Suu --noconfirm --ask 20 && break || sleep 15; done"
-    - bash -lc "for i in {1..3}; do pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python2-gobject,python3-gobject,pygobject-devel,gobject-introspection,python2-numpy,python3-numpy} automake autoconf make wget tar && break || sleep 15; done"
+    - bash -lc "for i in {1..3}; do pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python2-gobject,python3-gobject,pygobject-devel,gobject-introspection,python2-numpy,python3-numpy} automake autoconf make wget tar patch && break || sleep 15; done"
     - bash -lc "cd \"$APPVEYOR_BUILD_FOLDER\" && exec ./appveyor-before-build.sh"
 
 build_script:
@@ -127,7 +59,6 @@ deploy:
   set_public: true
   folder: nightly
   artifact: installer
-  reduced_redundancy: true
 
 # this should not be necessary as new files will be visible on cloudfront soon after uploading to the bucket, even without invalidating...
 #after_deploy:

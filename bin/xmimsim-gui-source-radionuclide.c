@@ -128,7 +128,7 @@ static void set_preferences(xmi_nuclide_parameters *xnp) {
 	g_key_file_set_double(keyfile, "Radionuclide last used", "Solid angle", xnp->nuclide_solid_angle);
 	g_key_file_set_string(keyfile, "Radionuclide last used", "Unit", activity_units[xnp->activityUnit]);
 	int nNuclides;
-	gchar **nuclides = GetRadioNuclideDataList(&nNuclides);
+	gchar **nuclides = GetRadioNuclideDataList(&nNuclides, NULL);
 	if (xnp->radioNuclide < 0 || xnp->radioNuclide >= nNuclides) {
 		g_warning("Invalid radioNuclide %i detected\n", xnp->radioNuclide);
 	}
@@ -216,7 +216,7 @@ static xmi_nuclide_parameters* get_preferences() {
 	}
 
 	int nNuclides;
-	gchar **nuclides = GetRadioNuclideDataList(&nNuclides);
+	gchar **nuclides = GetRadioNuclideDataList(&nNuclides, NULL);
 	gchar *nuclide = g_key_file_get_string(keyfile, "Radionuclide last used", "Radionuclide", &error);
 
 	if (error != NULL) {
@@ -274,7 +274,7 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 
 	gchar **nuclides;
 	int nNuclides, i;
-	nuclides = GetRadioNuclideDataList(&nNuclides);
+	nuclides = GetRadioNuclideDataList(&nNuclides, NULL);
 	for (i = 0 ; i < nNuclides ; i++) {
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->radioNuclideW), nuclides[i]);
 		g_free(nuclides[i]);
@@ -363,7 +363,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 		//do nothing
 	}
 
-	struct radioNuclideData *rnd = GetRadioNuclideDataByIndex(xnp->radioNuclide);
+	struct radioNuclideData *rnd = GetRadioNuclideDataByIndex(xnp->radioNuclide, NULL);
 
 	int i;
 
@@ -376,7 +376,7 @@ static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstr
 	double plot_xmax = 0.0;
 
 	for (i = 0 ; i < rnd->nXrays ; i++) {
-		double energy = LineEnergy(rnd->Z_xray, rnd->XrayLines[i]);
+		double energy = LineEnergy(rnd->Z_xray, rnd->XrayLines[i], NULL);
 		if (energy < 1.0 || energy > 200.0)
 			continue;
 

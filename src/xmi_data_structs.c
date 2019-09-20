@@ -208,6 +208,7 @@ void xmi_general_free(xmi_general *A) {
 
 	g_free(A->outputfile);
 	g_free(A->comments);
+	g_free(A);
 }
 
 /**
@@ -980,6 +981,11 @@ after_composition:
 		goto after_geometry;
 	}
 
+
+	if (input->geometry->n_sample_orientation[2] <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
 	if (input->geometry->d_sample_source <= 0.0) {
 		rv |= XMI_INPUT_GEOMETRY;
 		goto after_geometry;
@@ -993,6 +999,20 @@ after_composition:
 		goto after_geometry;
 	}
 	if (input->geometry->collimator_diameter < 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+	if (input->geometry->d_source_slit <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+
+	if (input->geometry->slit_size_x <= 0.0) {
+		rv |= XMI_INPUT_GEOMETRY;
+		goto after_geometry;
+	}
+
+	if (input->geometry->slit_size_y <= 0.0) {
 		rv |= XMI_INPUT_GEOMETRY;
 		goto after_geometry;
 	}
@@ -1429,7 +1449,7 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 				continue;
 			output->brute_force_history[output->nbrute_force_history-1].lines = g_realloc(output->brute_force_history[output->nbrute_force_history-1].lines, sizeof(xmi_fluorescence_line)*++output->brute_force_history[output->nbrute_force_history-1].n_lines);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
-			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j, NULL);
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].total_counts = counts_sum;
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].n_interactions = 0;
 			output->brute_force_history[output->nbrute_force_history-1].lines[output->brute_force_history[output->nbrute_force_history-1].n_lines-1].interactions = NULL;
@@ -1476,7 +1496,7 @@ xmi_output* xmi_output_raw2struct(xmi_input *input, double *brute_history, doubl
 				continue;
 			output->var_red_history[output->nvar_red_history-1].lines = g_realloc(output->var_red_history[output->nvar_red_history-1].lines, sizeof(xmi_fluorescence_line)*++output->var_red_history[output->nvar_red_history-1].n_lines);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].line_type = g_strdup(xmi_lines[j]);
-			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j);
+			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].energy = LineEnergy(uniqZ[i], -1*j, NULL);
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].total_counts = counts_sum;
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].n_interactions = 0;
 			output->var_red_history[output->nvar_red_history-1].lines[output->var_red_history[output->nvar_red_history-1].n_lines-1].interactions = NULL;
@@ -1553,103 +1573,71 @@ void xmi_output_free(xmi_output *output) {
 }
 
 /**
- * xmi_archive_copy:
- * @A: the original  #xmi_archive struct
- * @B: (out): the destination to copy to
+ * xmi_archive_ref:
+ * @A: a valid #xmi_archive struct
  *
- * Copies a #xmi_archive struct
+ * Increases the reference count of A by 1
+ *
+ * Returns: the passed in #xmi_archive
  */
-void xmi_archive_copy(xmi_archive *A, xmi_archive **B) {
-	xmi_archive *C = g_memdup(A, sizeof(xmi_archive));
-	C->xpath1 = g_strdup(A->xpath1);
-	C->xpath2 = g_strdup(A->xpath2);
-	
-	C->output = g_malloc0(sizeof(xmi_output **) * (C->nsteps1 + 1));
-	C->input = g_malloc0(sizeof(xmi_input **) * (C->nsteps1 + 1));
-	C->inputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
-	C->outputfiles = g_malloc0(sizeof(char **) * (C->nsteps1 + 1));
+xmi_archive* xmi_archive_ref(xmi_archive *A) {
+	g_return_val_if_fail(A != NULL, NULL);
 
-	int i, j;
+	g_atomic_int_inc (&A->ref_count);
 
-	for (i = 0 ; i <= C->nsteps1 ; i++) {
-		C->output[i] = g_malloc0(sizeof(xmi_output *) * (C->nsteps2 + 1));
-		C->input[i] = g_malloc0(sizeof(xmi_input *) * (C->nsteps2 + 1));
-		C->inputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
-		C->outputfiles[i] = g_malloc0(sizeof(char *) * (C->nsteps2 + 1));
-		for (j = 0 ; j <= C->nsteps2 ; j++) {
-			xmi_output_copy(A->output[i][j], &C->output[i][j]);
-			C->input[i][j] = C->output[i][j]->input;
-			C->inputfiles[i][j] = C->output[i][j]->inputfile;
-			C->outputfiles[i][j] = C->output[i][j]->outputfile;
-		}
-	}
-
-	*B = C;
+	return A;
 }
 
 /**
- * xmi_archive_free:
+ * xmi_archive_unref:
  * @archive: a #xmi_archive struct
  *
- * Frees an xmi_archive struct and its contents
+ * Reduces the reference count of an xmi_archive struct by 1. If it hits zero, all memory will be released
  */
-void xmi_archive_free(xmi_archive *archive) {
-	if (archive == NULL)
-		return;
+void xmi_archive_unref(xmi_archive *archive) {
+	g_return_if_fail(archive != NULL);
 
-	g_free(archive->xpath1);
-	g_free(archive->xpath2);
-	
-	int i,j;
-	for (i = 0 ; i <= archive->nsteps1 ; i++) {
-		for (j = 0 ; j <= archive->nsteps2 ; j++) {
-			xmi_output_free(archive->output[i][j]);
-		}
-		g_free(archive->input[i]);
-		g_free(archive->output[i]);
-		g_free(archive->inputfiles[i]);
-		g_free(archive->outputfiles[i]);
+	if (g_atomic_int_dec_and_test(&archive->ref_count)) {
+		if (archive->single_data)
+			g_ptr_array_unref(archive->single_data);
+
+		if (archive->output)
+			g_ptr_array_unref(archive->output);
+
+		if (archive->dims)
+			g_array_unref(archive->dims);
+
+		g_free(archive);
 	}
-	g_free(archive->input);
-	g_free(archive->output);
-	g_free(archive->inputfiles);
-	g_free(archive->outputfiles);
-	g_free(archive);
 }
 
-xmi_archive* xmi_archive_raw2struct(xmi_output ***output, double start_value1, double end_value1, int nsteps1, char *xpath1, double start_value2, double end_value2, int nsteps2, char *xpath2) {
+/**
+ * xmi_archive_new: (constructor):
+ * @single_data: (element-type XmiMsim.BatchSingleData):
+ * @output: (element-type XmiMsim.Output):
+ *
+ * Returns: a newly allocated xmi_output struct, initialized with the provided arguments
+ */
+xmi_archive* xmi_archive_new(GPtrArray *single_data, GPtrArray *output) {
+	g_return_val_if_fail(single_data != NULL, NULL);
+	g_return_val_if_fail(output != NULL, NULL);
+
 	xmi_archive *archive = g_malloc0(sizeof(xmi_archive));
 	archive->version = g_ascii_strtod(VERSION, NULL);
-	archive->start_value1 = start_value1;
-	archive->end_value1 = end_value1;
-	archive->nsteps1 = nsteps1;
-	archive->xpath1 = g_strdup(xpath1);
-	archive->start_value2 = start_value2;
-	archive->end_value2= end_value2;
-	archive->nsteps2 = nsteps2;
-	if (xpath2)
-		archive->xpath2 = g_strdup(xpath2);
-	else
-		archive->xpath2 = NULL;
-	archive->output = g_malloc0(sizeof(xmi_output **)*(nsteps1+1));
-	archive->input = g_malloc0(sizeof(xmi_input **)*(nsteps1+1));
-	archive->inputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
-	archive->outputfiles = g_malloc0(sizeof(char **)*(nsteps1+1));
+	archive->ref_count = 1;
+	archive->single_data = g_ptr_array_ref(single_data);
+	archive->output = g_ptr_array_ref(output);
 
-	int i, j;
+	GArray *dims = g_array_sized_new(FALSE, TRUE, sizeof(int), single_data->len);
 
-	for (i = 0 ; i <= nsteps1 ; i++) {
-		archive->output[i] = g_malloc0(sizeof(xmi_output *)*(nsteps2+1));
-		archive->input[i] = g_malloc0(sizeof(xmi_input *)*(nsteps2+1));
-		archive->inputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
-		archive->outputfiles[i] = g_malloc0(sizeof(char *)*(nsteps2+1));
-		for (j = 0 ; j <= nsteps2 ; j++) {
-			xmi_output_copy(output[i][j], &archive->output[i][j]);
-			archive->input[i][j] = archive->output[i][j]->input;
-			archive->inputfiles[i][j] = archive->output[i][j]->inputfile;
-			archive->outputfiles[i][j] = archive->output[i][j]->outputfile;
-		}
+	guint i;
+	for (i = 0 ; i < single_data->len ; i++) {
+		xmi_batch_single_data *data = g_ptr_array_index(single_data, i);
+		int dim = data->nsteps + 1;
+		g_array_append_val(dims, dim);
 	}
+
+	archive->dims = dims;
 
 	return archive;
 }
@@ -2478,56 +2466,30 @@ gboolean xmi_output_equals(xmi_output *A, xmi_output *B) {
  * Returns: %TRUE if both are equal, %FALSE otherwise.
  */
 gboolean xmi_archive_equals(xmi_archive *A, xmi_archive *B) {
-
-	if (A->start_value1 != B->start_value1) {
+	if (A == NULL || B == NULL)
 		return FALSE;
-	}
 
-	if (A->end_value1 != B->end_value1) {
-		return FALSE;
-	}
+	if (A == B)
+		return TRUE;
 
-	if (g_strcmp0(A->xpath1, B->xpath1) != 0) {
-		return FALSE;
-	}
-
-	if (A->nsteps1 != B->nsteps1) {
-		return FALSE;
-	}
-
-	if (A->nsteps2 != B->nsteps2) {
-		return FALSE;
-	}
-
-	if (A->xpath2 != NULL) {
-		if (B->xpath2 == NULL) {
+	if (A->single_data != B->single_data) {
+		if (A->single_data->len != B->single_data->len)
 			return FALSE;
-		}
-
-		if (A->start_value2 != B->start_value2) {
-			return FALSE;
-		}
-
-		if (A->end_value2 != B->end_value2) {
-			return FALSE;
-		}
-
-		if (g_strcmp0(A->xpath2, B->xpath2) != 0) {
-			return FALSE;
-		}
-	}
-	else if (B->xpath2 != NULL) {
-		return FALSE;
-	}
-
-	int i,j;
-
-	for (i = 0 ; i <= A->nsteps1 ; i++) {
-		for (j = 0 ; j <= A->nsteps2 ; j++) {
-			if (!xmi_output_equals(A->output[i][j],
-			                       B->output[i][j])) {
+		unsigned int i;
+		for (i = 0 ; i < A->single_data->len ; i++) {
+			if (!xmi_batch_single_data_equals(g_ptr_array_index(A->single_data, i), g_ptr_array_index(B->single_data, i)))
 				return FALSE;
-			}
+		}
+	
+	}
+
+	if (A->output != B->output) {
+		if (A->output->len != B->output->len)
+			return FALSE;
+		unsigned int i;
+		for (i = 0 ; i < A->output->len ; i++) {
+			if (!xmi_output_equals(g_ptr_array_index(A->output, i), g_ptr_array_index(B->output, i)))
+				return FALSE;
 		}
 	}
 
@@ -2628,5 +2590,62 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 	if (!*B)
 		return;
 	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
+}
+
+/**
+ * xmi_batch_single_data_new: (constructor)
+ * @xpath:
+ * @start:
+ * @end:
+ * @nsteps:
+ *
+ * Allocates a new #xmi_batch_single_data instance.
+ *
+ * Returns: (transfer full): 
+ */
+xmi_batch_single_data* xmi_batch_single_data_new(gchar *xpath, gdouble start, gdouble end, guint nsteps) {
+	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
+	rv->xpath = g_strdup(xpath);
+	rv->start = start;
+	rv->end = end;
+	rv->nsteps = nsteps;
+
+	return rv;
+}
+
+void xmi_batch_single_data_copy(xmi_batch_single_data *A, xmi_batch_single_data **B) {
+	g_return_if_fail(A != NULL && B != NULL);
+	xmi_batch_single_data *rv = g_malloc0(sizeof(xmi_batch_single_data));
+	*rv = *A;
+	rv->xpath = g_strdup(A->xpath);
+	*B = rv;
+}
+
+void xmi_batch_single_data_free(xmi_batch_single_data *A) {
+	if (!A)
+		return;
+	g_free(A->xpath);
+	g_free(A);
+}
+
+gboolean xmi_batch_single_data_equals(xmi_batch_single_data *A, xmi_batch_single_data *B) {
+	g_return_val_if_fail(A != NULL && B != NULL, FALSE);
+	
+	if (A == B)
+		return TRUE;
+
+	if (g_strcmp0(A->xpath, B->xpath) != 0)
+		return FALSE;
+
+	if (fabs(A->start - B->start) > 1E-10)
+		return FALSE;
+
+	if (fabs(A->end - B->end) > 1E-10)
+		return FALSE;
+	
+	if (A->nsteps != B->nsteps)
+		return FALSE;
+
+	return TRUE;
 }
 #endif

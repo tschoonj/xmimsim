@@ -9,8 +9,8 @@ URL: http://github.com/tschoonj/xmimsim
 Source: xmimsim-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 #libnotify is optional actually. If the version encountered by configure is too old for me, it won't be used
-BuildRequires: gcc gcc-gfortran >= 4.4.0 xraylib-fortran >= 3.3.0 xraylib-devel >= 3.3.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils libnotify-devel
-Requires: libgfortran >= 4.4.0 xraylib >= 3.3.0 hdf5 libxml2 libxslt xraylib-fortran >= 3.3.0 desktop-file-utils
+BuildRequires: gcc gcc-gfortran >= 4.4.0 xraylib-fortran >= 3.99.0 xraylib-devel >= 3.99.0 hdf5-devel libxml2-devel libxslt-devel desktop-file-utils libnotify-devel gobject-introspection-devel
+Requires: libgfortran >= 4.4.0 xraylib >= 3.99.0 hdf5 libxml2 libxslt xraylib-fortran >= 3.99.0 desktop-file-utils
 
 # RHEL 7 is the last release to use gtkmm-plplot and fgsl
 # Newer releases will use gtkmm-plplot and easyrng
@@ -25,7 +25,7 @@ Requires: easyRNG
 BuildRequires: gtkmm-plplot-devel
 Requires: gtkmm-plplot
 
-%if 0%{?fedora} >= 26 || 0%{?rhel} == 7
+%if 0%{?fedora} >= 26 || 0%{?rhel} >= 7
 BuildRequires: libsoup-devel
 Requires: libsoup
 %endif
@@ -35,8 +35,8 @@ XMI MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 
 %package devel
 Summary: a general Monte-Carlo simulation software package for ED-XRF spectrometers: development package
-Requires: gcc gcc-gfortran >= 4.4.0 xraylib-devel >= 3.3.0 libxml2-devel xraylib-fortran >= 3.3.0
-Requires: %name = %{version}
+Requires: gcc gcc-gfortran >= 4.4.0 xraylib-devel >= 3.99.0 libxml2-devel xraylib-fortran >= 3.99.0
+Requires: %{name}%{?_isa} = %{version}-%{release}
 Requires: gtkmm-plplot-devel
 
 %if 0%{?rhel} == 7
@@ -57,30 +57,22 @@ XMI-MSIM is designed to predict the spectral X-ray fluorescence response of a sa
 export CFLAGS="$RPM_OPT_FLAGS"
 export CPPFLAGS="$RPM_OPT_FLAGS"
 
-%configure --enable-gui --disable-mpi --disable-updater --disable-opencl CPPFLAGS="-DRPM_BUILD"
+%configure --enable-gui --disable-mpi --disable-updater --disable-opencl --enable-introspection CPPFLAGS="-DRPM_BUILD"
 sed -i 's|^hardcode_libdir_flag_spec=.*|hardcode_libdir_flag_spec=""|g' libtool
 sed -i 's|^runpath_var=LD_RUN_PATH|runpath_var=DIE_RPATH_DIE|g' libtool
 
-export LD_LIBRARY_PATH=`pwd`/src/.libs
+export LD_LIBRARY_PATH=`pwd`/src/.libs:`pwd`/bin/.libs
 make
-
-#create database file
-#./bin/xmimsim-db
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 libtool --finish $RPM_BUILD_ROOT%{_libdir}
 find $RPM_BUILD_ROOT -name '*.la' | xargs rm
-#mv xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
 
-cp /media/sf_awf63395/xmimsimdata.h5 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
-chmod 644 $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/xmimsimdata.h5
-
-#pushd $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/
-#wget http://lvserver.ugent.be/~schoon/xmimsimdata.h5
-#popd
-
+#create database file
+export LD_LIBRARY_PATH=$RPM_BUILD_ROOT/%{_libdir}
+$RPM_BUILD_ROOT/%{_bindir}/xmimsim-db $RPM_BUILD_ROOT/%{_prefix}/share/xmimsim/xmimsimdata.h5
 
 desktop-file-install --dir=$RPM_BUILD_ROOT%{_datadir}/applications \
 	--delete-original \
@@ -132,16 +124,10 @@ fi || :
 %{_bindir}/xmso2htm
 %{_bindir}/xmsi2xrmc
 %{_bindir}/xmsa2xmso
-%{_prefix}/share/xmimsim/xmimsim-1.0.dtd
-%{_prefix}/share/xmimsim/xmso2xmsi.xml
-%{_prefix}/share/xmimsim/xmso2svg.xml
-%{_prefix}/share/xmimsim/xmso2csv.xml
-%{_prefix}/share/xmimsim/xmso2spe.xml
-%{_prefix}/share/xmimsim/xmso2htm.xml
-%{_prefix}/share/xmimsim/xmsa2xmso.xml
-%{_prefix}/share/xmimsim/xmimsim_cat.xml
-%{_datadir}/examples/xmimsim/*xmsi
-%{_datadir}/examples/xmimsim/*xmso
+%{_datadir}/xmimsim/xmimsim-1.0.dtd
+%{_datadir}/xmimsim/xmimsim_cat.xml
+%{_datadir}/xmimsim/examples/*xmsi
+%{_datadir}/xmimsim/examples/*xmso
 
 %{_prefix}/share/xmimsim/xmimsimdata.h5
 %{_datadir}/applications/xmimsim.desktop
@@ -164,9 +150,20 @@ fi || :
 %{_libdir}/libxmimsim-gui.so
 %{_libdir}/libxmimsim-gui.a
 %{_libdir}/pkgconfig/libxmimsim-gui.pc
+%{_datadir}/gir-1.0/XmiMsim-1.0.gir
+%{_datadir}/gir-1.0/XmiMsimGui-1.0.gir
+%{_datadir}/xmimsim/examples/test-source.py
+%{_libdir}/girepository-1.0/XmiMsim-1.0.typelib
+%{_libdir}/girepository-1.0/XmiMsimGui-1.0.typelib
 
 
 %changelog
+* Wed May 1 2019 Tom Schoonjans
+- Improve devel dependency on base package according to guidelines at https://docs.fedoraproject.org/en-US/packaging-guidelines/#_requiring_base_package
+* Wed Mar 27 2019 Tom Schoonjans
+- Add preliminary support for RHEL8
+- Add gobject-introspection support
+- Bump xraylib version requirement to 3.99.0
 * Wed Jul 25 2018 Tom Schoonjans
 - Drop support for RHEL6
 * Wed Sep 20 2017 Tom Schoonjans

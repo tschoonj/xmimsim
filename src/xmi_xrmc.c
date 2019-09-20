@@ -153,7 +153,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, xmi_input *input
 			for (j = 0 ; j < input->absorbers->n_exc_layers ; j++) {
 				double mu = 0.0;
 				for (k = 0 ; k < input->absorbers->exc_layers[j].n_elements ; k++) {
-					mu += CS_Total_Kissel(input->absorbers->exc_layers[j].Z[k], input->excitation->discrete[i].energy)*input->absorbers->exc_layers[j].weight[k];
+					mu += CS_Total_Kissel(input->absorbers->exc_layers[j].Z[k], input->excitation->discrete[i].energy, NULL)*input->absorbers->exc_layers[j].weight[k];
 				}
 				blb *= exp(-1.0*mu*input->absorbers->exc_layers[j].density*input->absorbers->exc_layers[j].thickness);
 			}
@@ -167,7 +167,7 @@ static int xmi_write_xrmc_spectrumfile(char *xrmc_spectrumfile, xmi_input *input
 			for (j = 0 ; j < input->absorbers->n_exc_layers ; j++) {
 				double mu = 0.0;
 				for (k = 0 ; k < input->absorbers->exc_layers[j].n_elements ; k++) {
-					mu += CS_Total_Kissel(input->absorbers->exc_layers[j].Z[k], input->excitation->continuous[i].energy)*input->absorbers->exc_layers[j].weight[k];
+					mu += CS_Total_Kissel(input->absorbers->exc_layers[j].Z[k], input->excitation->continuous[i].energy, NULL)*input->absorbers->exc_layers[j].weight[k];
 				}
 				blb *= exp(-1.0*mu*input->absorbers->exc_layers[j].density*input->absorbers->exc_layers[j].thickness);
 			}

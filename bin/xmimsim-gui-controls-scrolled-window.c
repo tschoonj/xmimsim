@@ -34,6 +34,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_resources_mac.h"
 #endif
 
+enum {
+	FINISHED_EVENT,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 struct _XmiMsimGuiControlsScrolledWindowClass {
 	GtkScrolledWindowClass parent_class;
 };
@@ -162,6 +169,28 @@ static void xmi_msim_gui_controls_scrolled_window_class_init(XmiMsimGuiControlsS
 
 	object_class->dispose = xmi_msim_gui_controls_scrolled_window_dispose;
 	object_class->finalize = xmi_msim_gui_controls_scrolled_window_finalize;
+
+	/**
+	 * XmiMsimGuiControlsScrolledWindow::finished-event:
+	 * @window: The #XmiMsimGuiControlsScrolledWindow object emitting the signal
+	 * @status: The exit status of the finished job. %TRUE if successful, %FALSE otherwise
+	 * @xmso_file: The file that should be opened if successful, or %NULL otherwise
+	 *
+	 * Emitted when the #XmiMsimJob has finished.
+	 */
+	signals[FINISHED_EVENT] = g_signal_new(
+		"finished-event",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_LAST,
+		0, // no default handler
+		NULL,
+		NULL,
+		NULL,
+		G_TYPE_NONE,
+		2,
+		G_TYPE_BOOLEAN, // gboolean
+		G_TYPE_FILE // GFile
+	);
 }
 
 static void reset_controls(XmiMsimGuiControlsScrolledWindow *self) {
@@ -265,22 +294,27 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 		GNotification *notification;
 		if (result == FALSE) {
 			notification = g_notification_new("Simulation failed");
-			g_notification_set_body(notification, "Check error messages");
+			if (notification)
+				g_notification_set_body(notification, "Check error messages");
 		}
 		else {
 			notification = g_notification_new("Simulation succeeded");
-			gchar *my_basename = g_path_get_basename(self->output_file);
-			gchar *information = g_strdup_printf("%s is now showing in the results window", my_basename);
-			g_notification_set_body(notification, information);
-			g_free(my_basename);
-			g_free(information);
+			if (notification) {
+				gchar *my_basename = g_path_get_basename(self->output_file);
+				gchar *information = g_strdup_printf("%s is now showing in the results window", my_basename);
+				g_notification_set_body(notification, information);
+				g_free(my_basename);
+				g_free(information);
+			}
 		}
 		// has to be a fileicon...
 		//GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
 		//g_notification_set_icon(notification, icon);
 		//g_object_unref(icon);
-		g_application_send_notification(g_application_get_default(), NULL, notification);
-		g_object_unref(notification);
+		if (notification) {
+			g_application_send_notification(g_application_get_default(), NULL, notification);
+			g_object_unref(notification);
+		}
 	}
 	g_value_unset(&xpv);
 #endif
@@ -288,17 +322,14 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 	if (result == FALSE) {
 		//if something is spinning, make it stop and make it red
 		error_spinners(self);
+		g_signal_emit(self, signals[FINISHED_EVENT], 0, result, NULL);
 		return;
 	}
 
 	// read the spectrum in
-	GtkWidget *window = gtk_widget_get_toplevel(GTK_WIDGET(self));
-	if (XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window)) {
-		GFile *file = g_file_new_for_path(self->output_file);
-		g_application_open(g_application_get_default(), &file, 1, gtk_widget_get_name(window));
-		g_object_unref(file);
-	
-	}
+	GFile *file = g_file_new_for_path(self->output_file);
+	g_signal_emit(self, signals[FINISHED_EVENT], 0, result, file);
+	g_object_unref(file);
 }
 
 static void job_special_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *message, XmiMsimGuiControlsScrolledWindow *self) {
@@ -747,13 +778,7 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	self->executableB = gtk_button_new_with_mnemonic("_Open");
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), self->executableB, FALSE, FALSE, 0);
 	g_signal_connect(G_OBJECT(self->executableB), "clicked", G_CALLBACK(select_executable_cb), self);
-#ifdef MAC_INTEGRATION
-	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
-		xmimsim_executable = NULL;
-	}
-#else
-	xmimsim_executable = g_find_program_in_path("xmimsim");
-#endif
+	xmimsim_executable = xmi_get_xmimsim_path();
 	self->executableW = gtk_entry_new();
 	if (xmimsim_executable == NULL) {
 		//bad...
@@ -761,6 +786,7 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	}
 	else {
 		gtk_entry_set_text(GTK_ENTRY(self->executableW), xmimsim_executable);
+		g_free(xmimsim_executable);
 	}
 	gtk_editable_set_editable(GTK_EDITABLE(self->executableW), FALSE);
 	gtk_box_pack_end(GTK_BOX(hbox_text_label), self->executableW, TRUE, TRUE, 0);

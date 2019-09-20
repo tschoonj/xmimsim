@@ -68,6 +68,8 @@ GType xmi_msim_history_element_line_get_type(void) G_GNUC_CONST;
 #define XMI_MSIM_TYPE_HISTORY_ELEMENT (xmi_msim_history_element_get_type ())
 GType xmi_msim_history_element_get_type(void) G_GNUC_CONST;
 
+#define XMI_MSIM_TYPE_BATCH_SINGLE_DATA (xmi_msim_batch_single_data_get_type ())
+GType xmi_msim_batch_single_data_get_type(void) G_GNUC_CONST;
 
 G_END_DECLS
 

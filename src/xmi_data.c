@@ -425,8 +425,8 @@ int xmi_db(char *filename, int *Zs, int nZ) {
 	g_free(fluor_yield_corr);
 	g_free(precalc_xrf_cs);
 	for (i=0 ; i < nZ ; i++) {
-		xmi_deallocate(ip[i].energies);
-		xmi_deallocate(ip[i].Rayl_and_Compt);
+		g_free(ip[i].energies);
+		g_free(ip[i].Rayl_and_Compt);
 	}
 	g_free(ip);
 	g_free(rayleigh_theta_slice);

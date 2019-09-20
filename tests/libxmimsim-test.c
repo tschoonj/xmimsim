@@ -39,6 +39,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int test_init (void) {
 	LIBXML_TEST_VERSION
 
+	xmlInitParser();
+
 	// load our xml catalog
 	assert(xmi_xmlLoadCatalog(NULL));
 
@@ -47,34 +49,53 @@ int test_init (void) {
 
 int test_download_file(char *url) {
 	FILE *fp;
-	int rv = 1;
+	int rv = 0;
 
-	gchar *outputfile = g_path_get_basename(url);
-	SoupSession *session = soup_session_new();
-	SoupMessage *msg = soup_message_new ("GET", url);
-	soup_session_send_message (session, msg); // blocking!
+	GFile *url_file = g_file_new_for_uri(url);
+	gchar *outputfile = g_file_get_basename(url_file);
 
-	if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
-		fp = g_fopen(outputfile, "wb");
-		if (!fp) {
-			g_warning("Could not open %s for writing!", outputfile);
+	// check if this file is present in the xmimsim.wiki git repo locally first
+	gchar *local_outputfilename = g_build_filename(ABS_TOP_SRCDIR, "..", "xmimsim.wiki", outputfile, NULL);
+	g_debug("local_outputfilename: %s", local_outputfilename);
+	GFile *local_outputfile = g_file_new_for_path(local_outputfilename);
+	g_free(local_outputfilename);
+	GFile *local_outputfile_copy = g_file_new_for_path(outputfile);
+
+	if (!g_file_copy(local_outputfile, local_outputfile_copy, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, NULL)) {
+		g_debug("local copying failed!");
+		SoupSession *session = soup_session_new();
+		SoupMessage *msg = soup_message_new ("GET", url);
+		soup_session_send_message (session, msg); // blocking!
+
+		if (SOUP_STATUS_IS_SUCCESSFUL(msg->status_code)) {
+			fp = g_fopen(outputfile, "wb");
+			if (!fp) {
+				g_warning("Could not open %s for writing!", outputfile);
+			}
+			else {
+				fwrite (msg->response_body->data,
+					1,
+					msg->response_body->length,
+					fp);
+				fclose (fp);
+				rv = 1;
+			}
 		}
 		else {
-			fwrite (msg->response_body->data,
-				1,
-				msg->response_body->length,
-				fp);
-			fclose (fp);
-			rv = 1;
+			g_warning("libsoup error message: %s", msg->reason_phrase);
 		}
+
+		g_object_unref(msg);
+		g_object_unref(session);
 	}
 	else {
-		g_warning("libsoup error message: %s", msg->reason_phrase);
+		rv = 1;
 	}
 
-	g_object_unref(msg);
-	g_object_unref(session);
 	g_free(outputfile);
+	g_object_unref(url_file);
+	g_object_unref(local_outputfile);
+	g_object_unref(local_outputfile_copy);
 	return rv;
 }
 
@@ -131,7 +152,7 @@ double CS_Total_Layer(xmi_layer *layer, double E) {
 	int i;
 	double rv = 0.0;
 	for (i = 0 ; i < layer->n_elements ; i++) {
-		rv += layer->weight[i] * CS_Total(layer->Z[i], E);
+		rv += layer->weight[i] * CS_Total(layer->Z[i], E, NULL);
 	}
 	return rv;
 }
@@ -145,13 +166,13 @@ double chi(double E0, double E1, xmi_layer *layer, double alpha, double beta) {
 double fpm(xmi_layer *layer, int Z, int line, double w, double E0, double I0, double D, double Adet, double alpha, double beta) {
 	double rv = I0;
 	double theta = atan(sqrt(Adet/M_PI)/D);
-	double Omega = 2.0 * M_PI * (1.0 * cos(theta));
+	double Omega = 2.0 * M_PI * (1.0 - cos(theta));
 	double G = Omega / 4.0 / M_PI / sin(alpha);
 	rv *= G;
 	rv *= w;
-	rv *= CS_FluorLine_Kissel(Z, line, E0);
-	double my_chi = chi(E0, LineEnergy(Z, line), layer, alpha, beta);
-	rv *= (1.0 - exp(-1.0 * my_chi * layer->density * layer->thickness));
+	rv *= CS_FluorLine_Kissel(Z, line, E0, NULL);
+	double my_chi = chi(E0, LineEnergy(Z, line, NULL), layer, alpha, beta);
+	rv *= (1.0 - exp(-1.0 * my_chi * layer->density * layer->thickness)) / my_chi;
 
 	return rv;
 }
@@ -172,7 +193,7 @@ xmi_output* run_main(const char *compound) {
 	xmi_init_hdf5();
 
 	// read compound
-	struct compoundData *cd = CompoundParser(compound);
+	struct compoundData *cd = CompoundParser(compound, NULL);
 	g_assert(cd != NULL);
 
 	// generate appropriate xmimsimdata.h5 file
@@ -242,10 +263,14 @@ xmi_output* run_main(const char *compound) {
 
 	// cleanup
 	for (i = 1 ; i <= input->general->n_interactions_trajectory ; i++)
-		xmi_deallocate(channels_conv[i] );
+		g_free(channels_conv[i] );
 	g_free(channels_conv);
 	g_free(channels);
 	g_free(channels_def_ptrs);
+
+	// check solid_angle_def is still not NULL
+	g_assert(solid_angle_def != NULL);
+	
 	xmi_free_solid_angle(solid_angle_def);
 	unlink(data_file);
 	g_free(data_file);
@@ -373,4 +398,8 @@ int remove_xml_tags(const char *filename_old, const char *filename_new,  const c
 	}
 	xmlFreeDoc(doc);
 	return 1;
+}
+
+gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+	return FALSE;
 }

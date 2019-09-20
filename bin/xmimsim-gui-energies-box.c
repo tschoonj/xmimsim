@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-energies-box.h"
 #include "xmimsim-gui-discrete-energy-dialog.h"
 #include "xmimsim-gui-continuous-energy-dialog.h"
-#include "xmimsim-gui-marshal.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-compat.h"
 #include <stdlib.h>
@@ -103,7 +102,7 @@ static void xmi_msim_gui_energies_box_class_init(XmiMsimGuiEnergiesBoxClass *kla
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*

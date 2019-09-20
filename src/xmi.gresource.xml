@@ -2,11 +2,11 @@
 
 <gresources>
 	<gresource prefix="/com/github/tschoonj/xmimsim/opencl">
-		<file>array.h</file>
-		<file>compilerfeatures.h</file>
-		<file>openclfeatures.h</file>
-		<file>sse.h</file>
-		<file>threefry.h</file>
+		<file alias="array.h">Random123/array.h</file>
+		<file alias="compilerfeatures.h">Random123/compilerfeatures.h</file>
+		<file alias="openclfeatures.h">Random123/openclfeatures.h</file>
+		<file alias="sse.h">Random123/sse.h</file>
+		<file alias="threefry.h">Random123/threefry.h</file>
 		<file>xmi_kernels.cl</file>
 	</gresource>
 	<gresource prefix="/com/github/tschoonj/xmimsim/xslt">

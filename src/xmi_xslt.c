@@ -592,13 +592,6 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 
 
 	if (step1 == -1 && step2 == -1) {
-		//lets's speed things up a bit here...
-		//also, let's hope that libxslt and libxml2 are threadsafe...
-		//needs to be tested on Windows
-		//look into LIBXML_THREAD_ENABLED from xmlversion.h if necessary
-#ifdef _OPENMP
-#pragma omp parallel for collapse(2), default(shared), private(step1, step2, xmsofilenew, params, res)
-#endif
 		for (step1 = 0 ; step1 <= nsteps1 ; step1++) {
 			for (step2 = 0 ; step2 <= nsteps2 ; step2++) {
 				params = g_malloc(sizeof(gchar *) * 5);
@@ -612,10 +605,9 @@ int xmi_xmsa_to_xmso_xslt(char *xmsafile, char *xmsofile, int step1, int step2) 
 				g_strfreev(params);
 				if (res == NULL) {
 					fprintf(stderr, "Could not apply stylesheet xmsa2xmso.xml to %s\n", xmsafile);
-					//xsltFreeStylesheet(cur);
-					//xmlFreeDoc(doc);
-					//return 0;
-					continue;
+					xsltFreeStylesheet(cur);
+					xmlFreeDoc(doc);
+					return 0;
 				}
 
 				if (nsteps2 == 0)

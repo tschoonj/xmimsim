@@ -18,9 +18,9 @@ NULL =
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
-nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod
+nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_glib.mod
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -DG_LOG_DOMAIN=\"XmiMsim\"
 
 plugindir = $(libdir)/xmimsim
 
@@ -30,6 +30,7 @@ nodist_libxmimsim_la_SOURCES = xmi_resources.c xmi_resources.h
 libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_data_structs.c \
 			xmi_aux.c \
+			xmi_glib_f.F90 \
 			xmi_aux_f.F90 \
 			xmi_data_f.F90 \
 			xmi_data.c \
@@ -50,10 +51,9 @@ libxmimsim_la_SOURCES =	xmi_xml.c \
 			xmi_transmission_efficiency.c \
 			xmi_gobject.c \
 			xmi_job.c \
-			xmi_marshal.c \
-			xmi_marshal.h \
 			xmi_type_builtins.c \
 			xmi_type_builtins.h \
+			xmi_batch.c \
 			$(NULL)
 if !OS_WINDOWS
 libxmimsim_la_SOURCES += xmi_random.c \
@@ -100,7 +100,7 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 if ENABLE_OPENCL
 plugin_LTLIBRARIES = xmimsim-cl.la
 xmimsim_cl_la_CFLAGS = @WSTRICT_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ 
+xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
@@ -170,22 +170,7 @@ xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir
 xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
 
-marshal_input = xmi_marshal.list
-
-xmi_marshal.h: $(marshal_input) xmi_marshal.c
-
-xmi_marshal.c: $(marshal_input)
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi" \
-		--header \
-		$(marshal_input) ) > $(srcdir)/xmi_marshal.h
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi" \
-		--prototypes \
-		--body \
-		$(marshal_input) ) > $(srcdir)/xmi_marshal.c
-
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES) xmi_marshal.c xmi_marshal.h
+BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES)
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -198,6 +183,8 @@ xmimsim_data.mod: libxmimsim.la
 xmimsim_varred.mod: libxmimsim.la
 
 xmimsim_detector.mod: libxmimsim.la
+
+xmimsim_glib.mod: libxmimsim.la
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
@@ -224,12 +211,14 @@ introspection_sources = \
 	$(top_srcdir)/include/xmi_error.h \
 	$(top_srcdir)/include/xmi_aux.h \
 	$(top_srcdir)/include/xmi_data.h \
+	$(top_srcdir)/include/xmi_batch.h \
 	xmi_data_structs.c \
 	xmi_job.c \
 	xmi_gobject.c \
 	xmi_type_builtins.c \
 	xmi_xml.c \
 	xmi_aux.c \
+	xmi_batch.c \
 	$(NULL)
 
 if ENABLE_GOOGLE_ANALYTICS
@@ -260,9 +249,10 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(plugindir)/xmimsim-cl*
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod libxmimsim-*.def
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod xmimsim_glib.mod libxmimsim-*.def
 	rm -f $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
 
-EXTRA_DIST = xmi.gresource.xml array.h compilerfeatures.h openclfeatures.h sse.h threefry.h xmi_kernels.cl xmi_marshal.list identfilter.py symbolfilter.py
+EXTRA_DIST = xmi.gresource.xml xmi_kernels.cl identfilter.py symbolfilter.py
 
+SUBDIRS = Random123

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,8 +33,6 @@ void xmi_detector_convolute_spectrum(xmi_inputFPtr inputFPtr, double *channels_n
 void xmi_detector_convolute_all(xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, xmi_main_options *options, xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
 
 void xmi_detector_convolute_history(xmi_inputFPtr inputFPtr, double *history, xmi_main_options *options);
-
-void xmi_deallocate(void *array);
 
 typedef void (*XmiDetectorConvoluteAll) (xmi_inputFPtr inputFPtr, double **channels_noconv, double **channels_conv, double *brute_history, double *var_red_history, xmi_main_options *options, xmi_escape_ratios *escape_ratios, int n_interactions_all, int zero_interaction);
 

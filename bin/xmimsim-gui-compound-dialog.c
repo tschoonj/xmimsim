@@ -128,7 +128,7 @@ static void compound_changed(GtkEditable *widget, gpointer data) {
   textPtr = gtk_entry_get_text(GTK_ENTRY(dialog->compoundEntry));
   textPtr2 = gtk_entry_get_text(GTK_ENTRY(dialog->weightEntry));
   weight = g_ascii_strtod(textPtr2, &endPtr);
-  cd = CompoundParser(textPtr);
+  cd = CompoundParser(textPtr, NULL);
 
   lastPtr = textPtr2 + strlen(textPtr2);
 

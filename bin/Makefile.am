@@ -47,11 +47,10 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-continuous-energy-dialog.h \
 	xmimsim-gui-compat.h \
 	xmimsim-gui-colors.h \
-	xmimsim-gui-xmsi-scrolled-window.h \
+	xmimsim-gui-xmsi-selection-scrolled-window.h \
 	xmimsim-gui-options-box.h \
 	xmimsim-gui-xmsa-viewer-window.h \
 	xmimsim-gui-xmso-results-scrolled-window.h \
-	xmimsim-gui-batch.h \
 	xmimsim-gui-undo-manager.h \
 	xmimsim-gui-energies-box.h \
 	xmimsim-gui-layer-box.h \
@@ -61,6 +60,10 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-xmsi-config-scrolled-window.h \
 	xmimsim-gui-application.h \
 	xmimsim-gui-application-window.h \
+	xmimsim-gui-xmso-results-application-window.h \
+	xmimsim-gui-batch-assistant.h \
+	xmimsim-gui-gobject.h \
+	xmimsim-gui-batch-archive-settings-box.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -81,14 +84,11 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-export-canvas-dialog.cpp \
 	xmimsim-gui-tools.c \
 	xmimsim-gui-sources-dialog.cpp \
-	xmimsim-gui-marshal.h \
-	xmimsim-gui-marshal.c \
 	xmimsim-gui-discrete-energy-dialog.c \
 	xmimsim-gui-continuous-energy-dialog.c \
-	xmimsim-gui-xmsi-scrolled-window.c \
+	xmimsim-gui-xmsi-selection-scrolled-window.c \
 	xmimsim-gui-xmsa-viewer-window.cpp \
 	xmimsim-gui-xmso-results-scrolled-window.cpp \
-	xmimsim-gui-batch.c \
 	xmimsim-gui-undo-manager.c \
 	xmimsim-gui-energies-box.c \
 	xmimsim-gui-layer-box.c \
@@ -99,7 +99,12 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-application.c \
 	xmimsim-gui-application-window.c \
 	xmimsim-gui-private.h \
+	xmimsim-gui-xmso-results-application-window.c \
+	xmimsim-gui-batch-assistant.c \
+	xmimsim-gui-gobject.c \
+	xmimsim-gui-batch-archive-settings-box.c
 	$(NULL)
+
 
 nodist_libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-resources.c \
@@ -208,6 +213,7 @@ bin_PROGRAMS =  xmimsim \
 
 noinst_PROGRAMS = $(NULL)
 if ENABLE_GUI
+noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
 #noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
 endif
 #xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
@@ -238,27 +244,24 @@ endif
 #	@xml2_LIBS@ \
 #	$(NULL)
 
-#xmimsim_gui_xmsi_config_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-config-scrolled-window-test.c
-#xmimsim_gui_xmsi_config_scrolled_window_test_CPPFLAGS = \
-#	@xml2_CFLAGS@ \
-#	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-#	$(AM_CPPFLAGS) \
-#	$(NULL)
-#xmimsim_gui_xmsi_config_scrolled_window_test_LDADD = \
-#	libxmimsim-gui.la \
-#	../src/libxmimsim.la \
-#	@gtkmm3_LIBS@ \
-#	@xml2_LIBS@ \
-#	$(NULL)
+xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
+xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
+	@xml2_CFLAGS@ \
+	@gtkmm3_CFLAGS@ \
+	$(AM_CPPFLAGS) \
+	$(NULL)
+xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
+	libxmimsim-gui.la \
+	../src/libxmimsim.la \
+	@gtkmm3_LIBS@ \
+	@xml2_LIBS@ \
+	$(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
 BUILT_SOURCES = \
 	$(nodist_xmimsim_gui_SOURCES) \
 	$(nodist_libxmimsim_gui_la_SOURCES) \
-	xmimsim-gui-marshal.h \
-	xmimsim-gui-marshal.c \
 	$(NULL)
 endif
 
@@ -284,10 +287,6 @@ xmimsim_gui_SOURCES = \
 
 nodist_xmimsim_gui_SOURCES = \
 	$(NULL)
-
-marshal_input = \
-	xmimsim-gui-marshal.list
-
 
 xmimsim_gui_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -474,8 +473,6 @@ xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 #xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
 #xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
-xmimsimdir = $(datadir)/xmimsim
-dist_xmimsim_DATA = coordinate_system.png
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
@@ -497,6 +494,8 @@ introspection_sources = \
 	xmimsim-gui-utils-pp.h \
 	xmimsim-gui-type-builtins.c \
 	xmimsim-gui-type-builtins.h \
+	xmimsim-gui-xmso-results-application-window.c \
+	xmimsim-gui-xmso-results-application-window.h \
 	$(NULL)
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la
@@ -528,24 +527,11 @@ xmimsim-icon.o: xmimsim-icon.rc
 
 endif
 
-xmimsim-gui-marshal.h: $(marshal_input) xmimsim-gui-marshal.c
-
-xmimsim-gui-marshal.c: $(marshal_input)
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi_msim_gui" \
-		--header \
-		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.h
-	( cd $(srcdir) && $(GLIB_GENMARSHAL) \
-		--prefix "xmi_msim_gui" \
-		--prototypes \
-		--body \
-		$(marshal_input) ) > $(srcdir)/xmimsim-gui-marshal.c
-
 xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmimsim-gui.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi_msim_gui --generate-source $(srcdir)/xmimsim-gui.gresource.xml
 
 clean-local:
 	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def $(CLEANFILES)
 
-EXTRA_DIST = xmimsim-gui-marshal.list xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui
+EXTRA_DIST = xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui coordinate_system.png
 

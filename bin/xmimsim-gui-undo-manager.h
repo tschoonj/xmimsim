@@ -91,12 +91,16 @@ gboolean xmi_msim_gui_undo_manager_register_entry(
 
 gboolean xmi_msim_gui_undo_manager_register_layer_box(
 	XmiMsimGuiUndoManager *manager,
-	XmiMsimGuiLayerBox *box
+	XmiMsimGuiLayerBox *box,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
 	);
 
 gboolean xmi_msim_gui_undo_manager_register_energies_box(
 	XmiMsimGuiUndoManager *manager,
-	XmiMsimGuiEnergiesBox *box
+	XmiMsimGuiEnergiesBox *box,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
 	);
 
 gboolean xmi_msim_gui_undo_manager_register_text_view(

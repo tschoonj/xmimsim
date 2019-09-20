@@ -38,6 +38,9 @@ int main(int argc, char *argv[]) {
 	// initialization
 	g_assert(xmi_init_input(&inputFPtr) == 1);
 
+	// delete solid angles file in case it would exist already
+	unlink(xmimsim_hdf5_solid_angles);
+
 	// create new solid angles file
 	g_assert(xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 1);
 

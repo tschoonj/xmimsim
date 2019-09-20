@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmi_google_analytics.h"
-#include "xmi_marshal.h"
 #include <libsoup/soup.h>
 #include <glib.h>
 #include <string.h>
@@ -88,6 +87,8 @@ static void xmi_msim_google_analytics_tracker_constructed(GObject *obj) {
 	else if (tracker->uuid == NULL) {
 		tracker->uuid = g_uuid_string_random();
 	}
+
+	G_OBJECT_CLASS(xmi_msim_google_analytics_tracker_parent_class)->constructed(obj);
 }
 
 static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsTrackerClass *klass) {
@@ -121,7 +122,7 @@ static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsT
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // string with error message or NULL

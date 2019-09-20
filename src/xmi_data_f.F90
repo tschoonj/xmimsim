@@ -938,8 +938,6 @@ CALL C_F_POINTER(precalc_xrf_csPtr, precalc_xrf_cs, [nZs, 4, M5_SHELL+1, nZs, AB
 CALL C_F_POINTER(compton_profiles_Ptr, cp, [nZs])
 CALL C_F_POINTER(ZsPtr, Zs, [nZs])
 
-CALL SetErrorMessages(0)
-
 ALLOCATE(thetas(nintervals_theta))
 ALLOCATE(Qs(ncompton_profiles))
 ALLOCATE(rs2(ncompton_profiles))
@@ -1204,8 +1202,12 @@ ENDIF
                (Qs_big(2)-Qs_big(1))*(ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j))+&
                ComptonProfile_Partial(Z, shell_indices(k), Qs_big(j-1)))*0.5_C_DOUBLE
           ENDDO
+          BLOCK
+          REAL (C_DOUBLE) :: last
+          last = profile_partial_cdf_big(nintervals_pz)
           profile_partial_cdf_big = &
-          profile_partial_cdf_big*0.5/profile_partial_cdf_big(nintervals_pz)
+          profile_partial_cdf_big*0.5/last
+          ENDBLOCK
           cp_temp%Qs_inv(k,1) = 0.0
           pos = 1
           DO j=1,ncompton_profiles

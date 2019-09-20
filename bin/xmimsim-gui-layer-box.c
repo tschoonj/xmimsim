@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-layer-box.h"
 #include "xmimsim-gui-layer-dialog.h"
-#include "xmimsim-gui-marshal.h"
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-type-builtins.h"
@@ -561,6 +560,8 @@ static void xmi_msim_gui_layer_box_constructed(GObject *obj) {
 	g_object_unref(self->store);
 
 	g_signal_connect(G_OBJECT(self->store), "rows-reordered", G_CALLBACK(layer_reordering_cb), self);
+
+	G_OBJECT_CLASS(xmi_msim_gui_layer_box_parent_class)->constructed(obj);
 }
 
 static void layer_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
@@ -836,7 +837,7 @@ static void xmi_msim_gui_layer_box_class_init(XmiMsimGuiLayerBoxClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*
@@ -849,7 +850,7 @@ static void xmi_msim_gui_layer_box_class_init(XmiMsimGuiLayerBoxClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		G_TYPE_BOOLEAN,// GBOOLEAN -> CUT/COPY

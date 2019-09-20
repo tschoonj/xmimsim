@@ -112,9 +112,9 @@ AC_ARG_ENABLE([gui],[AS_HELP_STRING([--disable-gui],[build without gui])],[enabl
 PKG_PROG_PKG_CONFIG
 
 #search for xraylib and other modules
-PKG_CHECK_MODULES([xraylib],libxrl >= 3.3.0)
-PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.3.0)
-PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.7.0)
+PKG_CHECK_MODULES([xraylib],libxrl >= 3.99.0)
+PKG_CHECK_MODULES([xraylib_f2003],libxrlf03 >= 3.99.0)
+PKG_CHECK_MODULES([xml2],libxml-2.0 >= 2.9.1)
 PKG_CHECK_MODULES([xslt],libxslt >= 1.1.26)
 EASYRNG_FOUND=no
 PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.1],
@@ -335,11 +335,12 @@ AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
 WSTRICT_CFLAGS=
 AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=deprecated-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-prototypes"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=shadow],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=shadow"],,)
-AX_CHECK_COMPILE_FLAG([-Werror=unused-function],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=unused-function"],,)
+#AX_CHECK_COMPILE_FLAG([-Werror=unused-function],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=unused-function"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=parentheses],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=parentheses"],,)
 
 AC_SUBST(WSTRICT_CFLAGS)
@@ -365,10 +366,6 @@ if test x$OS_WINDOWS = x1 ; then
   if test x$WINDRES = xfail ; then
   	AC_MSG_ERROR([windres was not found. This program is necessary to insert the icon in the windows executables])
   fi
-fi
-AC_CHECK_PROG([GLIB_GENMARSHAL],[glib-genmarshal],[glib-genmarshal],[fail])
-if test x$GLIB_GENMARSHAL = xfail ; then
-	AC_MSG_WARN([glib-genmarshal was not found. Though not required for a regular build, it will impact developers of the GUI.])
 fi
 AC_CHECK_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[glib-compile-resources],[fail])
 if test x$GLIB_COMPILE_RESOURCES = xfail ; then
@@ -572,7 +569,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_CUSTOM_DETECTOR], [test "x$enable_custom_detector" = "xyes"])
 
-GOBJECT_INTROSPECTION_CHECK([1.30.0])
+GOBJECT_INTROSPECTION_CHECK([1.46.0])
 PYTHON_FOUND=no
 if test "x$found_introspection" = xyes ; then
 	AM_PATH_PYTHON([2.7],,[:])
@@ -584,6 +581,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON_FOUND" = yes])
 
 AC_CONFIG_FILES([ 	Makefile
 			src/Makefile
+			src/Random123/Makefile
 			bin/Makefile
 			include/Makefile
 			xml/Makefile

@@ -38,6 +38,8 @@ typedef struct _XmiMsimGuiXmsiConfigScrolledWindowClass   	XmiMsimGuiXmsiConfigS
 
 GtkWidget* xmi_msim_gui_xmsi_config_scrolled_window_new(XmiMsimGuiUndoManager *undo_manager, XmiMsimGuiClipboardManager *clipboard_manager);
 
+const gchar* xmi_msim_gui_xmsi_config_scrolled_window_get_filename(XmiMsimGuiXmsiConfigScrolledWindow *window);
+
 GType xmi_msim_gui_xmsi_config_scrolled_window_get_type(void) G_GNUC_CONST;
 
 G_END_DECLS

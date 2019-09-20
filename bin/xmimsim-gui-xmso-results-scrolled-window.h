@@ -15,12 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW_H
+#define XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW_H
 
 #include <gtk/gtk.h>
 #include "xmi_data_structs.h"
-
-#ifndef XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW_H
-#define XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW_H
 
 G_BEGIN_DECLS
 

@@ -33,7 +33,7 @@ ql: xmimsim-ql.la
 	cp .libs/xmimsim-ql xmi-msim.qlgenerator/Contents/MacOS/
 	cp $(top_srcdir)/xml/xmimsim-1.0.dtd xmi-msim.qlgenerator/Contents/Resources/ 
 	touch ql
-	python $(srcdir)/finalize-quicklook.py xmi-msim.qlgenerator/Contents/MacOS/xmimsim-ql
+	/usr/bin/python2.7 $(srcdir)/finalize-quicklook.py xmi-msim.qlgenerator/Contents/MacOS/xmimsim-ql
 	$(MKDIR_P) xmi-msim.qlgenerator/Contents/plplot
 	cp -a `pkg-config --variable=libdir plplot`/../share/plplot*/* xmi-msim.qlgenerator/Contents/plplot
 

@@ -40,17 +40,17 @@ static void setup_data_good_without_window_without_filter_without_efficiency(Set
 	data->tube_angle_xray = 45.0;
 	data->tube_delta_energy = 0.1;
 	data->tube_solid_angle = 0.1;
-	data->tube_anode = create_layer(47, ElementDensity(47), 1.0);
+	data->tube_anode = create_layer(47, ElementDensity(47, NULL), 1.0);
 }
 
 static void setup_data_good_with_window_without_filter_without_efficiency(SetupData *data, gconstpointer user_data) {
 	setup_data_good_without_window_without_filter_without_efficiency(data, NULL);
-	data->tube_window = create_layer(4, ElementDensity(4), 1E-4);
+	data->tube_window = create_layer(4, ElementDensity(4, NULL), 1E-4);
 }
 
 static void setup_data_good_with_window_with_filter_without_efficiency(SetupData *data, gconstpointer user_data) {
 	setup_data_good_with_window_without_filter_without_efficiency(data, NULL);
-	data->tube_filter = create_layer(6, ElementDensity(6), 1E-3);
+	data->tube_filter = create_layer(6, ElementDensity(6, NULL), 1E-3);
 }
 
 static void setup_data_good_with_window_with_filter_with_efficiency(SetupData *data, gconstpointer user_data) {
@@ -96,8 +96,6 @@ static void teardown_data(SetupData *data, gconstpointer user_data) {
 
 int main(int argc, char *argv[]) {
 	SetupData *data;
-
-	SetErrorMessages(0);
 
 	// init test
 	g_assert(test_init() == 1);

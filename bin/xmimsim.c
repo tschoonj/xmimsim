@@ -213,6 +213,10 @@ XMI_MAIN
 	context = g_option_context_new("inputfile");
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim: a program for the Monte-Carlo simulation of X-ray fluorescence spectra");
+#ifdef HAVE_OPENMPI
+	// unfortunately MPI_Init does not strip its options from argv...
+	g_option_context_set_ignore_unknown_options(context, TRUE);
+#endif
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_fprintf(stderr, "option parsing failed: %s\n", error->message);
 		return 1;
@@ -722,14 +726,14 @@ XMI_MAIN
 		}
 
 		for (i=(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
-			xmi_deallocate(channels_conv[i] );
+			g_free(channels_conv[i] );
 		}
 		g_free(channels_conv);
 		/* Do not deallocate as problems may arise in OpenMPI mode
-		xmi_deallocate(channelsdef);
-		xmi_deallocate(brute_history);
+		g_free(channelsdef);
+		g_free(brute_history);
 		if (options->use_variance_reduction)
-			xmi_deallocate(var_red_history);
+			g_free(var_red_history);
 		*/
 #ifdef HAVE_OPENMPI
 	}

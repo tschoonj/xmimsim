@@ -17,6 +17,8 @@ GType xmi_msim_gui_layer_dialog_type_get_type (void);
 #define XMI_MSIM_GUI_TYPE_LAYER_DIALOG_TYPE (xmi_msim_gui_layer_dialog_type_get_type())
 GType xmi_msim_gui_source_abstract_error_get_type (void);
 #define XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT_ERROR_TYPE (xmi_msim_gui_source_abstract_error_get_type())
+GType xmi_msim_gui_xmsi_selection_xpath_flags_get_type (void);
+#define XMI_MSIM_GUI_TYPE_XMSI_SELECTION_XPATH_FLAGS (xmi_msim_gui_xmsi_selection_xpath_flags_get_type())
 
 G_END_DECLS
 #endif /* __XMIMSIM_GUI_TYPE_BUILTINS_H__ */

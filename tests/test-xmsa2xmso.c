@@ -34,17 +34,13 @@ int main(int argc, char *argv[]) {
 
   for (i = 0 ; i < 21 ; i++) {
     gchar *filename = g_strdup_printf("temp_%d.xmso", i);
-    if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-      fprintf(stderr, "%s does not exist!", filename);
-      return 1;
-    }
     g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
-    g_assert_true(xmi_output_equals(output, archive->output[i][0]));
+    g_assert_true(xmi_output_equals(output, g_ptr_array_index(archive->output, i)));
     xmi_output_free(output);
     unlink(filename);
     g_free(filename);
   }
-  xmi_archive_free(archive);
+  xmi_archive_unref(archive);
 
   g_assert(xmi_xmsa_to_xmso_xslt(TEST_XMSA_2, "temp.xmso", 0, 0) == 1);
   g_assert_nonnull(output = xmi_output_read_from_xml_file("temp.xmso", NULL));
@@ -61,19 +57,19 @@ int main(int argc, char *argv[]) {
 
   for (i = 0 ; i < 11 ; i++) {
     for (j = 0 ; j < 11 ; j++) {
+      int indices[2] = {i, j};
+      GArray *indices_arr = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
+      g_array_append_vals(indices_arr, indices, 2);
       gchar *filename = g_strdup_printf("temp_%d_%d.xmso", i, j);
-      if (!g_file_test(filename, G_FILE_TEST_EXISTS)) {
-        fprintf(stderr, "%s does not exist!", filename);
-        return 1;
-      }
       g_assert_nonnull(output = xmi_output_read_from_xml_file(filename, NULL));
-      g_assert_true(xmi_output_equals(output, archive->output[i][j]));
+      g_assert_true(xmi_output_equals(output, g_ptr_array_index(archive->output, xmi_row_major_array_get_offset(archive->dims, indices_arr))));
+      g_array_unref(indices_arr);
       xmi_output_free(output);
       unlink(filename);
       g_free(filename);
     }
   }
-  xmi_archive_free(archive);
+  xmi_archive_unref(archive);
 
   return 0;
 }

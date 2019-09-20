@@ -1,4 +1,4 @@
-!Copyright (C) 2010-2013 Tom Schoonjans and Laszlo Vincze
+!Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 !This program is free software: you can redistribute it and/or modify
 !it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 MODULE xmimsim_solid_angle
 
 USE :: xmimsim_aux
+USE :: xmimsim_glib
 USE :: omp_lib
 USE, INTRINSIC :: ISO_C_BINDING
 USE, INTRINSIC :: ISO_FORTRAN_ENV
@@ -59,22 +60,25 @@ ENDTYPE
 CONTAINS
 
 SUBROUTINE xmi_solid_angle_inputs_f(inputFPtr, solid_anglePtr, &
-collimator_present, detector_radius, collimator_radius, &
-collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
+collimator_presentPtr, detector_radiusPtr, collimator_radiusPtr, &
+collimator_heightPtr) BIND(C,NAME='xmi_solid_angle_inputs_f')
         IMPLICIT NONE
 
         TYPE (C_PTR), VALUE, INTENT(IN) :: inputFPtr
         TYPE (C_PTR), INTENT(INOUT) :: solid_anglePtr
-        INTEGER (C_INT), INTENT(INOUT) :: collimator_present
-        REAL (C_FLOAT), INTENT(INOUT) :: detector_radius,&
+        TYPE (C_PTR), VALUE, INTENT(IN) :: collimator_presentPtr, &
+                detector_radiusPtr, collimator_radiusPtr, &
+                collimator_heightPtr
+        INTEGER (C_INT), POINTER :: collimator_present
+        REAL (C_FLOAT), POINTER :: detector_radius,&
         collimator_radius, collimator_height
 
 
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
+        TYPE (xmi_solid_angleC) :: solid_angle_dummy
         TYPE (xmi_input), POINTER :: inputF
 
         REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
 
@@ -91,15 +95,30 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
 
         CALL C_F_POINTER(inputFPtr, inputF)
 
-        IF (inputF%detector%collimator_present .EQV. .TRUE.) THEN
-                collimator_present = 1_C_INT
-        ELSE
-                collimator_present = 0_C_INT
+        IF (C_ASSOCIATED(collimator_presentPtr)) THEN
+                CALL C_F_POINTER(collimator_presentPtr, collimator_present)
+
+                IF (inputF%detector%collimator_present .EQV. .TRUE.) THEN
+                        collimator_present = 1_C_INT
+                ELSE
+                        collimator_present = 0_C_INT
+                ENDIF
         ENDIF
 
-        detector_radius = REAL(inputF%detector%detector_radius, C_FLOAT)
-        collimator_radius = REAL(inputF%detector%collimator_radius, C_FLOAT)
-        collimator_height = REAL(inputF%geometry%collimator_height, C_FLOAT)
+        IF (C_ASSOCIATED(detector_radiusPtr)) THEN
+                CALL C_F_POINTER(detector_radiusPtr, detector_radius)
+                detector_radius = REAL(inputF%detector%detector_radius, C_FLOAT)
+        ENDIF
+
+        IF (C_ASSOCIATED(collimator_radiusPtr)) THEN
+                CALL C_F_POINTER(collimator_radiusPtr, collimator_radius)
+                collimator_radius = REAL(inputF%detector%collimator_radius, C_FLOAT)
+        ENDIF
+
+        IF (C_ASSOCIATED(collimator_heightPtr)) THEN
+                CALL C_F_POINTER(collimator_heightPtr, collimator_height)
+                collimator_height = REAL(inputF%geometry%collimator_height, C_FLOAT)
+        ENDIF
 
         !first step: determine grid dimensions
         !calculate distance from detector center to S1 and
@@ -248,8 +267,18 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
         grid_dims_theta(1)= 0.00001_C_DOUBLE
 
-        ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
-        ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
+        solid_anglePtr = g_malloc(C_SIZEOF(solid_angle_dummy))
+        CALL C_F_POINTER(solid_anglePtr, solid_angle)
+
+        solid_angle%solid_angles = g_malloc(xmi_sizeof_double * grid_dims_r_n * grid_dims_theta_n)
+        CALL C_F_POINTER(solid_angle%solid_angles, solid_angles, &
+                [grid_dims_r_n, grid_dims_theta_n])
+
+        solid_angle%grid_dims_r_vals = g_malloc(xmi_sizeof_double * grid_dims_r_n)
+        CALL C_F_POINTER(solid_angle%grid_dims_r_vals, grid_dims_r_vals, [grid_dims_r_n])
+
+        solid_angle%grid_dims_theta_vals = g_malloc(xmi_sizeof_double * grid_dims_theta_n)
+        CALL C_F_POINTER(solid_angle%grid_dims_theta_vals, grid_dims_theta_vals, [grid_dims_theta_n])
 
         DO i=1,grid_dims_r_n
                 grid_dims_r_vals(i) = grid_dims_r(1) + &
@@ -263,18 +292,12 @@ collimator_height) BIND(C,NAME='xmi_solid_angle_inputs_f')
         ENDDO
 
 
-        ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
 
         solid_angles = 0.0_C_DOUBLE
         !put everything in the structure
-        ALLOCATE(solid_angle)
-        solid_angle%solid_angles = C_LOC(solid_angles(1,1))
         solid_angle%grid_dims_r_n = grid_dims_r_n
         solid_angle%grid_dims_theta_n = grid_dims_theta_n
-        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals(1))
-        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals(1))
 
-        solid_anglePtr = C_LOC(solid_angle)
 ENDSUBROUTINE xmi_solid_angle_inputs_f
 
 SUBROUTINE xmi_solid_angle_calculation_f(inputFPtr,&
@@ -296,12 +319,9 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
 
-        REAL (C_DOUBLE), DIMENSION(2) :: grid_dims_r, grid_dims_theta
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:) :: grid_dims_r_vals,&
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
         INTEGER (C_LONG) :: i,j
-        !REAL (C_DOUBLE), ALLOCATABLE, TARGET, SAVE, DIMENSION(:,:) :: solid_angles
         REAL (C_DOUBLE), POINTER, DIMENSION(:,:) :: solid_angles
         INTEGER :: max_threads, thread_num
         TYPE (xmi_rng_type) :: rng_type
@@ -315,197 +335,23 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 
         CALL ieee_set_flag(ieee_usual,.FALSE.)
 #endif
-        REAL (C_DOUBLE), DIMENSION(:), ALLOCATABLE :: mu
-        REAL (C_DOUBLE) :: Pabs, S1, S2
-        REAL (C_DOUBLE) :: my_sum, myln
-        REAL (C_DOUBLE), PARAMETER :: R1 = 0.00001, R2 = 0.99999
-        INTEGER (C_INT) :: m
-        REAL (C_DOUBLE) :: energy
 
 
         CALL C_F_POINTER(inputFPtr, inputF)
 
+        ! first step: get a solid angle struct
+        CALL xmi_solid_angle_inputs_f(inputFPtr, solid_anglePtr, C_NULL_PTR, &
+                C_NULL_PTR, C_NULL_PTR, C_NULL_PTR)
 
-        !first step: determine grid dimensions
-        !calculate distance from detector center to S1 and
-        !S2
+        CALL C_F_POINTER(solid_anglePtr, solid_angle)
+        CALL C_F_POINTER(solid_angle%grid_dims_r_vals, &
+                grid_dims_r_vals, [solid_angle%grid_dims_r_n])
+        CALL C_F_POINTER(solid_angle%grid_dims_theta_vals, &
+                grid_dims_theta_vals, [solid_angle%grid_dims_theta_n])
+        CALL C_F_POINTER(solid_angle%solid_angles, solid_angles, &
+                [solid_angle%grid_dims_r_n, solid_angle%grid_dims_theta_n])
 
-        !S1
-        ALLOCATE(mu(inputF%composition%n_layers))
-        my_sum = 0.0_C_DOUBLE
-
-        IF (inputF%excitation%n_continuous > 1 .AND. &
-        inputF%excitation%n_discrete > 0) THEN
-                energy = MIN(inputF%excitation%continuous(1)%energy,&
-                inputF%excitation%discrete(1)%energy)
-        ELSEIF (inputF%excitation%n_continuous > 1) THEN
-                energy = inputF%excitation%continuous(1)%energy
-        ELSE
-                energy = inputF%excitation%discrete(1)%energy
-        ENDIF
-
-        DO i = 1, inputF%composition%n_layers
-                mu(i) = 0.0_C_DOUBLE
-                DO j = 1, inputF%composition%layers(i)%n_elements
-                        mu(i) = &
-                        mu(i)+CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        energy)*&
-                        inputF%composition%layers(i)%weight(j)
-                ENDDO
-                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
-                inputF%composition%layers(i)%thickness_along_Z
-        ENDDO
-        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * log1p(-1.0_C_DOUBLE*R1*Pabs)
-
-#if DEBUG == 1
-        WRITE (6, '(A, ES14.5)') 'S1 Pabs: ',Pabs
-        WRITE (6, '(A, ES14.5)') 'S1 myln: ',myln
-#endif
-
-        my_sum = 0.0_C_DOUBLE
-
-        DO i=1, inputF%composition%n_layers
-                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
-                inputF%composition%layers(i)%thickness_along_Z
-                IF (my_sum .GT. myln) THEN
-                        m = i-1
-                        EXIT
-                ENDIF
-        ENDDO
-
-
-        my_sum = 0.0_C_DOUBLE
-
-        DO i = 1, m
-                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
-                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
-                density))*inputF%composition%layers(i)%thickness_along_Z
-        ENDDO
-
-#if DEBUG == 1
-        WRITE (6, '(A, ES14.5)') 'S1 my_sum: ',my_sum
-        WRITE (6, '(A, ES14.5)') 'S1 my_sum plus: ',my_sum+&
-        myln/(mu(m+1)*inputF%composition%layers(m+1)%density)
-        WRITE (6, '(A, ES14.5)') 'S1 Z_coord_begin',inputF%composition%layers(1)%Z_coord_begin
-#endif
-        S1 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
-                inputF%composition%layers(1)%Z_coord_begin
-
-
-        !S2
-        my_sum = 0.0_C_DOUBLE
-        IF (inputF%excitation%n_continuous > 1 .AND. &
-        inputF%excitation%n_discrete > 0) THEN
-                energy =&
-                MAX(inputF%excitation%continuous(inputF%excitation%n_continuous)%energy,&
-                inputF%excitation%discrete(inputF%excitation%n_discrete)%energy)
-        ELSEIF (inputF%excitation%n_continuous > 1) THEN
-                energy = inputF%excitation%continuous(inputF%excitation%n_continuous)%energy
-        ELSE
-                energy = inputF%excitation%discrete(inputF%excitation%n_discrete)%energy
-        ENDIF
-
-        DO i = 1, inputF%composition%n_layers
-                mu(i) = 0.0_C_DOUBLE
-                DO j = 1, inputF%composition%layers(i)%n_elements
-                        mu(i) = mu(i)&
-                        +CS_Total_Kissel(inputF%composition%layers(i)%Z(j),&
-                        energy)&
-                        *inputF%composition%layers(i)%weight(j)
-                ENDDO
-                my_sum = my_sum + mu(i)*inputF%composition%layers(i)%density*&
-                inputF%composition%layers(i)%thickness_along_Z
-        ENDDO
-        Pabs = -1.0_C_DOUBLE*expm1(-1.0_C_DOUBLE*my_sum)
-        myln = -1.0_C_DOUBLE * log1p(-1.0_C_DOUBLE*R2*Pabs)
-
-#if DEBUG == 1
-        WRITE (6, '(A, ES14.5)') 'S2 Pabs: ',Pabs
-        WRITE (6, '(A, ES14.5)') 'S2 myln: ',myln
-#endif
-        my_sum = 0.0_C_DOUBLE
-        DO i=1, inputF%composition%n_layers
-                my_sum = my_sum +mu(i)*inputF%composition%layers(i)%density*&
-                inputF%composition%layers(i)%thickness_along_Z
-                IF (my_sum .GT. myln) THEN
-                        m = i-1
-                        EXIT
-                ENDIF
-        ENDDO
-
-
-        my_sum = 0.0_C_DOUBLE
-
-        DO i = 1, m
-                my_sum = my_sum + (1.0_C_DOUBLE - (mu(i)*inputF%composition%layers(i)%&
-                density)/(mu(m+1)*inputF%composition%layers(m+1)%&
-                density))*inputF%composition%layers(i)%thickness_along_Z
-        ENDDO
-
-        S2 = my_sum +myln/(mu(m+1)*inputF%composition%layers(m+1)%density) + &
-                inputF%composition%layers(1)%Z_coord_begin
-
-#if DEBUG == 1
-        WRITE (6, '(A,ES14.5)') 'S1 Fortran: ',&
-        S1!-inputF%geometry%d_sample_source
-        WRITE (6, '(A,ES14.5)') 'S2 Fortran: ',&
-        S2!-inputF%geometry%d_sample_source
-        WRITE (6, '(A,ES14.5)') 'old S1 Fortran: ',&
-        inputF%composition%layers(1)%Z_coord_begin
-        WRITE (6, '(A,ES14.5)') 'old S2 Fortran: ',&
-        inputF%composition%layers(inputF%composition%n_layers)&
-        %Z_coord_end
-        !CALL xmi_exit(1)
-#endif
-
-
-
-
-        grid_dims_r(2) = MAX(xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,S1],&
-                                        inputF%geometry%p_detector_window),&
-                                        xmi_distance_two_points([0.0_C_DOUBLE,&
-                                        0.0_C_DOUBLE,S2],&
-                                        inputF%geometry%p_detector_window))*1.25_C_DOUBLE
-        grid_dims_r(1) = grid_dims_r(2)/grid_dims_r_n
-
-#if DEBUG == 1
-        WRITE (*,'(A,2ES14.5)') 'grid_dims_r: ',grid_dims_r
-        WRITE (*,'(A,2ES14.5)') 'distances: ',xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(1)%Z_coord_begin],&
-                                        inputF%geometry%p_detector_window),&
-                                        xmi_distance_two_points([0.0_C_DOUBLE, 0.0_C_DOUBLE,&
-                                        inputF%composition%layers(inputF%composition%n_layers)&
-                                        %Z_coord_end],&
-                                        inputF%geometry%p_detector_window)
-#endif
-
-
-        !calculate useful theta range
-        grid_dims_theta(2) = M_PI/2.0_C_DOUBLE
-!        IF (inputF%detector%collimator_present .EQV. .FALSE.) THEN
-                grid_dims_theta(1)= 0.00001_C_DOUBLE
-!        ELSE
-!                !assume cylindrical collimator for now
-!                grid_dims_theta(1) = &
-!                ATAN(inputF%geometry%collimator_height/&
-!                (inputF%detector%collimator_radius+inputF%detector%detector_radius))
-!        ENDIF
-
-        ALLOCATE(grid_dims_r_vals(grid_dims_r_n))
-        ALLOCATE(grid_dims_theta_vals(grid_dims_theta_n))
-
-        DO i=1,grid_dims_r_n
-                grid_dims_r_vals(i) = grid_dims_r(1) + &
-                (grid_dims_r(2)-grid_dims_r(1))*REAL(i-1,C_DOUBLE)&
-                /REAL(grid_dims_r_n-1,C_DOUBLE)
-        ENDDO
-        DO i=1,grid_dims_theta_n
-                grid_dims_theta_vals(i) = grid_dims_theta(1) + &
-                (grid_dims_theta(2)-grid_dims_theta(1))*REAL(i-1,C_DOUBLE)&
-                /REAL(grid_dims_theta_n-1,C_DOUBLE)
-        ENDDO
-
+        solid_angle%xmi_input_string = input_string
 
         !second step: for every grid point calculate the solid angle
         max_threads = options%omp_num_threads
@@ -515,9 +361,6 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         !fetch some seeds
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
-        ALLOCATE(solid_angles(grid_dims_r_n,grid_dims_theta_n))
-
-        solid_angles = 0.0_C_DOUBLE
         rng_type = xmi_rng_mt19937
 
         !WRITE (6,'(A)') 'before single solid angle calc'
@@ -538,8 +381,6 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
                 solid_angles(i,j) = xmi_single_solid_angle_calculation(inputF,&
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
            ENDDO
-
-
 
           CALL omp_set_lock(omp_lock)
           grid_done = grid_done+1
@@ -565,21 +406,10 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 
         CALL omp_destroy_lock(omp_lock)
 
-        !put everything in the structure
-        ALLOCATE(solid_angle)
-        solid_angle%solid_angles = C_LOC(solid_angles(1,1))
-        solid_angle%grid_dims_r_n = grid_dims_r_n
-        solid_angle%grid_dims_theta_n = grid_dims_theta_n
-        solid_angle%grid_dims_r_vals = C_LOC(grid_dims_r_vals(1))
-        solid_angle%grid_dims_theta_vals = C_LOC(grid_dims_theta_vals(1))
-        solid_angle%xmi_input_string = input_string
-
 #if DEBUG == 1
         WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)
         WRITE (6,'(A,5F13.5)') 'grid_dims_theta_vals:',grid_dims_theta_vals(1:5)
 #endif
-
-        solid_anglePtr = C_LOC(solid_angle)
 
         IF (options%verbose == 1_C_INT) THEN
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6

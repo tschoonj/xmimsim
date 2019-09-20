@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmimsim-gui-undo-manager.h"
-#include "xmimsim-gui-marshal.h"
 #include "xmi_data_structs.h"
 #include "xmi_xml.h"
 #include "xmi_gobject.h"
@@ -103,7 +102,7 @@ static void xmi_msim_gui_undo_manager_class_init(XmiMsimGuiUndoManagerClass *kla
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__BOOLEAN_BOOLEAN_STRING_STRING_BOOLEAN,
+		NULL,
 		G_TYPE_NONE,
 		5,
 		G_TYPE_BOOLEAN, // save-as
@@ -120,7 +119,7 @@ static void xmi_msim_gui_undo_manager_class_init(XmiMsimGuiUndoManagerClass *kla
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_msim_gui_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // filename
@@ -341,96 +340,14 @@ static void layer_box_changed_cb(XmiMsimGuiLayerBox *box, gchar *message, XmiMsi
 	extend_undo_stack(manager, GTK_WIDGET(box), &value, message, current_stack_data->input);
 }
 
-static void sample_composition_writer(GValue *value, const xmi_input *input) {
-	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
-	g_value_set_boxed(value, input->composition);
-}
-
-static void sample_composition_reader(const GValue *value, xmi_input *input) {
-	xmi_composition_free(input->composition);
-	input->composition = g_value_dup_boxed(value);
-}
-
-static void excitation_absorbers_composition_writer(GValue *value, const xmi_input *input) {
-	xmi_composition *composition = NULL;
-	xmi_copy_abs_or_crystal2composition(input->absorbers->exc_layers, input->absorbers->n_exc_layers, &composition);
-
-	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
-	g_value_take_boxed(value, composition);
-}
-
-static void excitation_absorbers_composition_reader(const GValue *value, xmi_input *input) {
-	xmi_exc_absorbers_free(input->absorbers);
-	xmi_composition *composition = g_value_get_boxed(value);
-	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->exc_layers, &input->absorbers->n_exc_layers);
-}
-
-static void detector_absorbers_composition_writer(GValue *value, const xmi_input *input) {
-	xmi_composition *composition = NULL;
-	xmi_copy_abs_or_crystal2composition(input->absorbers->det_layers, input->absorbers->n_det_layers, &composition);
-
-	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
-	g_value_take_boxed(value, composition);
-}
-
-static void detector_absorbers_composition_reader(const GValue *value, xmi_input *input) {
-	xmi_det_absorbers_free(input->absorbers);
-	xmi_composition *composition = g_value_get_boxed(value);
-	xmi_copy_composition2abs_or_crystal(composition, &input->absorbers->det_layers, &input->absorbers->n_det_layers);
-}
-
-static void crystal_composition_writer(GValue *value, const xmi_input *input) {
-	xmi_composition *composition = NULL;
-	xmi_copy_abs_or_crystal2composition(input->detector->crystal_layers, input->detector->n_crystal_layers, &composition);
-
-	g_value_init(value, XMI_MSIM_TYPE_COMPOSITION);
-	g_value_take_boxed(value, composition);
-}
-
-static void crystal_composition_reader(const GValue *value, xmi_input *input) {
-	int i;
-	if (input->detector->n_crystal_layers > 0) {
-		for (i = 0 ; i < input->detector->n_crystal_layers ; i++)
-			xmi_layer_free(input->detector->crystal_layers+i);
-		g_free(input->detector->crystal_layers);
-	}
-	xmi_composition *composition = g_value_get_boxed(value);
-	xmi_copy_composition2abs_or_crystal(composition, &input->detector->crystal_layers, &input->detector->n_crystal_layers);
-}
-
 gboolean xmi_msim_gui_undo_manager_register_layer_box(
 	XmiMsimGuiUndoManager *manager,
-	XmiMsimGuiLayerBox *box
+	XmiMsimGuiLayerBox *box,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
 	) {
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_LAYER_BOX(box), FALSE);
-
-	XmiMsimGuiUndoManagerValueWriter writer;
-	XmiMsimGuiUndoManagerValueReader reader;
-
-	XmiMsimGuiLayerBoxType box_type = xmi_msim_gui_layer_box_get_layers_type(box);
-
-	switch (box_type) {
-		case XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION:
-			writer = sample_composition_writer;
-			reader = sample_composition_reader;
-			break;
-		case XMI_MSIM_GUI_LAYER_BOX_TYPE_EXCITATION_ABSORBERS:
-			writer = excitation_absorbers_composition_writer;
-			reader = excitation_absorbers_composition_reader;
-			break;
-		case XMI_MSIM_GUI_LAYER_BOX_TYPE_DETECTOR_ABSORBERS:
-			writer = detector_absorbers_composition_writer;
-			reader = detector_absorbers_composition_reader;
-			break;
-		case XMI_MSIM_GUI_LAYER_BOX_TYPE_CRYSTAL_COMPOSITION:
-			writer = crystal_composition_writer;
-			reader = crystal_composition_reader;
-			break;
-		default:
-			g_warning("xmi_msim_gui_undo_manager_register_layer_box: unknown box type");
-			return FALSE;
-	}
 
 	if (g_hash_table_contains(manager->widget_table, box)) {
 		g_warning("xmi_msim_gui_undo_manager_register_layer_box: layer_box already registered by manager");
@@ -452,16 +369,6 @@ gboolean xmi_msim_gui_undo_manager_register_layer_box(
 	return TRUE;
 }
 
-static void energies_box_writer(GValue *value, const xmi_input *input) {
-	g_value_init(value, XMI_MSIM_TYPE_EXCITATION);
-	g_value_set_boxed(value, input->excitation);
-}
-
-static void energies_box_reader(const GValue *value, xmi_input *input) {
-	xmi_excitation_free(input->excitation);
-	input->excitation = g_value_dup_boxed(value);
-}
-
 static void energies_box_changed_cb(XmiMsimGuiEnergiesBox *box, gchar *message, XmiMsimGuiUndoManager *manager) {
 	XmiMsimGuiUndoManagerWidgetData *widget_data = g_hash_table_lookup(manager->widget_table, box);
 	g_return_if_fail(widget_data != NULL); // ensure widget_data exists for box
@@ -479,13 +386,15 @@ static void energies_box_changed_cb(XmiMsimGuiEnergiesBox *box, gchar *message, 
 
 gboolean xmi_msim_gui_undo_manager_register_energies_box(
 	XmiMsimGuiUndoManager *manager,
-	XmiMsimGuiEnergiesBox *box
+	XmiMsimGuiEnergiesBox *box,
+	XmiMsimGuiUndoManagerValueWriter writer,
+	XmiMsimGuiUndoManagerValueReader reader
 	) {
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_UNDO_MANAGER(manager), FALSE);
 	g_return_val_if_fail(XMI_MSIM_GUI_IS_ENERGIES_BOX(box), FALSE);
 
 	if (g_hash_table_contains(manager->widget_table, box)) {
-		g_warning("xmi_msim_gui_undo_manager_register_layer_box: layer_box already registered by manager");
+		g_warning("xmi_msim_gui_undo_manager_register_energies_box: box already registered by manager");
 		return FALSE;
 	}
 
@@ -493,8 +402,8 @@ gboolean xmi_msim_gui_undo_manager_register_energies_box(
 	widget_data->message = NULL;
 	widget_data->signal_ids = g_array_new(FALSE, FALSE, sizeof(gulong));
 	widget_data->valid = TRUE; // don't think I will be using this for layer_box
-	widget_data->writer = energies_box_writer;
-	widget_data->reader = energies_box_reader;
+	widget_data->writer = writer;
+	widget_data->reader = reader;
 
 	gulong signal_id = g_signal_connect(box, "changed", G_CALLBACK(energies_box_changed_cb), manager);
 	g_array_append_val(widget_data->signal_ids, signal_id);

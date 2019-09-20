@@ -174,7 +174,6 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, xmi_solid_angle *solid_ang
 	hsize_t dims[2];
 	hsize_t xmi_input_strlen;
 	gchar *timestring;
-	GTimeVal time;
 
 	file_id = H5Fopen(hdf5_file, H5F_ACC_RDWR , H5P_DEFAULT);
 	if (file_id < 0 ) {
@@ -183,8 +182,15 @@ int xmi_update_solid_angle_hdf5_file(char *hdf5_file, xmi_solid_angle *solid_ang
 	}
 
 	//create group name based on user and timestamp
+#if GLIB_CHECK_VERSION(2, 62, 0)
+	GDateTime *date_time = g_date_time_new_now_local();
+	timestring = g_date_time_format_iso8601(date_time);
+	g_date_time_unref(date_time);
+#else
+	GTimeVal time;
 	g_get_current_time(&time);
         timestring = g_time_val_to_iso8601(&time);
+#endif
 
 	buffer = g_strdup_printf("%s %s",g_get_user_name(),timestring);
 
@@ -413,7 +419,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy, NULL)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -449,7 +455,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < A->composition->n_layers ; i++) {
 		mu_a[i] = 0.0;
 		for (j = 0 ; j < A->composition->layers[i].n_elements ; j++) {
-			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy)*A->composition->layers[i].weight[j];
+			mu_a[i] += CS_Total_Kissel(A->composition->layers[i].Z[j], energy, NULL)*A->composition->layers[i].weight[j];
 		}
 		sum += mu_a[i]*A->composition->layers[i].density*thickness_along_Z_a[i];
 	}
@@ -487,7 +493,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], energy, NULL)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
@@ -523,7 +529,7 @@ int xmi_check_solid_angle_match(xmi_input *A, xmi_input *B) {
 	for (i = 0 ; i < B->composition->n_layers ; i++) {
 		mu_b[i] = 0.0;
 		for (j = 0 ; j < B->composition->layers[i].n_elements ; j++) {
-			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], (float) energy)*B->composition->layers[i].weight[j];
+			mu_b[i] += CS_Total_Kissel(B->composition->layers[i].Z[j], energy, NULL)*B->composition->layers[i].weight[j];
 		}
 		sum += mu_b[i]*B->composition->layers[i].density*thickness_along_Z_b[i];
 	}
@@ -704,7 +710,8 @@ int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **
 }
 
 void xmi_free_solid_angle(xmi_solid_angle *solid_angle) {
-	//this is potentially dangerous... some of this memory is allocated by fortran...
+	if (!solid_angle)
+		return;
 	g_free(solid_angle->solid_angles);
 	g_free(solid_angle->grid_dims_r_vals);
 	g_free(solid_angle->grid_dims_theta_vals);

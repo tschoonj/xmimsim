@@ -37,7 +37,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     </xsl:when>
     <xsl:otherwise>
       <xsl:element name="xmimsim-results" use-attribute-sets="resultsAttrs">
-        <xsl:copy-of select="xmimsim-results[@step1=$step1 and @step2='0']/*"/>
+        <xsl:copy-of select="xmimsim-results[@step1=$step1]/*"/>
       </xsl:element>
     </xsl:otherwise>
   </xsl:choose>

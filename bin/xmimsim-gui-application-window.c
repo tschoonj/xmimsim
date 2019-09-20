@@ -339,6 +339,29 @@ static GActionEntry win_entries[] = {
 	{"minimize", minimize_activated, NULL, NULL, NULL},
 };
 
+static void controls_finished_event(XmiMsimGuiControlsScrolledWindow *controls_window, gboolean result, GFile *xmso_file, XmiMsimGuiApplicationWindow *window) {
+	if (result) {
+		gchar *filename = g_file_get_path(xmso_file);
+		GError *error = NULL;
+		xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page), filename, &error);
+		if (error) {
+			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+		       		GTK_MESSAGE_ERROR,
+		       		GTK_BUTTONS_CLOSE,
+		       		"Could not load %s",
+				filename
+	                	);
+			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
+			g_error_free(error);
+	     		gtk_dialog_run(GTK_DIALOG(dialog));
+			gtk_widget_destroy(dialog);
+		}
+		g_free(filename);
+	}
+		
+}
+
 static void update_clipboard_buttons(XmiMsimGuiClipboardManager *clipboard_manager, gboolean cut_val, gboolean copy_val, gboolean paste_val, XmiMsimGuiApplicationWindow *window) {
 	GAction *action = NULL;
 	
@@ -376,15 +399,17 @@ static void append_tool_button(GtkWidget *toolbar, const gchar *label, const gch
 	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button, -1);
 }
 
-static gboolean job_killer(GtkWidget *dialog) {
+struct job_killer_data {
+	GtkWidget *dialog;
+	XmiMsimJob *job;
+};
 
-	XmiMsimGuiApplicationWindow *window = XMI_MSIM_GUI_APPLICATION_WINDOW(gtk_window_get_transient_for(GTK_WINDOW(dialog)));
-	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
+static gboolean job_killer(struct job_killer_data *data) {
 
-	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
+	if (data->job && xmi_msim_job_is_running(data->job)) {
 		return G_SOURCE_CONTINUE;
 	}
-	gtk_dialog_response(GTK_DIALOG(dialog), GTK_RESPONSE_CLOSE);
+	gtk_dialog_response(GTK_DIALOG(data->dialog), GTK_RESPONSE_CLOSE);
 
 	return G_SOURCE_REMOVE;
 }
@@ -397,7 +422,7 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 	// 3. if file has never been saved before, but with invalid data -> offer to close without saving or continue
 	// 4. if file has been saved before, but with valid changes -> offer to save
 	// 5. if file has been saved before, but with invalid changes -> offer to close without saving or continue
-	// 6. if file has been save before, without changes -> just close
+	// 6. if file has been saved before, without changes -> just close
 	
 	XmiMsimGuiUndoManagerStatus status = xmi_msim_gui_undo_manager_get_status(window->undo_manager);
 	gboolean rv;
@@ -512,36 +537,44 @@ static gboolean window_delete_event(XmiMsimGuiApplicationWindow *window, GdkEven
 
 	// afterwards, if user still decides to close the window -> check if there is still a job running!
 	XmiMsimGuiControlsScrolledWindow *controls_page = XMI_MSIM_GUI_CONTROLS_SCROLLED_WINDOW(window->controls_page);
-	if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
-		g_debug("job is running!");
-		GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
-			GTK_WINDOW(window),
-			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-			"_Kill job and close", GTK_RESPONSE_OK,
-			"_Cancel", GTK_RESPONSE_CANCEL,
-			NULL);
-		GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-		GtkWidget *label = gtk_label_new("The window you are trying to close still has a job running!");
-		gtk_widget_show(label);
-		gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
-		guint source_id = g_timeout_add_seconds(1, (GSourceFunc) job_killer, dialog);
-		switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
-			case GTK_RESPONSE_CANCEL:
-			case GTK_RESPONSE_DELETE_EVENT:
-				g_source_remove(source_id);
-				gtk_widget_destroy(dialog);
-				return TRUE;
-			case GTK_RESPONSE_OK:
-				g_source_remove(source_id);
-			case GTK_RESPONSE_CLOSE: // from job_killer!
-			{
-				gtk_widget_destroy(dialog);
-				if (controls_page->job && xmi_msim_job_is_running(controls_page->job)) {
-					xmi_msim_job_kill(controls_page->job, NULL);
+	// probably wise to take a ref to the job object!
+	if (controls_page->job) {
+		XmiMsimJob *job = g_object_ref(controls_page->job);
+		if (xmi_msim_job_is_running(job)) {
+			g_debug("job is running!");
+			GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
+				GTK_WINDOW(window),
+				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				"_Kill job and close", GTK_RESPONSE_OK,
+				"_Cancel", GTK_RESPONSE_CANCEL,
+				NULL);
+			GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+			GtkWidget *label = gtk_label_new("The window you are trying to close still has a job running!");
+			gtk_widget_show(label);
+			gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+			struct job_killer_data data = {.dialog = dialog, .job = job};
+			guint source_id = g_timeout_add_seconds(1, (GSourceFunc) job_killer, &data);
+			switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+				case GTK_RESPONSE_CANCEL:
+				case GTK_RESPONSE_DELETE_EVENT:
+					g_source_remove(source_id);
+					gtk_widget_destroy(dialog);
+					g_object_unref(job);
+					return TRUE;
+				case GTK_RESPONSE_OK:
+					g_source_remove(source_id);
+				case GTK_RESPONSE_CLOSE: // from job_killer!
+				{
+					gtk_widget_destroy(dialog);
+					if (xmi_msim_job_is_running(job)) {
+						xmi_msim_job_kill(job, NULL);
+					}
+					g_object_unref(job);
+					return FALSE;
 				}
-				return FALSE;
 			}
 		}
+		g_object_unref(job);
 	}
 
 	g_debug("before return rv: %d", rv);
@@ -668,6 +701,7 @@ static void xmi_msim_gui_application_window_init(XmiMsimGuiApplicationWindow *se
 	gtk_notebook_append_page(GTK_NOTEBOOK(self->notebook), self->results_page, label);
 	gtk_container_child_set(GTK_CONTAINER(self->notebook), self->results_page, "tab-expand", TRUE, "tab-fill", TRUE, NULL);
 
+	g_signal_connect(self->controls_page, "finished-event", G_CALLBACK(controls_finished_event), self);
 	g_signal_connect(self->clipboard_manager, "update-clipboard-buttons", G_CALLBACK(update_clipboard_buttons), self);
 	g_signal_connect(self->undo_manager, "update-status-buttons", G_CALLBACK(update_status_buttons), self);
 	g_signal_connect(G_OBJECT(self), "delete-event", G_CALLBACK(window_delete_event), self);
@@ -726,7 +760,20 @@ GtkWidget* xmi_msim_gui_application_window_new(XmiMsimGuiApplication *app) {
 	return GTK_WIDGET(app_window);
 }
 
+GtkWidget* xmi_msim_gui_application_window_get_active_tab(XmiMsimGuiApplicationWindow *window) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window), NULL);
+	g_return_val_if_fail(window->notebook != NULL, NULL);
+	return gtk_notebook_get_nth_page(GTK_NOTEBOOK(window->notebook), gtk_notebook_get_current_page(GTK_NOTEBOOK(window->notebook)));
+}
+
 gboolean xmi_msim_gui_application_window_load_file(XmiMsimGuiApplicationWindow *window, const gchar *filename, GError **error) {
+	if (!XMI_MSIM_GUI_IS_APPLICATION_WINDOW(window)) {
+		g_set_error(error, XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR, XMI_MSIM_GUI_APPLICATION_WINDOW_ERROR_INVALID_ARGUMENT, "window must be an instance of XmiMsimGuiApplicationWindow");
+		return FALSE;
+	}
 	return xmi_msim_gui_undo_manager_load_file(window->undo_manager, filename, error);
 }
 
+GQuark xmi_msim_gui_application_window_error_quark(void) {
+	return g_quark_from_static_string("xmi-msim-gui-application-window-error-quark");
+}

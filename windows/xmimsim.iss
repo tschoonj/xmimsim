@@ -80,14 +80,17 @@ Source: "{#MY_MINGW}\bin\libgfortran-5.dll" ; DestDir: "{app}\Lib" ; Components:
 Source: "{#MY_MINGW}\bin\libquadmath-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_MINGW}\bin\libgomp-1.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libhdf5-8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\bin\libxrlf03-7.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libxrlf03-11.dll" ; DestDir: "{app}\Lib" ; Components: core
+#if Len(GetEnv("USE_LOCAL_XRAYLIB")) > 0
+Source: "{#MY_HOME}\install\bin\libxrl-11.dll" ; DestDir: "{app}\Lib" ; Components: core
+#endif
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libeasyRNG-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-2.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\share\plplot5.13.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
+Source: "{#MY_HOME}\install\share\plplot5.14.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
 Source: "{#builddir}\src\.libs\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#builddir}\bin\.libs\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 
@@ -127,8 +130,10 @@ Source: "{#builddir}\src\.libs\libxmimsim.dll.a" ; DestDir: "{app}\SDK\Lib" ; Co
 Source: "{#builddir}\bin\.libs\libxmimsim-gui.dll.a" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 Source: "{#builddir}\windows\libxmimsim-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
 Source: "{#builddir}\windows\libxmimsim-gui-0.lib" ; DestDir: "{app}\SDK\Lib" ; Components: sdk
+#if Len(GetEnv("USE_LOCAL_XRAYLIB")) == 0
 Source: "{tmp}\xraylib.exe" ; DestDir: "{tmp}" ; Components: core ; Flags: external ; Check: InstallXraylibCheck and DwinsHs_Check(ExpandConstant('{tmp}\xraylib.exe'), \
     'http://lvserver.ugent.be/xraylib/xraylib-{#XRAYLIB_VERSION}-win64.exe', '{#USER_AGENT}', 'get', 0, 0)
+#endif
 
 #if Len(GetEnv("DO_NOT_USE_DATA")) == 0
 Source: "{#builddir}\bin\xmimsimdata.h5" ; DestDir: "{app}\Share" ; Components: core

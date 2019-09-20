@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-utils.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
-#include "xmimsim-gui-xmsi-scrolled-window.h"
+#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
 #include "xmimsim-gui-options-box.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-long-task-window.h"
@@ -43,14 +43,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include "xmi_resources_mac.h"
 #endif
 
-
-#if LIBXML_VERSION < 20901
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx);
-xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx);
-
-#endif
 
 #ifdef HAVE_GOOGLE_ANALYTICS
   #include "xmi_google_analytics.h"
@@ -673,125 +665,20 @@ static int archive_options(GtkWidget *main_window, xmi_input *input, gchar *file
 }
 
 
-static void parameter_selection_changed_cb (GtkTreeSelection *selection, GtkWidget *okButton) {
-	GtkTreeIter iter;
-	GtkTreeModel *model;
-	GList *paths;
-
-	gint count = gtk_tree_selection_count_selected_rows(selection);
-
-	if (count == 1) {
-		gboolean selectable;
-		//one row selected
-		//get row
-		paths = gtk_tree_selection_get_selected_rows(selection, &model);
-		GtkTreePath *path = (GtkTreePath *) g_list_nth_data(paths, 0);
-		gtk_tree_model_get_iter(model, &iter, path);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable, -1);
-		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
-
-		if (selectable)
-			gtk_widget_set_sensitive(okButton, TRUE);
-		else
-			gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	else if (count == 2) {
-		gboolean selectable1, selectable2;
-		int allowed1, allowed2;
-		GtkTreePath *path1, *path2;
-		//two rows selected
-		paths = gtk_tree_selection_get_selected_rows(selection, &model);
-		path1 = (GtkTreePath *) g_list_nth_data(paths, 0);
-		gtk_tree_model_get_iter(model, &iter, path1);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable1, INPUT_ALLOWED_COLUMN, &allowed1, -1);
-		path2 = (GtkTreePath *) g_list_nth_data(paths, 1);
-		gtk_tree_model_get_iter(model, &iter, path2);
-
-		gtk_tree_model_get(model, &iter, INPUT_SELECTABLE_COLUMN, &selectable2, INPUT_ALLOWED_COLUMN, &allowed2, -1);
-
-		if (selectable1 && selectable2 && (allowed1 & PARAMETER_WEIGHT_FRACTION) && (allowed2 & PARAMETER_WEIGHT_FRACTION)) {
-			//possible problem here
-			GtkTreePath *path1up, *path2up;
-			path1up = gtk_tree_path_copy(path1);
-			gtk_tree_path_up(path1up);
-			gtk_tree_path_up(path1up);
-			path2up = gtk_tree_path_copy(path2);
-			gtk_tree_path_up(path2up);
-			gtk_tree_path_up(path2up);
-			gtk_tree_model_get_iter(model, &iter, path2up);
-			if (gtk_tree_path_compare(path1up, path2up) == 0 && gtk_tree_model_iter_n_children(model, &iter) < 5) {
-				//5 because density and thickness are also children
-				//aha! not allowed...
-				GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "When selecting two weight fractions within the same layer, the number of elements in that layer must be at least three.");
-				gtk_dialog_run(GTK_DIALOG(dialog));
-				gtk_widget_destroy(dialog);
-				gtk_widget_set_sensitive(okButton, FALSE);
-			}
-			else {
-				gtk_widget_set_sensitive(okButton, TRUE);
-
-			}
-			gtk_tree_path_free(path1up);
-			gtk_tree_path_free(path2up);
-		}
-		else if (selectable1 && selectable2) {
-			gtk_widget_set_sensitive(okButton, TRUE);
-		}
-		else {
-			gtk_widget_set_sensitive(okButton, FALSE);
-		}
-
-		g_list_free_full(paths, (GDestroyNotify) gtk_tree_path_free);
-	}
-	else if (count == 0) {
-		//no rows selected
-		gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	else {
-		//too many rows selected
-		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(okButton)), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Please select either one or two rows.");
-		gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(okButton, FALSE);
-	}
-	return;
-}
-
-static void parameter_row_activated_cb(GtkTreeView *tree_view, GtkTreePath *path, GtkTreeViewColumn *column, GtkButton *okButton) {
-
-	if (gtk_tree_view_row_expanded(tree_view, path)) {
-		gtk_tree_view_collapse_row(tree_view, path);
-	}
-	else {
-		gtk_tree_view_expand_row(tree_view, path, FALSE);
-	}
-
-	return;
-}
 
 static int select_parameter(GtkWidget *window, xmi_input *input, gchar **xpath1, gchar **xpath2, int *allowed1, int *allowed2) {
 	int rv = 0;
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Select one or two variable parameters", GTK_WINDOW(window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
-	GtkWidget *scrolled_window = xmi_msim_gui_xmsi_scrolled_window_new(input, TRUE);
+	GtkWidget *scrolled_window = xmi_msim_gui_xmsi_selection_scrolled_window_new(input, TRUE);
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_container_add(GTK_CONTAINER(content_area), scrolled_window);
 	gtk_widget_show_all(scrolled_window);
 	gtk_container_set_border_width(GTK_CONTAINER(dialog), 3);
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 500, 500);
-	GtkTreeView* treeview = xmi_msim_gui_xmsi_scrolled_window_get_tree_view(XMI_MSIM_GUI_XMSI_SCROLLED_WINDOW(scrolled_window));
 	GtkWidget *okButton = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	gtk_widget_set_sensitive(okButton, FALSE);
-	GtkTreeSelection *select = gtk_tree_view_get_selection(treeview);
-	gtk_tree_selection_set_mode(select, GTK_SELECTION_MULTIPLE);
-	g_signal_connect(G_OBJECT(select), "changed",
-			G_CALLBACK(parameter_selection_changed_cb),
-			(gpointer) okButton
-		);
-	g_signal_connect(G_OBJECT(treeview), "row-activated", G_CALLBACK(parameter_row_activated_cb), (gpointer) okButton);
 
 
 
@@ -1336,7 +1223,12 @@ static int specific_options(GtkWidget *main_window, struct wizard_close_data *wc
 	return rv;
 }
 
-
+struct save_archive_data {
+	struct archive_options_data *aod;
+	gchar *xpath1;
+       	gchar *xpath2;
+	xmi_output ***output;
+};
 
 static int general_options(GtkWidget *main_window, xmi_main_options **options) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons("Set the options for the simulations batch", GTK_WINDOW(main_window), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), "_Ok", GTK_RESPONSE_ACCEPT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
@@ -1363,6 +1255,8 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 	gdk_window_set_cursor(gtk_widget_get_window(task_window), NULL);
 	gtk_widget_destroy(task_window);
 
+	struct save_archive_data *sad = g_task_get_task_data(G_TASK(result));
+
 	GError *error = NULL;
 
 	xmi_archive *archive = g_task_propagate_pointer(G_TASK(result), &error);
@@ -1381,17 +1275,11 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 		return;
 	}
 
-	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive);
+	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), sad->aod->xmsa_file, archive);
+	xmi_archive_unref(archive);
 	gtk_window_set_transient_for(GTK_WINDOW(xmsa_window), GTK_WINDOW(window));
 	gtk_window_present(GTK_WINDOW(xmsa_window));
 }
-
-struct save_archive_data {
-	struct archive_options_data *aod;
-	gchar *xpath1;
-       	gchar *xpath2;
-	xmi_output ***output;
-};
 
 struct save_archive_update_task_window_data {
 	XmiMsimGuiLongTaskWindow *window;
@@ -1452,7 +1340,7 @@ static void save_archive_thread(GTask *task, gpointer source_object, gpointer ta
 	g_free(sad->aod);
 	g_free(sad->xpath1);
 	g_free(sad->xpath2);
-	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_free);
+	g_task_return_pointer(task, archive, (GDestroyNotify) xmi_archive_unref);
 }
 
 void batchmode_button_clicked_cb(GtkWidget *button, GtkWidget *window) {

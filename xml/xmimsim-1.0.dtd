@@ -89,6 +89,8 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ATTLIST xmimsim-results version CDATA #REQUIRED>
 <!ATTLIST xmimsim-results step1 CDATA #IMPLIED>
 <!ATTLIST xmimsim-results step2 CDATA #IMPLIED>
+<!ATTLIST xmimsim-results step3 CDATA #IMPLIED>
+<!ATTLIST xmimsim-results step4 CDATA #IMPLIED>
 <!ELEMENT inputfile (#PCDATA)>
 <!ELEMENT spectrum_conv (channel+)>
 <!ELEMENT spectrum_unconv (channel+)>
@@ -130,7 +132,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <!ELEMENT color (#PCDATA)>
 
 <!-- archive -->
-<!ELEMENT xmimsim-archive (start_value1, end_value1, nsteps1, xpath1, start_value2?, end_value2?, nsteps2?, xpath2?, xmimsim-results+)>
+<!ELEMENT xmimsim-archive (start_value1, end_value1, nsteps1, xpath1, start_value2?, end_value2?, nsteps2?, xpath2?, start_value3?, end_value3?, nsteps3?, xpath3?, start_value4?, end_value4?, nsteps4?, xpath4?, xmimsim-results+)>
 <!-- version attribute was added only quite late so it is optional -->
 <!ATTLIST xmimsim-archive version CDATA #IMPLIED>
 <!ELEMENT start_value1 (#PCDATA)>

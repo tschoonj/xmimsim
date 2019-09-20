@@ -25,8 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <hdf5.h>
 #include "xmi_private.h"
 
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
+#ifdef MAC_INTEGRATION
+  #include "xmi_resources_mac.h"
+#endif
 
 
 void *xmi_memdup(const void *mem, size_t bytes) {
@@ -178,10 +179,10 @@ char *xmi_version_string() {
 	g_string_append_printf(string, "libxslt %s, ", LIBXSLT_DOTTED_VERSION);
 	//fgsl
 #ifdef FGSL_VERSION
-	g_string_append_printf(string, "fgsl %s, ", TOSTRING(FGSL_VERSION));
+	g_string_append_printf(string, "fgsl %s, ", G_STRINGIFY(FGSL_VERSION));
 #endif
 #ifdef EASYRNG_VERSION
-	g_string_append_printf(string, "easyRNG %s, ", TOSTRING(EASYRNG_VERSION));
+	g_string_append_printf(string, "easyRNG %s, ", G_STRINGIFY(EASYRNG_VERSION));
 #endif
 #ifdef HAVE_GUI
 	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
@@ -227,32 +228,6 @@ void *xmi_malloc(size_t size) {
 void *xmi_realloc(void *ptr, size_t size){
 	return g_realloc(ptr, size);
 }
-
-
-#if LIBXML_VERSION < 20901
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-//taken from the libxml2 source code...
-int xmlXPathSetContextNode(xmlNodePtr node, xmlXPathContextPtr ctx) {
-    if ((node == NULL) || (ctx == NULL))
-        return(-1);
-
-    if (node->doc == ctx->doc) {
-        ctx->node = node;
-        return(0);
-    }
-    return(-1);
-}
-
-xmlXPathObjectPtr xmlXPathNodeEval(xmlNodePtr node, const xmlChar *str, xmlXPathContextPtr ctx) {
-    if (str == NULL)
-        return(NULL);
-    if (xmlXPathSetContextNode(node, ctx) < 0)
-        return(NULL);
-    return(xmlXPathEval(str, ctx));
-}
-
-#endif
 
 static gboolean xmi_init_hdf5_done = FALSE;
 
@@ -650,4 +625,97 @@ int compare_string(const void *a, const void *b) {
 
 GQuark xmi_msim_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-error-quark");
+}
+
+/**
+ * xmi_get_xmimsim_path:
+ *
+ * Returns: full path to the xmimsim executable
+ */
+gchar* xmi_get_xmimsim_path(void) {
+	gchar *xmimsim_executable = NULL;
+#ifdef MAC_INTEGRATION
+	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_XMIMSIM_EXEC, &xmimsim_executable) == 0) {
+		xmimsim_executable = NULL;
+	}
+#else
+	xmimsim_executable = g_find_program_in_path("xmimsim");
+#endif
+	return xmimsim_executable;
+}
+
+GError* xmi_error_convert_xrl_to_glib(xrl_error *error) {
+	if (error == NULL)
+		return NULL;
+
+	return g_error_new_literal(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XRAYLIB, error->message);
+}
+
+GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
+	g_return_val_if_fail(dims != NULL && offset >= 0, NULL);
+	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, NULL);
+
+	guint i, max_offset = 1;
+
+	for (i = 0 ; i < dims->len ; i++)
+		max_offset *= g_array_index(dims, int, i);
+
+	g_return_val_if_fail(offset < max_offset, NULL);
+
+	GArray *rv = g_array_sized_new(FALSE, TRUE, sizeof(int), dims->len);
+	g_array_set_size(rv, dims->len);
+
+	if (dims->len == 1) {
+		g_array_index(rv, int, 0) = offset;
+		return rv;
+	}
+
+	for (i = dims->len - 1 ; i >= 1 ; i--) {
+		int index = offset % g_array_index(dims, int, i);
+		offset = offset / g_array_index(dims, int, i);
+		g_array_index(rv, int, i) = index;
+	}
+	
+	g_array_index(rv, int, 0) = offset;
+
+	return rv;
+}
+
+gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices) {
+	g_return_val_if_fail(dims != NULL && indices != NULL, -1);
+	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, -1);
+	g_return_val_if_fail(indices->len == dims->len, -1);
+
+	guint i;
+	for (i = 0 ; i < dims->len ; i++) {
+		int _index = g_array_index(indices, int, i);
+		g_return_val_if_fail(_index >= 0 && _index < g_array_index(dims, int, i), -1);
+	}
+
+	gint offset = 0;
+
+	if (dims->len == 1)
+		return g_array_index(indices, int, 0);
+
+	// see https://en.wikipedia.org/wiki/Row-_and_column-major_order#Address_calculation_in_general
+	guint k;
+	for (k = 0 ; k < dims->len ; k++) {
+		guint l;
+		guint Nprod = 1;
+		for (l = k + 1 ; l < dims->len ; l++)
+			Nprod *= g_array_index(dims, int, l);
+		offset += Nprod * g_array_index(indices, int, k);
+	}
+
+	return offset;
+}
+
+gpointer xmi_object_ref(gpointer obj, const gchar *strloc) {
+	g_message("g_object_ref@%s", strloc);
+	return g_object_ref(obj);
+}
+
+void xmi_object_unref(gpointer obj, gchar *strloc) {
+	g_message("g_object_unref@%s", strloc);
+	g_object_unref(obj);
 }

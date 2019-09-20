@@ -5,12 +5,19 @@ set -x
 
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
-export GTKMM_PLPLOT_BRANCH=master
+#export GTKMM_PLPLOT_BRANCH=master
+export XRAYLIB_BRANCH=master
 
 # install xraylib
-curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
-tar xfz xraylib-3.3.0.tar.gz
-cd xraylib-3.3.0
+if [ -n "$XRAYLIB_BRANCH" ] ; then
+	git clone -b $XRAYLIB_BRANCH --single-branch --depth=1 https://github.com/tschoonj/xraylib.git
+	cd xraylib
+	autoreconf -i
+else
+	curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
+	tar xfz xraylib-3.3.0.tar.gz
+	cd xraylib-3.3.0
+fi
 ./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration
 make -j2
 make install
@@ -21,9 +28,11 @@ cd ..
 if test $RNG = "fgsl" ; then
 	#install gsl
  	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
-	curl -L -s -O http://www.lrz.de/services/software/mathematik/gsl/fortran/download/fgsl-1.1.0.tar.gz
-	tar xfz fgsl-1.1.0.tar.gz
-	cd fgsl-1.1.0
+	curl -L -s -O https://doku.lrz.de/download/attachments/28051060/fgsl-1.3.0.tar.gz
+	tar xfz fgsl-1.3.0.tar.gz
+	cd fgsl-1.3.0
+	curl -L -s -O https://github.com/reinh-bader/fgsl/commit/c306e9f936983df5bab68f8ba55006c0f88bc775.diff
+	patch -p1 < c306e9f936983df5bab68f8ba55006c0f88bc775.diff
 	./configure --prefix=$HOME/install --disable-static
 	make
 	make install
@@ -50,9 +59,11 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
-	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.13.0.tar.gz
-	tar xfz plplot-5.13.0.tar.gz
-	cd plplot-5.13.0
+	# fix pango.pc
+	#echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
+	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.14.0.tar.gz
+	tar xfz plplot-5.14.0.tar.gz
+	cd plplot-5.14.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
 	make -j2
 	make install
@@ -63,9 +74,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
           cd gtkmm-plplot
           autoreconf -i
         else
-	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.2/gtkmm-plplot-2.2.tar.gz
-	  tar xfz gtkmm-plplot-2.2.tar.gz
-	  cd gtkmm-plplot-2.2
+	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.3/gtkmm-plplot-2.3.tar.gz
+	  tar xfz gtkmm-plplot-2.3.tar.gz
+	  cd gtkmm-plplot-2.3
         fi
 	./configure --prefix=$HOME/install --disable-static
 	make -j2

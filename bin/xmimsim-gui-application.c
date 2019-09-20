@@ -30,10 +30,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-tools.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-undo-manager.h"
-#include "xmimsim-gui-xmso-results-scrolled-window.h"
+#include "xmimsim-gui-xmso-results-application-window.h"
 #include "xmimsim-gui-long-task-window.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-utils-pp.h"
+#include "xmimsim-gui-batch-assistant.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 
@@ -242,6 +243,9 @@ static void open_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 
 static void batch_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	g_debug("Calling batch_activated");
+	GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(user_data));
+	GtkWidget *batch = xmi_msim_gui_batch_assistant_new(active_window);
+	gtk_widget_show_all(batch);
 }
 
 static void help_url_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -496,9 +500,6 @@ static void app_startup(GApplication *app) {
 	// invoke parent method
 	G_APPLICATION_CLASS(xmi_msim_gui_application_parent_class)->startup(app);
 
-	// no xraylib error messages!
-	SetErrorMessages(0);
-
 	xmi_msim_gui_init();
 
 	// init hdf5 constants and error messages
@@ -578,31 +579,6 @@ static void app_activate(GApplication *app) {
 	gtk_widget_show(window);
 }
 
-static void xmso_close_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	gtk_widget_destroy(GTK_WIDGET(user_data));
-}
-
-static void minimize_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	gtk_window_iconify(GTK_WINDOW(user_data));
-}
-
-static GActionEntry xmso_win_entries[] = {
-	{"close", xmso_close_activated, NULL, NULL, NULL},
-	{"minimize", minimize_activated, NULL, NULL, NULL},
-};
-
-static void viewer_cb(GtkWidget *viewer, gchar *filename) {
-	gchar *basename = g_path_get_basename(filename);
-	gchar *xmimsim_title_xmsa = g_strdup_printf(XMIMSIM_TITLE_PREFIX "%s", basename);
-	g_free(basename);
-	gtk_window_set_title(GTK_WINDOW(viewer), xmimsim_title_xmsa);
-	g_free(xmimsim_title_xmsa);
-#ifdef __APPLE__
-	xmi_msim_gui_osx_nswindow_set_file(viewer, filename);
-#endif
-	g_free(filename);
-}
-
 static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, GtkWidget *active_window) {
 
 	GError *error = NULL;
@@ -626,8 +602,8 @@ static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, Gtk
 		g_application_release(g_application_get_default());
 		return ;
 	}
-	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive);
-	g_signal_connect(viewer, "realize", G_CALLBACK(viewer_cb), g_strdup((const gchar*) g_task_get_task_data(task)));
+	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), g_task_get_task_data(task), archive);
+	xmi_archive_unref(archive);
 	gtk_widget_show(viewer);
 	g_application_release(g_application_get_default());
 }
@@ -636,7 +612,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 	g_debug("Calling app_open with hint %s and %d files", hint, n_files);
 
 	if (n_files == 1 && strlen(hint) > 0) {
-		// in this case the file needs to be either xmsi or xmso
+		// in this case the file needs to be xmsi
 		// get window
 		GList *windows = gtk_application_get_windows(GTK_APPLICATION(app));
 		XmiMsimGuiApplicationWindow *window = NULL;
@@ -655,6 +631,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 
 		GError *error = NULL;
 		gchar *filename = g_file_get_path(files[0]);
+		gboolean do_return = FALSE;
 		if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmsi") == 0) {
 			if (xmi_msim_gui_undo_manager_get_status(window->undo_manager) == XMI_MSIM_GUI_UNDO_MANAGER_STATUS_NEVER_SAVED_DEFAULT) {
 				// use current window
@@ -668,9 +645,7 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 					gtk_widget_destroy(new_window);
 				}
 			}
-		}
-		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmso") == 0) {
-			xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page), filename, &error);
+			do_return = TRUE;
 		}
 		if (error) {
 			GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
@@ -686,7 +661,8 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 			gtk_widget_destroy(dialog);
 		}
 		g_free(filename);
-		return;
+		if (do_return)
+			return;
 	}
 
 	int i;
@@ -714,16 +690,9 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 			}
 		}
 		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmso") == 0) {
-			GtkWidget *window = gtk_application_window_new(GTK_APPLICATION(app));
-			g_action_map_add_action_entries(G_ACTION_MAP(window), xmso_win_entries, G_N_ELEMENTS(xmso_win_entries), window);
-			gtk_window_set_default_size(GTK_WINDOW(window), 900, 900);
-			gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-			gtk_container_set_border_width(GTK_CONTAINER(window), 10);
-			GtkWidget *xmso_sw = xmi_msim_gui_xmso_results_scrolled_window_new();
-			gtk_container_add(GTK_CONTAINER(window), xmso_sw);
-			g_signal_connect(window, "realize", G_CALLBACK(viewer_cb), g_strdup((const gchar*) filename));
-			if (xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(xmso_sw), filename, &error) == FALSE) {
-				gtk_widget_destroy(window);
+			GtkWidget *window = xmi_msim_gui_xmso_results_application_window_new(XMI_MSIM_GUI_APPLICATION(app), filename, &error);
+			if (window == NULL) {
+				// error
 				error_dialog = gtk_message_dialog_new(active_window,
 					GTK_DIALOG_DESTROY_WITH_PARENT,
 					GTK_MESSAGE_ERROR,
@@ -733,7 +702,9 @@ static void app_open(GApplication *app, GFile **files, gint n_files, const gchar
 				gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(error_dialog), "%s", error->message);
 				g_error_free(error);
 			}
-			gtk_widget_show_all(window);
+			else {
+				gtk_window_present(GTK_WINDOW(window));
+			}
 		}
 		else if (g_ascii_strcasecmp(filename + strlen(filename) - 5, ".xmsa") == 0) {
 			GtkWidget *task_window = xmi_msim_gui_long_task_window_new(active_window); // disable modal???

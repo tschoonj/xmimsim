@@ -21,9 +21,13 @@ void xmi_msim_gui_osx_app_disable_tabbing(void) {
 }
 
 void xmi_msim_gui_osx_nswindow_set_file(GtkWidget *window, const gchar *filename) {
+	g_return_if_fail(window != NULL);
+	GdkWindow *dwindow = gtk_widget_get_window(window);
+	g_return_if_fail(dwindow != NULL); // this happens sometimes for some reason...
+
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
-	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
+	NSWindow *qwindow = gdk_quartz_window_get_nswindow(dwindow);
 	if (filename != NULL) {
 		gchar *uri = g_filename_to_uri(filename, NULL, NULL);
 		NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];

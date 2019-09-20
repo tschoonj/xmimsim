@@ -592,7 +592,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	int i;
 	gchar *symbol;
 	for (i = 1 ; i <= 94 ; i++) {
-		symbol = AtomicNumberToSymbol(i);
+		symbol = AtomicNumberToSymbol(i, NULL);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->anodeMaterialW), symbol);
 		xrlFree(symbol);
 	}
@@ -607,7 +607,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	source->windowDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(source->windowMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->windowDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
-		symbol = AtomicNumberToSymbol(i);
+		symbol = AtomicNumberToSymbol(i, NULL);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->windowMaterialW), symbol);
 		xrlFree(symbol);
 	}
@@ -622,7 +622,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	source->filterDensityW = gtk_entry_new();
 	g_signal_connect(G_OBJECT(source->filterMaterialW), "changed", G_CALLBACK(material_changed_cb), (gpointer) source->filterDensityW);
 	for (i = 1 ; i <= 94 ; i++) {
-		symbol = AtomicNumberToSymbol(i);
+		symbol = AtomicNumberToSymbol(i, NULL);
 		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->filterMaterialW), symbol);
 		xrlFree(symbol);
 	}
@@ -708,7 +708,7 @@ static void slits_button_clicked_cb(XmiMsimGuiSourceTubeEbel *source) {
 
 static void material_changed_cb(GtkComboBox *widget, GtkWidget *densityW) {
 	int Z = gtk_combo_box_get_active(widget)+1;
-	float density = ElementDensity(Z);
+	float density = ElementDensity(Z, NULL);
 
 	gchar *buf = g_strdup_printf("%g", density);
 	gtk_entry_set_text(GTK_ENTRY(densityW), buf);

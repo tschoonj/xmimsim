@@ -17,10 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <config.h>
 #include "xmi_job.h"
-#include "xmi_marshal.h"
 #include "xmi_type_builtins.h"
 #include "xmi_aux.h"
+#include "xmi_xml.h"
 #include <string.h>
+
+#define XMI_OBJECT_REF(obj) \
+	xmi_object_ref(obj, G_STRLOC)
+
+#define XMI_OBJECT_UNREF(obj) \
+	xmi_object_unref(obj, G_STRLOC)
 
 enum {
 	STDOUT_EVENT,
@@ -54,7 +60,6 @@ struct _XmiMsimJob {
 	GObject parent_instance;
 	GPid gpid;
 	int pid;
-	GMutex job_mutex;
 	gboolean running;
 	gboolean paused;
 	gboolean finished;
@@ -67,6 +72,10 @@ struct _XmiMsimJob {
 	GIOChannel *stdout_channel;
 	GIOChannel *stderr_channel;
 	guint child_watch_id;
+	guint stdout_watch_id;
+	guint stderr_watch_id;
+	gchar *xmsi_file;
+	gchar *xmso_file;
 };
 
 struct _XmiMsimJobClass {
@@ -90,6 +99,13 @@ gboolean xmi_msim_job_kill(XmiMsimJob *job, GError **error) {
 		return FALSE;
 	}
 	job->do_not_emit = TRUE;
+
+	if (xmi_msim_job_is_running(job) == TRUE) {
+		g_source_remove(job->child_watch_id);
+		g_source_remove(job->stdout_watch_id);
+		g_source_remove(job->stderr_watch_id);
+	}
+
 	return xmi_msim_job_stop(job, error);
 }
 
@@ -118,9 +134,7 @@ gboolean xmi_msim_job_stop(XmiMsimJob *job, GError **error) {
 		return FALSE;	
 	}
 
-	g_mutex_lock(&job->job_mutex);
 	if (job->killed) {
-		g_mutex_unlock(&job->job_mutex);
 		return TRUE;
 	}
 	job->killed = TRUE;
@@ -128,14 +142,12 @@ gboolean xmi_msim_job_stop(XmiMsimJob *job, GError **error) {
 #ifdef G_OS_UNIX
 	if (kill(job->gpid, SIGTERM) == -1) {
 		g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be terminated with the SIGTERM signal: %s", job->pid, strerror(errno));
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;
 	}
 	// if paused, resume with SIGCONT, otherwise nothing will happen on Linux... Seems to work fine without on macOS though...
 	if (job->paused) {
 		if (kill(job->gpid, SIGCONT) == -1) {
 			g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be resumed with the SIGCONT signal, after sending SIGTERM: %s", job->pid, strerror(errno));
-			g_mutex_unlock(&job->job_mutex);
 			return FALSE;
 		}
 	}
@@ -146,17 +158,14 @@ gboolean xmi_msim_job_stop(XmiMsimJob *job, GError **error) {
 			g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be terminated with the TerminateProcess call: %s", job->pid, error_msg);
 			g_free(error_msg);
 		}
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;	
 	}
 #else
 	// unsupported platform??
 	g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be terminated on this unknown platform", job->pid);
-	g_mutex_unlock(&job->job_mutex);
 	return FALSE;
 #endif
 	// a proper kill will result in the child_watcher being called, leading to a FINISHED_EVENT getting emitted, unless do_not_emit is set...
-	g_mutex_unlock(&job->job_mutex);
 	return TRUE;
 }
 
@@ -192,12 +201,10 @@ gboolean xmi_msim_job_suspend(XmiMsimJob *job, GError **error) {
 		return FALSE;	
 	}
 
-	g_mutex_lock(&job->job_mutex);
 	g_debug("Suspending job with pid %d", job->pid);
 #ifdef G_OS_UNIX
 	if (kill((pid_t) job->gpid, SIGSTOP) != 0) {
 		g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be suspended with the SIGSTOP signal: %s", job->pid, strerror(errno));
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;	
 	
 	}
@@ -208,12 +215,10 @@ gboolean xmi_msim_job_suspend(XmiMsimJob *job, GError **error) {
 			g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be suspended with the NtSuspendProcess call: %s", job->pid, error_msg);
 			g_free(error_msg);
 		}
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;	
 	}
 #endif
 	job->paused = TRUE;
-	g_mutex_unlock(&job->job_mutex);
 
 	return TRUE;
 }
@@ -251,12 +256,10 @@ gboolean xmi_msim_job_resume(XmiMsimJob *job, GError **error) {
 		return FALSE;	
 	}
 
-	g_mutex_lock(&job->job_mutex);
 	g_debug("Resuming job with pid %d", job->pid);
 #ifdef G_OS_UNIX
 	if (kill((pid_t) job->gpid, SIGCONT) != 0) {
 		g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be resumed with the SIGcont signal: %s", job->pid, strerror(errno));
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;	
 	
 	}
@@ -267,13 +270,11 @@ gboolean xmi_msim_job_resume(XmiMsimJob *job, GError **error) {
 			g_set_error(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_PROCESS, "Process %d could not be resumed with the NtResumeProcess call: %s", job->pid, error_msg);
 			g_free(error_msg);
 		}
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;	
 	
 	}
 #endif
 	job->paused = FALSE;
-	g_mutex_unlock(&job->job_mutex);
 
 	return TRUE;
 }
@@ -286,19 +287,17 @@ static void xmi_msim_job_finalize(GObject *gobject) {
 	g_debug("Entering xmi_msim_job_finalize");
 	XmiMsimJob *job = XMI_MSIM_JOB(gobject);
 	
-	if (xmi_msim_job_is_running(job) == TRUE) {
-		g_source_remove(job->child_watch_id);
-	}
-
 	xmi_msim_job_kill(job, NULL);
 
 	g_spawn_close_pid(job->gpid);
 
-	g_mutex_clear(&job->job_mutex);
-
 	g_ptr_array_free(job->argv, TRUE);
 
 	g_free(job->wd);
+
+	g_free(job->xmsi_file);
+
+	g_free(job->xmso_file);
 
 	G_OBJECT_CLASS(xmi_msim_job_parent_class)->finalize(gobject);
 }
@@ -338,7 +337,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*
@@ -358,7 +357,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__STRING,
+		NULL,
 		G_TYPE_NONE,
 		1,
 		G_TYPE_STRING // gchar*
@@ -379,7 +378,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__BOOLEAN_STRING,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		G_TYPE_BOOLEAN, // gboolean 
@@ -401,7 +400,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__ENUM_STRING,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
@@ -423,7 +422,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		0, // no default handler
 		NULL,
 		NULL,
-		xmi_VOID__ENUM_DOUBLE,
+		NULL,
 		G_TYPE_NONE,
 		2,
 		XMI_MSIM_TYPE_JOB_SPECIAL_EVENT, // XmiMsimJobSpecialEvent
@@ -434,13 +433,12 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 }
 
 static void xmi_msim_job_init(XmiMsimJob *self) {
-	g_mutex_init(&self->job_mutex);
 }
 
 /**
  * xmi_msim_job_new: (constructor)
  * @xmi_msim_executable: (not nullable): the full path to the %xmimsim executable
- * @xmsifile: (not nullable): the full path to the xmsi input-file
+ * @xmsi_file: (not nullable): the full path to the xmsi input-file
  * @options: (not nullable): an #XmiMsimMainOptions boxed struct containing the options for the job
  * @spe_conv: (nullable): prefix to the SPE files
  * @csv_conv: (nullable): full path to a CSV file
@@ -455,18 +453,18 @@ static void xmi_msim_job_init(XmiMsimJob *self) {
  */
 XmiMsimJob* xmi_msim_job_new(
 	const gchar *xmi_msim_executable,
-	const gchar *xmsifile,
+	const gchar *xmsi_file,
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	const gchar **extra_options,
+	gchar **extra_options,
 	GError **error
 	) {
 
-	if (!xmsifile) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmsifile cannot be NULL");
+	if (!xmsi_file) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmsi_file cannot be NULL");
 		return NULL;
 	}
 	if (!xmi_msim_executable) {
@@ -600,7 +598,7 @@ XmiMsimJob* xmi_msim_job_new(
 
 	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine solid angles HDF5 file");
-		g_object_unref(job);
+		XMI_OBJECT_UNREF(job);
 		return NULL;
 	}
 	g_ptr_array_add(job->argv, g_strdup_printf("--with-solid-angles-data=%s", xmimsim_hdf5_solid_angles));
@@ -608,7 +606,7 @@ XmiMsimJob* xmi_msim_job_new(
 
 	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine escape ratios HDF5 file");
-		g_object_unref(job);
+		XMI_OBJECT_UNREF(job);
 		return NULL;
 	}
 	g_ptr_array_add(job->argv, g_strdup_printf("--with-escape-ratios-data=%s", xmimsim_hdf5_escape_ratios));
@@ -625,10 +623,18 @@ XmiMsimJob* xmi_msim_job_new(
 		}
 	}
 
-	g_ptr_array_add(job->argv, g_strdup(xmsifile));
+	g_ptr_array_add(job->argv, g_strdup(xmsi_file));
 	g_ptr_array_add(job->argv, NULL);
 
-	job->wd = g_path_get_dirname(xmsifile);
+	job->wd = g_path_get_dirname(xmsi_file);
+
+	job->xmsi_file = g_strdup(xmsi_file);
+
+	// read xmsi_file to determine the output-file!
+	xmi_input *input = NULL;
+	g_return_val_if_fail((input = xmi_input_read_from_xml_file(xmsi_file, error)) != NULL, NULL);
+	job->xmso_file = g_strdup(input->general->outputfile);
+	xmi_input_free(input);
 
 	return job;
 }
@@ -641,6 +647,11 @@ static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
 	gboolean success;
 	int pid = job->pid;
 	gchar *xmi_msim_executable = g_ptr_array_index(job->argv, 0);
+
+	// free up current_job
+	//G_LOCK(current_job);
+	current_job = NULL;
+	//G_UNLOCK(current_job);
 
 	//windows <-> unix issues here
 	//unix allows to obtain more info about the way the process was terminated, windows will just have the exit code (status)
@@ -677,7 +688,6 @@ static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
 #endif
 
 	g_spawn_close_pid(gpid);
-	g_mutex_lock(&job->job_mutex);
 	job->running = FALSE;
 	job->paused = FALSE;
 	job->finished = TRUE;
@@ -685,10 +695,6 @@ static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
 	if (!job->do_not_emit) /* necessary to avoid blunt kills from emitting useless signals  */
 		g_signal_emit(job, signals[FINISHED_EVENT], 0, success, buffer);
 	g_free(buffer);
-	g_mutex_unlock(&job->job_mutex);
-	G_LOCK(current_job);
-	current_job = NULL;
-	G_UNLOCK(current_job);
 }
 
 #define XMI_STRNCMP(string1, string2) strncmp(string1, string2, strlen(string2))
@@ -787,8 +793,9 @@ static gboolean process_stdout_channel_string(XmiMsimJob *job, gchar *string) {
 
 static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, XmiMsimJob *job) {
 	// this trick appears to work well for avoiding segfaults due to text being processed when the job has been killed
-	if (job->killed)
+	if (job->killed) {
 		return FALSE;
+	}
 
 	gchar *pipe_string;
 	GError *pipe_error=NULL;
@@ -861,11 +868,9 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 		return FALSE;
 	}
 
-	g_mutex_lock(&job->job_mutex);
 	if (job->finished) {
 		// do not allow old finished jobs to be restarted!
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "this job has finished already");
-		g_mutex_unlock(&job->job_mutex);
 		G_UNLOCK(current_job);
 		return FALSE;
 	}
@@ -877,7 +882,6 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	
 	if (spawn_rv == FALSE) {
 		G_UNLOCK(current_job);
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;
 	}
 
@@ -897,24 +901,23 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	job->stdout_channel = g_io_channel_unix_new(out_fh);
 #endif
 
-	job->child_watch_id = g_child_watch_add(job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, job);
+	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_HIGH_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
 
 	const gchar *encoding = NULL;
 	g_get_charset(&encoding);
 
 	g_io_channel_set_encoding(job->stdout_channel, encoding, NULL);
 	g_io_channel_set_close_on_unref(job->stdout_channel, TRUE);
-	g_io_add_watch(job->stdout_channel, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, job);
+	job->stdout_watch_id = g_io_add_watch_full(job->stdout_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stdout_channel);
 
 	g_io_channel_set_encoding(job->stderr_channel, encoding, NULL);
 	g_io_channel_set_close_on_unref(job->stderr_channel,TRUE);
-	g_io_add_watch(job->stderr_channel, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, job);
+	job->stderr_watch_id = g_io_add_watch_full(job->stderr_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stderr_channel);
 
 	job->running = TRUE;
 	current_job = job;
-	g_mutex_unlock(&job->job_mutex);
 	G_UNLOCK(current_job);
 
 	return TRUE;
@@ -936,14 +939,16 @@ gboolean xmi_msim_job_get_pid(XmiMsimJob *job, gint *pid, GError **error) {
 		return FALSE;
 	}
 
-	g_mutex_lock(&job->job_mutex);
+	if (pid == NULL) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "pid cannot be NULL");
+		return FALSE;
+	}
+
 	if (job->pid == 0) {
 		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_UNAVAILABLE, "job has not been successfully started yet");
-		g_mutex_unlock(&job->job_mutex);
 		return FALSE;
 	}
 	*pid = (gint) job->pid;
-	g_mutex_unlock(&job->job_mutex);
 	return TRUE;
 }
 
@@ -956,12 +961,10 @@ gboolean xmi_msim_job_get_pid(XmiMsimJob *job, gint *pid, GError **error) {
  * Returns: %TRUE if the job is currently running, %FALSE otherwise
  */
 gboolean xmi_msim_job_is_running(XmiMsimJob *job) {
-	g_return_val_if_fail(job != NULL, FALSE);
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), FALSE);
 
 	gboolean rv;
-	g_mutex_lock(&job->job_mutex);
 	rv = job->running;
-	g_mutex_unlock(&job->job_mutex);
 	return rv;
 }
 
@@ -972,12 +975,10 @@ gboolean xmi_msim_job_is_running(XmiMsimJob *job) {
  * Returns: %TRUE if the job is currently suspended, %FALSE otherwise
  */
 gboolean xmi_msim_job_is_suspended(XmiMsimJob *job) {
-	g_return_val_if_fail(job != NULL, FALSE);
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), FALSE);
 
 	gboolean rv;
-	g_mutex_lock(&job->job_mutex);
 	rv = job->paused;
-	g_mutex_unlock(&job->job_mutex);
 	return rv;
 }
 
@@ -988,12 +989,10 @@ gboolean xmi_msim_job_is_suspended(XmiMsimJob *job) {
  * Returns: %TRUE if the job has finished (successfully or not...), %FALSE otherwise
  */
 gboolean xmi_msim_job_has_finished(XmiMsimJob *job) {
-	g_return_val_if_fail(job != NULL, FALSE);
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), FALSE);
 
 	gboolean rv;
-	g_mutex_lock(&job->job_mutex);
 	rv = job->finished;
-	g_mutex_unlock(&job->job_mutex);
 	return rv;
 }
 
@@ -1004,12 +1003,10 @@ gboolean xmi_msim_job_has_finished(XmiMsimJob *job) {
  * Returns: %TRUE if the job has finished and was successful, %FALSE otherwise
  */
 gboolean xmi_msim_job_was_successful(XmiMsimJob *job) {
-	g_return_val_if_fail(job != NULL, FALSE);
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), FALSE);
 
 	gboolean rv;
-	g_mutex_lock(&job->job_mutex);
 	rv = job->successful;
-	g_mutex_unlock(&job->job_mutex);
 	return rv;
 }
 
@@ -1020,7 +1017,7 @@ gboolean xmi_msim_job_was_successful(XmiMsimJob *job) {
  *
  */
 void xmi_msim_job_send_all_stdout_events(XmiMsimJob *job, gboolean setting) {
-	g_return_if_fail(job != NULL);
+	g_return_if_fail(XMI_MSIM_IS_JOB(job));
 
 	job->send_all_stdout_events = setting;
 }
@@ -1032,7 +1029,7 @@ void xmi_msim_job_send_all_stdout_events(XmiMsimJob *job, gboolean setting) {
  * Returns: the complete command that is associated with this #XmiMsimJob instance. Free after usage with #g_free.
  */
 gchar* xmi_msim_job_get_command(XmiMsimJob *job) {
-	g_return_val_if_fail(job != NULL, NULL);
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), NULL);
 
 	if (job->argv)
 		return g_strjoinv(" ", (gchar **) job->argv->pdata);
@@ -1071,4 +1068,22 @@ gboolean xmi_msim_job_is_suspend_available(void) {
 	}
 #endif
 	return TRUE;
+}
+
+/**
+ * xmi_msim_job_get_input_file:
+ * @job: the #XmiMsimJob instance.
+ *
+ * Returns: the name of the input-file that will be used to run this #XmiMsim.Job
+ */
+gchar* xmi_msim_job_get_input_file(XmiMsimJob *job) {
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), NULL);
+
+	return g_strdup(job->xmsi_file);
+}
+
+gchar* xmi_msim_job_get_output_file(XmiMsimJob *job) {
+	g_return_val_if_fail(XMI_MSIM_IS_JOB(job), NULL);
+
+	return g_strdup(job->xmso_file);
 }

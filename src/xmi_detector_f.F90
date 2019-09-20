@@ -352,7 +352,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         channels_temp
         !REAL (C_DOUBLE), ALLOCATABLE, DIMENSION(:), TARGET, SAVE ::&
         REAL (C_DOUBLE), POINTER, DIMENSION(:) ::&
-        channels_conv
+        channels_conv, channels_conv_orig
         INTEGER (C_LONG) :: nlim
         REAL (C_DOUBLE) :: a,b, det_corr
         REAL (C_DOUBLE), PARAMETER :: c =&
@@ -393,8 +393,9 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 
 
         !allocate memory for results
-        ALLOCATE(channels_temp(0:inputF%detector%nchannels-1))
-        ALLOCATE(channels_conv(0:inputF%detector%nchannels-1))
+        channels_convPtr = g_malloc(xmi_sizeof_double * inputF%detector%nchannels)
+        CALL C_F_POINTER(channels_convPtr, channels_conv_orig, [inputF%detector%nchannels])
+        channels_conv(0:inputF%detector%nchannels-1) => channels_conv_orig
         !
         nlim = inputF%detector%nchannels-1
 
@@ -408,7 +409,7 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
 #endif
 
 
-        channels_temp(0:inputF%detector%nchannels-1) = &
+        channels_temp(0:inputF%detector%nchannels-1) => &
         channels_noconv(1:inputF%detector%nchannels)
         channels_conv = 0.0_C_DOUBLE
 
@@ -574,8 +575,6 @@ channels_convPtr, options, escape_ratiosCPtr, n_interactions&
         WRITE (*,'(A,ES14.6)') 'channels_temp max: ',MAXVAL(channels_temp)
         WRITE (*,'(A,ES14.6)') 'channels_conv max: ',MAXVAL(channels_conv)
 #endif
-        DEALLOCATE(channels_temp)
-        channels_convPtr = C_LOC(channels_conv(0))
 
         RETURN
 ENDSUBROUTINE xmi_detector_convolute_spectrum

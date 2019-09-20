@@ -20,20 +20,21 @@ check_PROGRAMS = \
      test-cubic-spline \
      test-ebel \
      test-gobject \
-     test-job
+     test-job \
+     test-batch \
      $(NULL)
 
 TEST_EXTENSIONS = .py
 PY_LOG_COMPILER = $(PYTHON)
-AM_PY_LOG_FLAGS =
-AM_TESTS_ENVIRONMENT = XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH ;
+AM_PY_LOG_FLAGS = -Wignore
+AM_TESTS_ENVIRONMENT = ABS_TOP_SRCDIR='$(abs_top_srcdir)' HDF5_DATA_DIR='$(abs_top_builddir)/tests' XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH HDF5_DATA_DIR ABS_TOP_SRCDIR ;
 
 if OS_WINDOWS
-AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
-AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 else
-AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
-AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 endif
 
 
@@ -61,14 +62,19 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
+if ENABLE_CUSTOM_DETECTOR
+  check_PROGRAMS += test-custom-detector-response
+endif
+
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+#TESTS = test-gi-xmimsim.py test-job test-batch test-gi-xmimsim.py
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
 	libxmimsim-test.c
 libxmimsim_test_la_CPPFLAGS = @glib2_CFLAGS@ @libsoup_CFLAGS@ \
 			    -I${top_srcdir}/include @xml2_CFLAGS@ \
-			    @xraylib_CFLAGS@
+			    @xraylib_CFLAGS@ -DABS_TOP_SRCDIR="\"${abs_top_srcdir}\""
 libxmimsim_test_la_LIBADD = @glib2_LIBS@ @libsoup_LIBS@ ../src/libxmimsim.la
 
 test_read_xmsi_SOURCES = test-read-xmsi.c
@@ -193,11 +199,19 @@ test_job_SOURCES = test-job.c
 test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_job_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
+test_custom_detector_response_SOURCES = test-custom-detector-response.c
+test_custom_detector_response_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
+test_custom_detector_response_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
+
+test_batch_SOURCES = test-batch.c
+test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DHDF5_DATA_DIR="\"$(abs_top_builddir)/tests\""
+test_batch_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
+
 test_version_SOURCES = test-version.c
 test_version_CPPFLAGS = -I${top_builddir} -I${top_srcdir}/include @xml2_CFLAGS@ @glib2_CFLAGS@ @xraylib_CFLAGS@
 test_version_LDADD = @glib2_LIBS@
 
 clean-local:
-	rm -f test.xmsi test.xmso CaSO4_28keV_pol_1D.xmsa CaSO4_28keV_pol_2D.xmsa test.spe
+	rm -f test.spe *.xmsi *.xmso *.xmsa
 
 EXTRA_DIST = transmission-efficiency.txt
