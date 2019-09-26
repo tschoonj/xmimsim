@@ -9,7 +9,7 @@
 
 
 int main(int argc, char *argv[]) {
-	char *xmimsim_hdf5_solid_angles = "xmimsim-solid-angles-cl.h5";
+	char *xmimsim_hdf5_solid_angles = "xmimsim-solid-angles-metal.h5";
 	xmi_input *input;
 	xmi_inputFPtr inputFPtr;
 	xmi_solid_angle *solid_angle_def = NULL;
@@ -25,7 +25,8 @@ int main(int argc, char *argv[]) {
 	g_assert(test_init() == 1);
 
 	// set environment variables
-	g_assert(g_setenv("XMIMSIM_CL_LIB", XMIMSIM_CL_LIB, TRUE) == TRUE);
+	g_assert(g_setenv("XMIMSIM_METAL_LIB", XMIMSIM_METAL_LIB, TRUE) == TRUE);
+	g_assert(g_setenv("XMIMSIM_METAL_KERNEL", XMIMSIM_METAL_KERNEL, TRUE) == TRUE);
 
 	// download file
 	g_assert(test_download_file(TEST_XMSI_URL) == 1);
@@ -55,8 +56,7 @@ int main(int argc, char *argv[]) {
 	g_assert_true(xmi_input_write_to_xml_string(input, &xmi_input_string, NULL));
 
 	// run the actual calculation
-	int rv = xmi_solid_angle_calculation_cl(inputFPtr, &solid_angle_def, xmi_input_string, options);
-
+	int rv = xmi_solid_angle_calculation_metal(inputFPtr, &solid_angle_def, xmi_input_string, options);
 
 	if (rv == 0) {
 		if (g_getenv("CI") != NULL) {

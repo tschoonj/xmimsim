@@ -52,8 +52,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 
 		NSError *error = nil;
 		NSArray<id<MTLDevice>> *devices;
-		unsigned i, j;
-		unsigned long ndevices;
+		unsigned int i, j;
 
 		// get default device
 		device = MTLCreateSystemDefaultDevice();
@@ -74,7 +73,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 
 		// get Metal library
 		gchar *metal_kernel = NULL;
-		const gchar *metal_kernel_env = g_getenv("XMI_METAL_KERNEL");
+		const gchar *metal_kernel_env = g_getenv("XMIMSIM_METAL_KERNEL");
 		if (metal_kernel_env != NULL) {
 			metal_kernel = g_strdup(metal_kernel_env);
 		}
@@ -145,6 +144,9 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 					id<MTLCommandBuffer> buffer;
 					id<MTLComputeCommandEncoder> encoder;
 					id<MTLComputePipelineState> pipeline;
+					
+					unsigned int tid_offset0 = i * sa->grid_dims_r_n / RANGE_DIVIDER;
+					unsigned int tid_offset1 = j * sa->grid_dims_theta_n / RANGE_DIVIDER;
 
 					buffer = [queue commandBuffer];
 					encoder = [buffer computeCommandEncoder];
@@ -159,8 +161,8 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 					[encoder setBytes: &collimator_radius length: sizeof(float) atIndex: 5];
 					[encoder setBytes: &collimator_height length: sizeof(float) atIndex: 6];
 					[encoder setBytes: &hits_per_single length: sizeof(int) atIndex: 7];
-					[encoder setBytes: &i length: sizeof(unsigned int) atIndex: 8];
-					[encoder setBytes: &j length: sizeof(unsigned int) atIndex: 9];
+					[encoder setBytes: &tid_offset0 length: sizeof(unsigned int) atIndex: 8];
+					[encoder setBytes: &tid_offset1 length: sizeof(unsigned int) atIndex: 9];
 
 					NSUInteger w = [pipeline threadExecutionWidth];
 					NSUInteger h = [pipeline maxTotalThreadsPerThreadgroup] / w;
@@ -185,7 +187,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 		}
 		sa->xmi_input_string = input_string;
 
-		g_free(solid_angles_float);
 		g_free(grid_dims_r_vals_float);
 		g_free(grid_dims_theta_vals_float);
 

@@ -257,7 +257,7 @@ endif
 
 XmiMsim-1.0.gir: libxmimsim.la
 XmiMsim_1_0_gir_INCLUDES = GObject-2.0 libxml2-2.0
-XmiMsim_1_0_gir_CFLAGS = $(xraylib_CFLAGS)
+XmiMsim_1_0_gir_CFLAGS = $(xraylib_CFLAGS) -I$(top_srcdir)/include
 XmiMsim_1_0_gir_LIBS = libxmimsim.la
 XmiMsim_1_0_gir_FILES = $(introspection_sources)
 INTROSPECTION_GIRS += XmiMsim-1.0.gir

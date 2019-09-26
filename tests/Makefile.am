@@ -62,12 +62,16 @@ if ENABLE_OPENCL
   check_PROGRAMS += test-xmimsim-cl
 endif
 
+if ENABLE_METAL
+  check_PROGRAMS += test-xmimsim-metal
+endif
+
 if ENABLE_CUSTOM_DETECTOR
   check_PROGRAMS += test-custom-detector-response
 endif
 
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-gi-xmimsim.py test-job test-batch test-gi-xmimsim.py
+#TESTS = test-xmimsim-cl test-xmimsim-metal
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -176,8 +180,17 @@ test_gobject_LDADD = libxmimsim-test.la
 test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
+			-I${top_srcdir}/src \
 			-DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\"
 test_xmimsim_cl_LDADD = libxmimsim-test.la
+
+test_xmimsim_metal_SOURCES = test-xmimsim-metal.c
+test_xmimsim_metal_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
+			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
+			-I${top_srcdir}/src \
+			-DXMIMSIM_METAL_LIB=\"${top_builddir}/src/.libs\" \
+			-DXMIMSIM_METAL_KERNEL=\"${top_builddir}/src/xmi_kernels.metallib\"
+test_xmimsim_metal_LDADD = libxmimsim-test.la
 
 test_pile_up_SOURCES = test-pile-up.c
 test_pile_up_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \

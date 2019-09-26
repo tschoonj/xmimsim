@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include <glib.h>
 #include <stdint.h>
+#include <xmi_solid_angle.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +98,16 @@ extern int64_t XMI_H5T_NATIVE_DOUBLE;
 extern int64_t XMI_H5T_NATIVE_INT;
 
 #endif
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo);
+#endif
+
+#if defined(HAVE_METAL)
+int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo);
+#endif
+
+int xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo);
 
 #ifdef __cplusplus
 }

@@ -300,9 +300,10 @@ collimator_heightPtr) BIND(C,NAME='xmi_solid_angle_inputs_f')
 
 ENDSUBROUTINE xmi_solid_angle_inputs_f
 
-SUBROUTINE xmi_solid_angle_calculation_f(inputFPtr,&
+FUNCTION xmi_solid_angle_calculation_f(inputFPtr,&
 solid_anglePtr,input_string,options)&
-BIND(C,NAME='xmi_solid_angle_calculation_f')
+BIND(C,NAME='xmi_solid_angle_calculation_f')&
+RESULT(rv)
         !let's use some of that cool Fortran 2003 floating point exception
         !handling as there seems to be a problem with the ACOS calls...
 #if DEBUG == 1
@@ -318,6 +319,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         TYPE (xmi_main_options), INTENT(IN) :: options
         TYPE (xmi_solid_angleC), POINTER :: solid_angle
         TYPE (xmi_input), POINTER :: inputF
+        INTEGER (C_INT) :: rv
 
         REAL (C_DOUBLE), POINTER, DIMENSION(:) :: grid_dims_r_vals,&
         grid_dims_theta_vals
@@ -336,6 +338,7 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
         CALL ieee_set_flag(ieee_usual,.FALSE.)
 #endif
 
+        rv = 0
 
         CALL C_F_POINTER(inputFPtr, inputF)
 
@@ -421,9 +424,10 @@ BIND(C,NAME='xmi_solid_angle_calculation_f')
 #endif
         ENDIF
 
+        rv = 1
 
         RETURN
-ENDSUBROUTINE xmi_solid_angle_calculation_f
+ENDFUNCTION xmi_solid_angle_calculation_f
 
 
 FUNCTION xmi_single_solid_angle_calculation(inputF, r1, theta1, rng) &

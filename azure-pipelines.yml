@@ -1,5 +1,6 @@
 variables:
   LD_LIBRARY_PATH: /usr/local/lib
+  CI: true
 
 trigger: ['master']
 
