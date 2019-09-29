@@ -554,6 +554,30 @@ fi
 
 AM_CONDITIONAL([ENABLE_OPENCL], [test "x$no_cl" != "xyes"])
 
+# Metaltest
+no_metal=yes
+
+AC_ARG_ENABLE([metal],[AS_HELP_STRING([--disable-metal],[build without Metal support])],[enable_metal=$enableval],[enable_metal=check])
+
+if test "x$enable_metal" != xno ; then
+	AX_CHECK_FRAMEWORK([Metal], [
+		AC_DEFINE([HAVE_METAL], [], [Building with Metal support])
+		AC_MSG_NOTICE([Metal implementation found])
+		LIBS_METAL="-framework Metal"
+		AC_SUBST(LIBS_METAL)
+		no_metal=no
+	], [
+		if test "x$enable_metal" = xcheck ; then
+		AC_MSG_NOTICE([no Metal implementation found])
+		else
+		AC_MSG_ERROR([no Metal implementation found])
+		fi
+
+	])
+fi
+
+AM_CONDITIONAL([ENABLE_METAL], [test "x$no_metal" != "xyes"])
+
 AC_ARG_ENABLE([custom-detector-response],[AS_HELP_STRING([--enable-custom-detector-response],[compile and install the custom detector response plug-in])],[enable_custom_detector=$enableval],[enable_custom_detector=check])
 
 if test "x$enable_custom_detector" = xyes ; then

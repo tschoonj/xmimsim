@@ -145,9 +145,9 @@ XMI_MAIN
 	ADD_OPTION("disable-escape-peaks", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_escape_peaks, "Disable escape peaks", NULL );
 	ADD_OPTION("enable-poisson", 0, 0, G_OPTION_ARG_NONE, &options->use_poisson, "Generate Poisson noise in the spectra", NULL );
 	ADD_OPTION("disable-poisson", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_poisson, "Disable the generating of spectral Poisson noise (default)", NULL );
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	ADD_OPTION("enable-opencl", 0, 0, G_OPTION_ARG_NONE, &options->use_opencl, "Enable OpenCL", NULL );
-	ADD_OPTION("disable-opencl", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_opencl, "Disable OpenCL (default)", NULL );
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	ADD_OPTION("enable-gpu", 0, 0, G_OPTION_ARG_NONE, &options->use_gpu, "Enable GPU (default)", NULL );
+	ADD_OPTION("disable-gpu", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_gpu, "Disable GPU", NULL );
 #endif
 	ADD_OPTION("enable-advanced-compton", 0, 0, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Enable advanced yet slower Compton simulation", NULL );
 	ADD_OPTION("disable-advanced-compton", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_advanced_compton, "Disable advanced yet slower Compton simulation (default)", NULL );
@@ -258,8 +258,8 @@ XMI_MAIN
 		g_fprintf(stdout,"Option pile-up: %i\n", options->use_sum_peaks);
 		g_fprintf(stdout,"Option Poisson noise: %i\n", options->use_poisson);
 		g_fprintf(stdout,"Option escape peaks: %i\n", options->use_escape_peaks);
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-		g_fprintf(stdout,"Option OpenCL: %i\n", options->use_opencl);
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+		g_fprintf(stdout,"Option GPU: %i\n", options->use_gpu);
 #endif
 		g_fprintf(stdout,"Option number of threads: %i\n", options->omp_num_threads);
 	}

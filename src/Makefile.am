@@ -18,9 +18,11 @@ NULL =
 xmimsimincludedir = ${includedir}/xmimsim
 xmimsimdir = $(datadir)/xmimsim
 
+BUILT_SOURCES =
+
 nodist_xmimsiminclude_HEADERS = xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_glib.mod
 
-AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -DG_LOG_DOMAIN=\"XmiMsim\"
+AM_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include -DG_LOG_DOMAIN=\"XmiMsim\" -DRANGE_DIVIDER=8
 
 plugindir = $(libdir)/xmimsim
 
@@ -79,6 +81,7 @@ libxmimsim_la_CFLAGS =  \
 	-DXMI_CATALOG=\"$(datadir)/xmimsim/xmimsim_cat.xml\" \
 	-DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
 	-DXMI_OPENCL_LIB=\"$(libdir)/xmimsim\" \
+	-DXMI_METAL_LIB=\"$(libdir)/xmimsim\" \
 	@WSTRICT_CFLAGS@
 
 libxmimsim_la_FCFLAGS = @OPENMP_FCFLAGS@ \
@@ -97,16 +100,43 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 			@glib2_LIBS@ \
 			@gmodule_LIBS@
 
+plugin_LTLIBRARIES =
+
 if ENABLE_OPENCL
-plugin_LTLIBRARIES = xmimsim-cl.la
+plugin_LTLIBRARIES += xmimsim-cl.la
 xmimsim_cl_la_CFLAGS = @WSTRICT_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@
+xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ $(AM_CPPFLAGS)
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
 if ENABLE_MAC_APP
 xmimsim_cl_la_LDFLAGS += -Wl,-headerpad_max_install_names
 endif
+endif
+
+if ENABLE_METAL
+
+
+plugin_LTLIBRARIES += xmimsim-metal.la
+xmimsim_metal_la_CFLAGS = @WSTRICT_CFLAGS@
+xmimsim_metal_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ $(AM_CPPFLAGS) -DXMI_METAL_KERNEL=\"$(pkgdatadir)/xmi_kernels.metallib\"
+xmimsim_metal_la_LIBADD = @LIBS_METAL@ libxmimsim.la
+xmimsim_metal_la_SOURCES = xmi_solid_angle_metal.m
+xmimsim_metal_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
+
+xmimsim_metaldir = $(pkgdatadir)
+xmimsim_metal_DATA = xmi_kernels.metallib
+
+if ENABLE_MAC_APP
+xmimsim_metal_la_LDFLAGS += -Wl,-headerpad_max_install_names
+endif
+
+%.air : %.metal
+	$(AM_V_GEN) xcrun --sdk macosx metal $(AM_CPPFLAGS) $(CPPFLAGS) -I${srcdir} -c $< -o $@
+
+%.metallib : %.air
+	$(AM_V_GEN) xcrun --sdk macosx metallib $< -o $@
+
 endif
 
 if OS_WINDOWS
@@ -170,7 +200,7 @@ xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir
 xmi_resources.h: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
 	$(AM_V_GEN) $(GLIB_COMPILE_RESOURCES) --target=$@ --sourcedir=$(srcdir) --c-name=xmi --generate-header $(srcdir)/xmi.gresource.xml
 
-BUILT_SOURCES = $(nodist_libxmimsim_la_SOURCES)
+BUILT_SOURCES += $(nodist_libxmimsim_la_SOURCES)
 
 xmimsim_main.mod: libxmimsim.la
 
@@ -227,7 +257,7 @@ endif
 
 XmiMsim-1.0.gir: libxmimsim.la
 XmiMsim_1_0_gir_INCLUDES = GObject-2.0 libxml2-2.0
-XmiMsim_1_0_gir_CFLAGS = $(xraylib_CFLAGS)
+XmiMsim_1_0_gir_CFLAGS = $(xraylib_CFLAGS) -I$(top_srcdir)/include
 XmiMsim_1_0_gir_LIBS = libxmimsim.la
 XmiMsim_1_0_gir_FILES = $(introspection_sources)
 INTROSPECTION_GIRS += XmiMsim-1.0.gir
@@ -249,10 +279,10 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(plugindir)/xmimsim-cl*
 
 clean-local:
-	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod xmimsim_glib.mod libxmimsim-*.def
-	rm -f $(nodist_libxmimsim_la_SOURCES)
+	rm -f xmimsim_main.mod xmimsim_aux.mod xmimsim_solid_angle.mod xmimsim_data.mod xmimsim_varred.mod xmimsim_detector.mod xmimsim_ebel.mod xmimsim_glib.mod libxmimsim-*.def xmi_kernels.metallib xmi_kernels.air
+	rm -f $(xmimsim_metal_DATA) $(nodist_libxmimsim_la_SOURCES)
 	rm -f $(CLEANFILES)
 
-EXTRA_DIST = xmi.gresource.xml xmi_kernels.cl identfilter.py symbolfilter.py
+EXTRA_DIST = xmi.gresource.xml xmi_kernels.cl identfilter.py symbolfilter.py xmi_kernels.metal
 
 SUBDIRS = Random123

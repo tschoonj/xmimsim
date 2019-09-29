@@ -47,7 +47,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "xmi_resources.h"
 
-#define RANGE_DIVIDER 8
 #define XMI_OPENCL_MAJOR 1
 #define XMI_OPENCL_MINOR 1
 
@@ -245,7 +244,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	for (i = 0 ; i < sa->grid_dims_theta_n ; i++)
 		grid_dims_theta_vals_float[i] = (float) sa->grid_dims_theta_vals[i];
 
-	float *solid_angles_float = (float *) g_malloc(sizeof(float)*sa->grid_dims_r_n*sa->grid_dims_theta_n);
+	float *solid_angles_float = (float *) g_malloc(sizeof(float) * sa->grid_dims_r_n * sa->grid_dims_theta_n);
 
 
 	//check device constant memory
@@ -307,7 +306,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	GString *kernel_code = g_string_sized_new(4096);
 
 	for (i = 0 ; i < G_N_ELEMENTS(filenames) ; i++) {
-		gchar *kernel_file = g_strdup_printf("/com/github/tschoonj/xmimsim/opencl/%s", filenames[i]);
+		gchar *kernel_file = g_strdup_printf("/com/github/tschoonj/xmimsim/gpu/%s", filenames[i]);
 		GError *error = NULL;
 		GBytes *source_code = g_resource_lookup_data(xmi_resource, kernel_file, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
 		if (!source_code) {
@@ -345,6 +344,7 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 
 		// Print the log
 		g_fprintf(stderr, "%s\n", my_log);
+		g_free(my_log);
 		return 0;;
 	}
 	//else {
@@ -432,6 +432,8 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	clReleaseContext(context);
 
 	g_free(solid_angles_float);
+	g_free(grid_dims_r_vals_float);
+	g_free(grid_dims_theta_vals_float);
 
 	if (xmo->verbose)
 		fprintf(stdout,"Solid angle calculation finished\n");

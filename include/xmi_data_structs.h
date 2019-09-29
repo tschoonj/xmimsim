@@ -467,7 +467,7 @@ typedef struct _xmi_main_options xmi_main_options;
  * @escape_ratios_mode: (skip): do not use this!
  * @verbose: should output be verbose
  * @use_poisson: randomize output spectra according to Poisson distributions
- * @use_opencl: use OpenCL where possible
+ * @use_gpu: use GPU where possible
  * @omp_num_threads: the number of threads to be used by OpenMP
  * @extra_verbose: make it even more verbose!
  * @custom_detector_response: path to custom detector reponse plugin
@@ -486,7 +486,7 @@ struct _xmi_main_options {
 	int escape_ratios_mode; //default : 0
 	int verbose; //default : 0
 	int use_poisson; //default : 0
-	int use_opencl; //default : 1
+	int use_gpu; //default : 1
 	int omp_num_threads; //default : max
 	int extra_verbose; //default : 0
 	char *custom_detector_response; //default : NULL

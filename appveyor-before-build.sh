@@ -28,7 +28,7 @@ cd ..
 if test $RNG = "fgsl" ; then
 	#install gsl
  	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
-	curl -L -s -O https://doku.lrz.de/download/attachments/28051060/fgsl-1.3.0.tar.gz
+	curl -L -s -O https://doku.lrz.de/download/attachments/43321199/fgsl-1.3.0.tar.gz
 	tar xfz fgsl-1.3.0.tar.gz
 	cd fgsl-1.3.0
 	curl -L -s -O https://github.com/reinh-bader/fgsl/commit/c306e9f936983df5bab68f8ba55006c0f88bc775.diff

@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_solid_angle.h"
 #include "xmi_data_structs.h"
 #include "xmi_main.h"
+#include "xmi_private.h"
 #include <glib.h>
 #include <math.h>
 #include <string.h>
@@ -47,75 +48,147 @@ typedef struct {
 
 static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5L_info_t *info, void *op_data);
 
-extern void xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *options);
-
 typedef int (*XmiSolidAngleCalculation) (xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *options);
 
-void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
+#ifdef HAVE_METAL 
+int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
+	XmiSolidAngleCalculation _xmi_solid_angle_calculation_metal;
+	GModule *module;
+	gchar *module_path;
+	gchar *metal_lib;
+
+	//try to open the module
+	if (!g_module_supported()) {
+		fprintf(stderr, "No module support on this platform\n");
+		return 0;
+	}
+
+	const gchar *metal_lib_env = g_getenv("XMIMSIM_METAL_LIB");
+	if (metal_lib_env != NULL) {
+		metal_lib = g_strdup(metal_lib_env);
+	}
+	else {
+#if defined(MAC_INTEGRATION)
+		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_METAL_LIB, &metal_lib) == 0)
+			return 0;
+#else
+		metal_lib = g_strdup(XMI_METAL_LIB);
+#endif
+	}
+	module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s", metal_lib, "xmimsim-metal", G_MODULE_SUFFIX);
+	module = g_module_open(module_path, 0);
+	g_free(module_path);
+	g_free(metal_lib);
+	if (!module) {
+		fprintf(stderr, "Could not open xmimsim-metal: %s\n", g_module_error());
+		return 0;
+	}
+	if (!g_module_symbol(module, "xmi_solid_angle_calculation_metal", (gpointer *) &_xmi_solid_angle_calculation_metal)) {
+		fprintf(stderr, "Error retrieving xmi_solid_angle_calculation_metal in xmimsim-metal: %s\n", g_module_error());
+		return 0;
+	}
+	if (_xmi_solid_angle_calculation_metal != NULL) {
+		int rv = _xmi_solid_angle_calculation_metal(inputFPtr, solid_angle, g_strdup(input_string), xmo);
+		if (rv == 0) {
+			fprintf(stderr, "Metal calculation failed: fallback to OpenCL and Fortran implementations\n");
+			return 0;
+		}
+	}
+	else {
+		fprintf(stderr, "xmi_solid_angle_calculation_metal is NULL\n");
+		return 0;
+	}
+	if (!g_module_close(module)) {
+		fprintf(stderr, "Warning: could not close module xmimsim-cl: %s\n", g_module_error());
+	}
+	return 1;
+}
+#endif
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
-	XmiSolidAngleCalculation xmi_solid_angle_calculation_cl;
+int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
+	XmiSolidAngleCalculation _xmi_solid_angle_calculation_cl;
 	GModule *module;
 	gchar *module_path;
 	gchar *opencl_lib;
 
-	if (xmo->use_opencl) {
-		//try to open the module
-		if (!g_module_supported()) {
-			fprintf(stderr,"No module support on this platform\n");
-			goto fallback;
-		}
-
-		const gchar *opencl_lib_env = g_getenv("XMIMSIM_CL_LIB");
-		if (opencl_lib_env != NULL) {
-			opencl_lib = g_strdup(opencl_lib_env);
-		}
-		else {
-#ifdef G_OS_WIN32
-			if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_LIB, &opencl_lib) == 0)
-				goto fallback;
-#elif defined(MAC_INTEGRATION)
-			if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_LIB, &opencl_lib) == 0)
-				goto fallback;
-#else
-			opencl_lib = g_strdup(XMI_OPENCL_LIB);
-#endif
-		}
-		module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s", opencl_lib, "xmimsim-cl", G_MODULE_SUFFIX);
-		module = g_module_open(module_path, 0);
-		g_free(module_path);
-		g_free(opencl_lib);
-		if (!module) {
-			fprintf(stderr,"Could not open xmimsim-cl: %s\n", g_module_error());
-			goto fallback;
-		}
-		if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &xmi_solid_angle_calculation_cl)) {
-			fprintf(stderr,"Error retrieving xmi_solid_angle_calculation_cl in xmimsim-cl: %s\n", g_module_error());
-			goto fallback;
-		}
-		if (xmi_solid_angle_calculation_cl != NULL) {
-			int rv = xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, g_strdup(input_string), xmo);
-			if (rv == 0) {
-				fprintf(stderr,"OpenCL calculation failed: fallback to Fortran implementation\n");
-				goto fallback;
-			}
-		}
-		else {
-			fprintf(stderr,"xmi_solid_angle_calculation_cl is NULL\n");
-			goto fallback;
-		}
-		if (!g_module_close(module)) {
-			fprintf(stderr,"Warning: could not close module xmimsim-cl: %s\n",g_module_error());
-		}
-		return;
-
+	//try to open the module
+	if (!g_module_supported()) {
+		fprintf(stderr, "No module support on this platform\n");
+		return 0;
 	}
-fallback:
-	g_setenv("XMIMSIM_CL_FALLBACK", "", TRUE);
-#endif
-	xmi_solid_angle_calculation_f(inputFPtr, solid_angle, g_strdup(input_string), xmo);
-}
 
+	const gchar *opencl_lib_env = g_getenv("XMIMSIM_CL_LIB");
+	if (opencl_lib_env != NULL) {
+		opencl_lib = g_strdup(opencl_lib_env);
+	}
+	else {
+#ifdef G_OS_WIN32
+		if (xmi_registry_win_query(XMI_REGISTRY_WIN_OPENCL_LIB, &opencl_lib) == 0)
+			return 0;
+#elif defined(MAC_INTEGRATION)
+		if (xmi_resources_mac_query(XMI_RESOURCES_MAC_OPENCL_LIB, &opencl_lib) == 0)
+			return 0;
+#else
+		opencl_lib = g_strdup(XMI_OPENCL_LIB);
+#endif
+	}
+	module_path = g_strdup_printf("%s" G_DIR_SEPARATOR_S "%s.%s", opencl_lib, "xmimsim-cl", G_MODULE_SUFFIX);
+	module = g_module_open(module_path, 0);
+	g_free(module_path);
+	g_free(opencl_lib);
+	if (!module) {
+		fprintf(stderr, "Could not open xmimsim-cl: %s\n", g_module_error());
+		return 0;
+	}
+	if (!g_module_symbol(module, "xmi_solid_angle_calculation_cl", (gpointer *) &_xmi_solid_angle_calculation_cl)) {
+		fprintf(stderr, "Error retrieving xmi_solid_angle_calculation_cl in xmimsim-cl: %s\n", g_module_error());
+		return 0;
+	}
+	if (_xmi_solid_angle_calculation_cl != NULL) {
+		int rv = _xmi_solid_angle_calculation_cl(inputFPtr, solid_angle, g_strdup(input_string), xmo);
+		if (rv == 0) {
+			fprintf(stderr, "OpenCL calculation failed: fallback to Fortran implementation\n");
+			return 0;
+		}
+	}
+	else {
+		fprintf(stderr, "xmi_solid_angle_calculation_cl is NULL\n");
+		return 0;
+	}
+	if (!g_module_close(module)) {
+		fprintf(stderr, "Warning: could not close module xmimsim-cl: %s\n", g_module_error());
+	}
+	return 1;
+}
+#endif
+
+XmiSolidAngleCalculation xmi_solid_angle_calculation_backends[] = {
+#ifdef HAVE_METAL
+	xmi_solid_angle_calculation_metal,
+#endif
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H)
+	xmi_solid_angle_calculation_cl,
+#endif
+	xmi_solid_angle_calculation_f
+};
+
+void xmi_solid_angle_calculation(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo) {
+
+	unsigned int i;
+
+	if (xmo->use_gpu) {
+		for (i = 0 ; i < G_N_ELEMENTS(xmi_solid_angle_calculation_backends) ; i++) {
+			XmiSolidAngleCalculation backend = xmi_solid_angle_calculation_backends[i];
+			int rv = backend(inputFPtr, solid_angle, g_strdup(input_string), xmo);
+			if (rv == 1)
+				break;
+		}
+	}
+	else {
+		xmi_solid_angle_calculation_f(inputFPtr, solid_angle, g_strdup(input_string), xmo);
+	}
+}
 
 int xmi_create_empty_solid_angle_hdf5_file(char *hdf5_file) {
 
