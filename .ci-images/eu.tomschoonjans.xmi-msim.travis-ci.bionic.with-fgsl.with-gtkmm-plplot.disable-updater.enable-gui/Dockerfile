@@ -1,6 +1,6 @@
-FROM tomschoonjans/xmimsim-travis-ci:xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui
+FROM tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui
 
-RUN apt-get install -y libgtkmm-plplot2-dev
+RUN apt-get install -y libgtkmm-plplot2-dev libpeas-dev
 
 WORKDIR /root
 

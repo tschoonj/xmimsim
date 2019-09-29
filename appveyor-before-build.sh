@@ -56,6 +56,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
+	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-libpeas
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot

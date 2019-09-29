@@ -14,57 +14,57 @@ commands:
                                 command: make distcheck
                                 no_output_timeout: 30m
 jobs:
-        # xenial: fgsl and gtkmm-plplot
+        # bionic: fgsl and gtkmm-plplot
         # no updater
         # with gui
         job1:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--enable-gui --disable-updater"
-        # xenial: fgsl and gtkmm-plplot
+        # bionic: fgsl and gtkmm-plplot
         # with updater
         # with gui
         job2:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--enable-gui -enable-updater"
-        # xenial: fgsl
+        # bionic: fgsl
         # no updater
         # no gui
         job3:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--disable-gui --disable-updater"
-        # xenial: easyRNG and gtkmm-plplot
+        # bionic: easyRNG and gtkmm-plplot
         # no updater
         # with gui
         job4:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--enable-gui --disable-updater"
-        # xenial: easyRNG and gtkmm-plplot
+        # bionic: easyRNG and gtkmm-plplot
         # with updater
         # with gui
         job5:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--enable-gui --enable-updater"
-        # xenial: easyRNG
+        # bionic: easyRNG
         # no updater
         # no gui
         job6:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui"
                 steps:
                         - full_build:
                                 EXTRA: "--disable-gui --disable-updater"
@@ -98,23 +98,23 @@ jobs:
                 steps:
                         - full_build:
                                 EXTRA: "--disable-gui --disable-updater --enable-google-analytics"
-        # xenial: fgsl
+        # bionic: fgsl
         # no updater
         # no gui
         # with MPI
         job10:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
                 steps:
                         - full_build:
                                 EXTRA: "--disable-gui --disable-updater --enable-mpi"
-        # xenial: easyRNG
+        # bionic: easyRNG
         # no updater
         # no gui
         # with MPI
         job11:
                 docker:
-                        - image: "tomschoonjans/xmimsim-travis-ci:xenial.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
                 steps:
                         - full_build:
                                 EXTRA: "--disable-gui --disable-updater --enable-mpi"
