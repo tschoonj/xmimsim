@@ -42,7 +42,6 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-catalog-dialog.h xmimsim-gui-catalog-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-layer-dialog.h xmimsim-gui-layer-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.h
-	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-source-module.h xmimsim-gui-source-module.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-utils.h xmimsim-gui-utils.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-export-canvas-dialog.h xmimsim-gui-export-canvas-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-tools.h xmimsim-gui-tools.h

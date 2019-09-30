@@ -37,7 +37,6 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
-	xmimsim-gui-source-module.h \
 	xmimsim-gui-utils.h \
 	xmimsim-gui-utils-pp.h \
 	xmimsim-gui-export-canvas-dialog.h \
@@ -64,6 +63,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-batch-assistant.h \
 	xmimsim-gui-gobject.h \
 	xmimsim-gui-batch-archive-settings-box.h \
+	xmimsim-gui-plugins-engine.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -78,7 +78,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-catalog-dialog.c \
 	xmimsim-gui-layer-dialog.c \
 	xmimsim-gui-type-builtins.c \
-	xmimsim-gui-source-module.c \
 	xmimsim-gui-utils.c \
 	xmimsim-gui-utils-pp.cpp \
 	xmimsim-gui-export-canvas-dialog.cpp \
@@ -102,7 +101,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmso-results-application-window.c \
 	xmimsim-gui-batch-assistant.c \
 	xmimsim-gui-gobject.c \
-	xmimsim-gui-batch-archive-settings-box.c
+	xmimsim-gui-batch-archive-settings-box.c \
+	xmimsim-gui-plugins-engine.c \
 	$(NULL)
 
 
@@ -135,11 +135,19 @@ libxmimsim_gui_la_LIBADD = \
 	$(NULL)
 
 plugindir = $(libdir)/xmimsim-gui/sources
-plugin_LTLIBRARIES = \
+
+dist_plugin_DATA = \
+	xmimsim-gui-source-tube-ebel.plugin \
+	xmimsim-gui-source-radionuclide.plugin \
+	$(NULL)
+
+plugin_LTLIBRARIES =
+
+if OS_WINDOWS
+plugin_LTLIBRARIES += \
 	xmimsim-gui-source-tube-ebel.la \
 	xmimsim-gui-source-radionuclide.la \
 	$(NULL)
-
 xmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
@@ -171,7 +179,7 @@ xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
 	$(AM_LDFLAGS) \
 	$(NULL)
 xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
-		    
+
 noinst_LTLIBRARIES += \
 	xmimsim-gui-source-random.la
 xmimsim_gui_source_random_la_CPPFLAGS = \
@@ -195,6 +203,68 @@ xmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
 	@easyRNG_LIBS@ \
 	@xraylib_LIBS@ \
 	$(NULL)
+else
+plugin_LTLIBRARIES += \
+	libxmimsim-gui-source-tube-ebel.la \
+	libxmimsim-gui-source-radionuclide.la \
+	$(NULL)
+libxmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	$(NULL)
+libxmimsim_gui_source_tube_ebel_la_SOURCES = \
+	xmimsim-gui-source-tube-ebel.h \
+	xmimsim-gui-source-tube-ebel.c \
+	$(NULL)
+libxmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
+	@LDFLAGS_XMIMSIM_CL@ \
+	$(AM_LDFLAGS) \
+	$(NULL)
+libxmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
+
+libxmimsim_gui_source_radionuclide_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	$(NULL)
+libxmimsim_gui_source_radionuclide_la_SOURCES = \
+	xmimsim-gui-source-radionuclide.h \
+	xmimsim-gui-source-radionuclide.c \
+	$(NULL)
+libxmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
+	@LDFLAGS_XMIMSIM_CL@ \
+	$(AM_LDFLAGS) \
+	$(NULL)
+libxmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
+noinst_LTLIBRARIES += \
+	libxmimsim-gui-source-random.la
+libxmimsim_gui_source_random_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	@gtkmm3_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	@fgsl_CFLAGS@ \
+	@easyRNG_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	$(NULL)
+libxmimsim_gui_source_random_la_SOURCES = \
+	xmimsim-gui-source-random.h \
+	xmimsim-gui-source-random.c \
+	$(NULL)
+libxmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
+	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp \
+	$(NULL)
+libxmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
+	../src/libxmimsim.la
+	@fgsl_LIBS@ \
+	@easyRNG_LIBS@ \
+	@xraylib_LIBS@ \
+	$(NULL)
+endif
+
+		    
 endif
 
 bin_PROGRAMS =  xmimsim \

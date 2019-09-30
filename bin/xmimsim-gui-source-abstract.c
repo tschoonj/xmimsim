@@ -16,8 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-sources-dialog.h"
+#include "xmimsim-gui-private.h"
 #include <math.h>
 #include <string.h>
+#include <libpeas/peas.h>
 #include "xmi_gobject.h"
 
 struct _XmiMsimGuiSourceAbstractPrivate
@@ -26,9 +29,17 @@ struct _XmiMsimGuiSourceAbstractPrivate
   GArray *y;
   xmi_excitation *raw_data;
   xmi_input *current;
+  XmiMsimGuiSourcesDialog *dialog;
 };
 
-G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(XmiMsimGuiSourceAbstract, xmi_msim_gui_source_abstract, GTK_TYPE_BOX)
+static void peas_activatable_iface_init (PeasActivatableInterface *iface);
+
+G_DEFINE_ABSTRACT_TYPE_WITH_CODE(
+	XmiMsimGuiSourceAbstract,
+	xmi_msim_gui_source_abstract,
+	GTK_TYPE_BOX,
+	G_ADD_PRIVATE(XmiMsimGuiSourceAbstract)
+	G_IMPLEMENT_INTERFACE(PEAS_TYPE_ACTIVATABLE, peas_activatable_iface_init))
 
 static void xmi_msim_gui_source_abstract_real_generate(XmiMsimGuiSourceAbstract *source);
 
@@ -71,7 +82,8 @@ enum {
 	PROP_RAW_DATA,
 	PROP_ARRAY_X,
 	PROP_ARRAY_Y,
-	N_PROPERTIES
+	N_PROPERTIES,
+	PROP_DIALOG,
 };
 
 static guint signals[LAST_SIGNAL];
@@ -148,6 +160,8 @@ static void xmi_msim_gui_source_abstract_class_init(XmiMsimGuiSourceAbstractClas
 
 	g_object_class_install_properties(object_class, N_PROPERTIES, props);
 
+	g_object_class_override_property(object_class, PROP_DIALOG, "object");
+
 	GType param_types[1] = {G_TYPE_ERROR /* GError* */};
 	GClosure *default_handler = g_cclosure_new(G_CALLBACK(after_generate_default_cb), NULL, NULL);
 
@@ -189,7 +203,9 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
  * Gets the current plot data as two arrays x and y.
  */
 void xmi_msim_gui_source_abstract_get_plot_data(XmiMsimGuiSourceAbstract *source, GArray **x, GArray **y) {
+	g_return_if_fail(XMI_MSIM_GUI_IS_SOURCE_ABSTRACT(source));
 	g_return_if_fail(x != NULL && y != NULL);
+
 	if (source->priv->x)
 		*x = g_array_ref(source->priv->x);
 	else
@@ -214,6 +230,9 @@ xmi_excitation *xmi_msim_gui_source_abstract_get_raw_data(XmiMsimGuiSourceAbstra
 
 static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 	// deriving methods should store the data in the preferences file now
+	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
+
+	g_clear_object(&source->priv->dialog);
 
 	G_OBJECT_CLASS(xmi_msim_gui_source_abstract_parent_class)->dispose(object);
 }
@@ -385,6 +404,9 @@ static void xmi_msim_gui_source_abstract_set_property(GObject *object, guint pro
 	      g_array_unref(source->priv->y);
       source->priv->y = (GArray *) g_value_dup_boxed(value);
       break;
+    case PROP_DIALOG:
+      source->priv->dialog = g_value_dup_object(value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -408,6 +430,8 @@ static void xmi_msim_gui_source_abstract_get_property(GObject *object, guint pro
     case PROP_ARRAY_Y:
       g_value_set_boxed(value, source->priv->y);
       break;
+    case PROP_DIALOG:
+      g_value_set_object(value, source->priv->dialog);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -426,4 +450,26 @@ void xmi_msim_gui_source_abstract_set_data(XmiMsimGuiSourceAbstract *source, xmi
 	g_return_if_fail(source != NULL && raw_data != NULL && x != NULL && y != NULL);
 
 	g_object_set(source, "x", x, "y", y, "raw-data", raw_data, NULL);
+}
+
+static void xmi_msim_gui_source_abstract_activate(PeasActivatable *activatable) {
+	g_debug("Calling xmi_msim_gui_source_abstract_activate");
+	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(activatable);
+	gtk_widget_show_all(GTK_WIDGET(source));
+
+	GtkWidget *label = gtk_label_new(xmi_msim_gui_source_abstract_get_name(source));
+	gtk_notebook_append_page(xmi_msim_gui_sources_dialog_get_notebook(source->priv->dialog), GTK_WIDGET(g_object_ref(source)), label);
+	
+	xmi_msim_gui_source_abstract_generate(source);
+
+	g_signal_connect(G_OBJECT(source), "after-generate", G_CALLBACK(after_generate_cb), source->priv->dialog);
+}
+
+static void xmi_msim_gui_source_abstract_deactivate(PeasActivatable *activatable) {
+	g_debug("Calling xmi_msim_gui_source_abstract_deactivate");
+}
+
+static void peas_activatable_iface_init(PeasActivatableInterface *iface) {
+	iface->activate = xmi_msim_gui_source_abstract_activate;
+	iface->deactivate = xmi_msim_gui_source_abstract_deactivate;
 }

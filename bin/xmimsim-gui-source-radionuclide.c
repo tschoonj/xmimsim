@@ -24,12 +24,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <libpeas/peas.h>
 
 enum {
 	ACTIVITY_UNIT_mCi = 0,
 	ACTIVITY_UNIT_Ci,
 	ACTIVITY_UNIT_GBq,
 	ACTIVITY_UNIT_Bq,
+};
+
+struct _XmiMsimGuiSourceRadionuclide
+{
+  	XmiMsimGuiSourceAbstract parent_instance;
+  	// all our widgets
+	GtkWidget *radioNuclideW;
+	GtkWidget *activityW;
+	GtkWidget *activityUnitW;
+	GtkWidget *nuclideSolidAngleW;
+	gboolean dispose_called;
+};
+
+struct _XmiMsimGuiSourceRadionuclideClass
+{
+  XmiMsimGuiSourceAbstractClass parent_class;
+
 };
 
 typedef struct {
@@ -41,7 +59,15 @@ typedef struct {
 
 static const gchar *activity_units[4] = {"mCi", "Ci", "GBq", "Bq"};
 
-XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+G_DEFINE_DYNAMIC_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module);
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module) {
+	xmi_msim_gui_source_radionuclide_register_type(G_TYPE_MODULE(module));
+
+	peas_object_module_register_extension_type(module, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XMI_MSIM_GUI_TYPE_SOURCE_RADIONUCLIDE);
+}
 
 static void xmi_msim_gui_source_radionuclide_real_generate(XmiMsimGuiSourceAbstract *source);
 

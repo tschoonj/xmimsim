@@ -42,6 +42,8 @@ xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog
 
 const gchar* xmi_msim_gui_sources_dialog_get_active_source_name(XmiMsimGuiSourcesDialog *dialog);
 
+GtkNotebook* xmi_msim_gui_sources_dialog_get_notebook(XmiMsimGuiSourcesDialog *dialog);
+
 G_END_DECLS
 #endif
 

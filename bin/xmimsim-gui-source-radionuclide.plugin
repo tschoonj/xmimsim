@@ -1,0 +1,4 @@
+[Plugin]
+Module=xmimsim-gui-source-radionuclide
+Name=Radionuclide Source Generator
+Loader=C
