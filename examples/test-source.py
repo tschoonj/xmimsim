@@ -2,14 +2,7 @@ from gi.repository import XmiMsimGui, XmiMsim, Gtk, GLib
 import sys
 import numpy as np
 
-XmiMsimGui.init()
 
-# a X-ray Source Dialog plugin, written in Python!
-# For this to work, XMI-MSIM needs to be started from within a Python script with:
-#
-#   sys.exit(XmiMsimGui.Application.new().run())
-#
-#
 class TestSource(XmiMsimGui.SourceAbstract):
     # Optional, will not affect GUI in any way if left out...
     __gtype_name__ = "TestSourcePython"
@@ -50,5 +43,3 @@ class TestSource(XmiMsimGui.SourceAbstract):
         # afterwards emit after-generate with None argument to update the plot window
         self.emit("after-generate", None)
 
-
-sys.exit(XmiMsimGui.Application.new().run())

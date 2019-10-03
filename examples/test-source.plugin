@@ -1,0 +1,4 @@
+[Plugin]
+Module=test-source
+Name=Test source
+Loader=python3
