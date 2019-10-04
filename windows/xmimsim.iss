@@ -90,7 +90,7 @@ Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-2.dll" ; DestDir: "{app}\Lib
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\share\plplot5.14.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
+Source: "{#MY_HOME}\install\share\plplot5.15.0\*.*" ; DestDir: "{app}\Share\plplot" ; Components: core
 Source: "{#builddir}\src\.libs\libxmimsim-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#builddir}\bin\.libs\libxmimsim-gui-0.dll" ; DestDir: "{app}\Lib" ; Components: core
 
@@ -110,8 +110,15 @@ Source: "{#builddir}\bin\.libs\xmsa2xmso.exe" ; DestDir: "{app}\Bin" ; Component
 Source: "{#srcdir}\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: core
 
 Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
-Source: "{#builddir}\bin\.libs\xmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
-Source: "{#builddir}\bin\.libs\xmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
+
+Source: "{#builddir}\bin\.libs\libxmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
+Source: "{#builddir}\bin\.libs\libxmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
+Source: "{#srcdir}\bin\xmimsim-gui-source-radionuclide.plugin" ; DestDir: "{app}\Lib\Sources" ; Components: core
+Source: "{#srcdir}\bin\xmimsim-gui-source-tube-ebel.plugin" ; DestDir: "{app}\Lib\Sources" ; Components: core
+
+Source: "{#builddir}\src\XmiMsim-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
+Source: "{#builddir}\bin\XmiMsimGui-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
+
 
 Source: "{#builddir}\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 

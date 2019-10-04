@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #ifdef G_OS_WIN32
+  #include <windows.h>
   #include "xmi_registry_win.h"
 #endif
 
@@ -58,6 +59,23 @@ static void plugin_load(PeasPluginInfo *info, XmiMsimGuiPluginsEngine *engine) {
 	}
 }
 
+#ifdef G_OS_WIN32
+// inspired by gobject-introspection...
+
+static HMODULE libxmimsimgui_dll = NULL;
+
+#ifdef DLL_EXPORT
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+	if (fdwReason == DLL_PROCESS_ATTACH)
+		libxmimsimgui_dll = hinstDLL;
+	return TRUE;
+}
+#endif
+#endif
+
 static void xmi_msim_gui_plugins_engine_init(XmiMsimGuiPluginsEngine *engine) {
 	GError *error = NULL;
 	unsigned int i;
@@ -66,8 +84,13 @@ static void xmi_msim_gui_plugins_engine_init(XmiMsimGuiPluginsEngine *engine) {
 
 	/* Require XMI-MSIM's typelibs. */
 	// TODO FIXME for Windows/macOS, this will be complicated and will require fooling around with g_irepository_prepend_search_path (https://developer.gnome.org/gi/stable/GIRepository.html#g-irepository-prepend-search-path)
-	
-	
+#ifdef G_OS_WIN32
+	gchar *installation_dir = g_win32_get_package_installation_directory_of_module(libxmimsimgui_dll);
+	gchar *xmimsim_typelib_dir = g_build_filename(installation_dir, "lib", "girepository-1.0", NULL);
+	g_irepository_prepend_search_path(xmimsim_typelib_dir);
+	g_free(xmimsim_typelib_dir);
+	g_free(installation_dir);
+#endif
 
 	for (i = 0 ; i < G_N_ELEMENTS(gir_pairs) ; i++) {
 

@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "config.h"
+#include "xmi_private.h"
 #include "xmi_msim.h"
 #include "xmi_aux.h"
 #include "xmi_data_structs.h"
@@ -23,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <glib/gstdio.h>
 #include <hdf5.h>
-#include "xmi_private.h"
 
 #ifdef MAC_INTEGRATION
   #include "xmi_resources_mac.h"
@@ -651,65 +651,6 @@ GError* xmi_error_convert_xrl_to_glib(xrl_error *error) {
 	return g_error_new_literal(XMI_MSIM_ERROR, XMI_MSIM_ERROR_XRAYLIB, error->message);
 }
 
-GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
-	g_return_val_if_fail(dims != NULL && offset >= 0, NULL);
-	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, NULL);
-
-	guint i, max_offset = 1;
-
-	for (i = 0 ; i < dims->len ; i++)
-		max_offset *= g_array_index(dims, int, i);
-
-	g_return_val_if_fail(offset < max_offset, NULL);
-
-	GArray *rv = g_array_sized_new(FALSE, TRUE, sizeof(int), dims->len);
-	g_array_set_size(rv, dims->len);
-
-	if (dims->len == 1) {
-		g_array_index(rv, int, 0) = offset;
-		return rv;
-	}
-
-	for (i = dims->len - 1 ; i >= 1 ; i--) {
-		int index = offset % g_array_index(dims, int, i);
-		offset = offset / g_array_index(dims, int, i);
-		g_array_index(rv, int, i) = index;
-	}
-	
-	g_array_index(rv, int, 0) = offset;
-
-	return rv;
-}
-
-gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices) {
-	g_return_val_if_fail(dims != NULL && indices != NULL, -1);
-	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, -1);
-	g_return_val_if_fail(indices->len == dims->len, -1);
-
-	guint i;
-	for (i = 0 ; i < dims->len ; i++) {
-		int _index = g_array_index(indices, int, i);
-		g_return_val_if_fail(_index >= 0 && _index < g_array_index(dims, int, i), -1);
-	}
-
-	gint offset = 0;
-
-	if (dims->len == 1)
-		return g_array_index(indices, int, 0);
-
-	// see https://en.wikipedia.org/wiki/Row-_and_column-major_order#Address_calculation_in_general
-	guint k;
-	for (k = 0 ; k < dims->len ; k++) {
-		guint l;
-		guint Nprod = 1;
-		for (l = k + 1 ; l < dims->len ; l++)
-			Nprod *= g_array_index(dims, int, l);
-		offset += Nprod * g_array_index(indices, int, k);
-	}
-
-	return offset;
-}
-
 gpointer xmi_object_ref(gpointer obj, const gchar *strloc) {
 	g_message("g_object_ref@%s", strloc);
 	return g_object_ref(obj);
@@ -719,3 +660,53 @@ void xmi_object_unref(gpointer obj, gchar *strloc) {
 	g_message("g_object_unref@%s", strloc);
 	g_object_unref(obj);
 }
+
+#ifdef G_OS_WIN32
+#include <windows.h>
+
+static HMODULE libxmimsim_dll = NULL;
+
+#ifdef DLL_EXPORT
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
+
+BOOL WINAPI
+DllMain (HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+	if (fdwReason == DLL_PROCESS_ATTACH)
+		libxmimsim_dll = hinstDLL;
+	return TRUE;
+}
+#endif
+#endif
+
+#if defined(HAVE_JSONGLIB) || defined(HAVE_GOOGLE_ANALYTICS)
+SoupSession* xmi_soup_session_new(const gchar *user_agent) {
+	SoupSession *session = soup_session_new_with_options(
+		SOUP_SESSION_USER_AGENT, user_agent,
+		SOUP_SESSION_TIMEOUT, 5u,
+		NULL);
+
+	g_object_set(session, "ssl-use-system-ca-file", TRUE, NULL);
+
+	if (g_getenv("XMIMSIM_USE_SYSTEM_CA_FILE") == NULL) {
+#if defined(G_OS_WIN32)
+		gchar *module_dir = g_win32_get_package_installation_directory_of_module(libxmimsim_dll);
+		gchar *ca_file = g_build_filename(module_dir, "GTK", "ssl", "certs", "ca-bundle.crt", NULL);
+		g_free(module_dir);
+		GError *error = NULL;
+		GTlsDatabase *db = g_tls_file_database_new(ca_file, &error);
+		if (error) {
+			g_warning("Could not create TLS database for %s -> %s", ca_file, error->message);
+			g_error_free(error);
+		}
+		else {
+			g_object_set(session, "tls-database", db, "ssl-use-system-ca-file", FALSE, NULL);
+			g_object_unref(db);
+		}
+		g_free(ca_file);
+#endif
+	}
+
+	return session;
+}
+#endif

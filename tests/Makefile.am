@@ -27,7 +27,7 @@ check_PROGRAMS = \
 TEST_EXTENSIONS = .py
 PY_LOG_COMPILER = $(PYTHON)
 AM_PY_LOG_FLAGS = -Wignore
-AM_TESTS_ENVIRONMENT = ABS_TOP_SRCDIR='$(abs_top_srcdir)' HDF5_DATA_DIR='$(abs_top_builddir)/tests' XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH HDF5_DATA_DIR ABS_TOP_SRCDIR ;
+AM_TESTS_ENVIRONMENT = XMIMSIM_USE_SYSTEM_CA_FILE='1' ABS_TOP_SRCDIR='$(abs_top_srcdir)' HDF5_DATA_DIR='$(abs_top_builddir)/tests' XMI_CATALOG_PATH='$(abs_top_srcdir)/xml/' LD_LIBRARY_PATH='${top_builddir}/src/.libs:${LD_LIBRARY_PATH}' DYLD_LIBRARY_PATH='${top_builddir}/src/.libs' PATH='${PATH}:${top_builddir}/src/.libs' PYTHONPATH='${top_builddir}/python:${top_builddir}/python/.libs' GI_TYPELIB_PATH='${top_builddir}/src' ; export LD_LIBRARY_PATH DYLD_LIBRARY_PATH PATH PYTHONPATH GI_TYPELIB_PATH XMI_CATALOG_PATH HDF5_DATA_DIR ABS_TOP_SRCDIR XMIMSIM_USE_SYSTEM_CA_FILE ;
 
 if OS_WINDOWS
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
@@ -91,7 +91,8 @@ test_read_xmso_SOURCES = test-read-xmso.c
 test_read_xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ \
 			-I$(top_srcdir)/src \
-			@xraylib_CFLAGS@
+			@xraylib_CFLAGS@ \
+			@libsoup_CFLAGS@
 test_read_xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_read_xmsa_SOURCES = test-read-xmsa.c
@@ -121,19 +122,22 @@ test_write_xmsa_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@
 test_xmso2csv_SOURCES = test-xmso2csv.c
 test_xmso2csv_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@
+			@xraylib_CFLAGS@ \
+			@libsoup_CFLAGS@
 test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2xmsi_SOURCES = test-xmso2xmsi.c
 test_xmso2xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@
+			@xraylib_CFLAGS@ \
+			@libsoup_CFLAGS@
 test_xmso2xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmsa2xmso_SOURCES = test-xmsa2xmso.c
 test_xmsa2xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/src @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@
+			@xraylib_CFLAGS@ \
+			@libsoup_CFLAGS@
 test_xmsa2xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 
 test_xmso2svg_SOURCES = test-xmso2svg.c
@@ -181,7 +185,8 @@ test_xmimsim_cl_SOURCES = test-xmimsim-cl.c
 test_xmimsim_cl_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
 			-I${top_srcdir}/src \
-			-DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\"
+			-DXMIMSIM_CL_LIB=\"${top_builddir}/src/.libs\" \
+			@libsoup_CFLAGS@
 test_xmimsim_cl_LDADD = libxmimsim-test.la
 
 test_xmimsim_metal_SOURCES = test-xmimsim-metal.c
@@ -189,7 +194,8 @@ test_xmimsim_metal_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@ \
 			-I${top_srcdir}/src \
 			-DXMIMSIM_METAL_LIB=\"${top_builddir}/src/.libs\" \
-			-DXMIMSIM_METAL_KERNEL=\"${top_builddir}/src/xmi_kernels.metallib\"
+			-DXMIMSIM_METAL_KERNEL=\"${top_builddir}/src/xmi_kernels.metallib\" \
+			@libsoup_CFLAGS@
 test_xmimsim_metal_LDADD = libxmimsim-test.la
 
 test_pile_up_SOURCES = test-pile-up.c
@@ -206,7 +212,7 @@ test_xmimsim_main_CaSO4_LDADD = libxmimsim-test.la
 
 test_google_analytics_tracker_SOURCES = test-google-analytics-tracker.c
 test_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/include @gobject_CFLAGS@
-test_google_analytics_tracker_LDADD = ../src/libxmimsim-google-analytics.la @gobject_LIBS@
+test_google_analytics_tracker_LDADD = ../src/libxmimsim.la @gobject_LIBS@
 
 test_job_SOURCES = test-job.c
 test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@

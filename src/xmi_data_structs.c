@@ -2591,6 +2591,7 @@ void xmi_main_options_copy(xmi_main_options *A, xmi_main_options **B) {
 		return;
 	(*B)->custom_detector_response = g_strdup(A->custom_detector_response);
 }
+#endif
 
 /**
  * xmi_batch_single_data_new: (constructor)
@@ -2648,4 +2649,3 @@ gboolean xmi_batch_single_data_equals(xmi_batch_single_data *A, xmi_batch_single
 
 	return TRUE;
 }
-#endif
