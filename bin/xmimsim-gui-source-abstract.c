@@ -183,6 +183,8 @@ static void xmi_msim_gui_source_abstract_init(XmiMsimGuiSourceAbstract *source) 
 
 	source->priv = xmi_msim_gui_source_abstract_get_instance_private(source);
 
+	g_object_ref_sink(source); // Otherwise we get into trouble with libpeas' python loader!
+
 	g_object_set(
 		source,
 		"spacing", 2,
@@ -238,6 +240,7 @@ static void xmi_msim_gui_source_abstract_dispose(GObject *object) {
 }
 
 static void xmi_msim_gui_source_abstract_finalize(GObject *object) {
+	g_debug("Calling xmi_msim_gui_source_abstract_finalize");
 	XmiMsimGuiSourceAbstract *source = XMI_MSIM_GUI_SOURCE_ABSTRACT(object);
 	xmi_excitation_free(source->priv->raw_data);
 	if (source->priv->x)
@@ -458,7 +461,8 @@ static void xmi_msim_gui_source_abstract_activate(PeasActivatable *activatable) 
 	gtk_widget_show_all(GTK_WIDGET(source));
 
 	GtkWidget *label = gtk_label_new(xmi_msim_gui_source_abstract_get_name(source));
-	gtk_notebook_append_page(xmi_msim_gui_sources_dialog_get_notebook(source->priv->dialog), GTK_WIDGET(g_object_ref(source)), label);
+	gtk_notebook_append_page(xmi_msim_gui_sources_dialog_get_notebook(source->priv->dialog), GTK_WIDGET(source), label);
+	g_debug("Source ref count after append: %d", G_OBJECT(source)->ref_count);
 	
 	xmi_msim_gui_source_abstract_generate(source);
 
@@ -467,6 +471,7 @@ static void xmi_msim_gui_source_abstract_activate(PeasActivatable *activatable) 
 
 static void xmi_msim_gui_source_abstract_deactivate(PeasActivatable *activatable) {
 	g_debug("Calling xmi_msim_gui_source_abstract_deactivate");
+	g_debug("Source ref count after deactivate: %d", G_OBJECT(activatable)->ref_count);
 }
 
 static void peas_activatable_iface_init(PeasActivatableInterface *iface) {
