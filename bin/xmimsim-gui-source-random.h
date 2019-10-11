@@ -33,16 +33,6 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiSourceRandom XmiMsimGuiSourceRandom;
 typedef struct _XmiMsimGuiSourceRandomClass   XmiMsimGuiSourceRandomClass;
 
-struct _XmiMsimGuiSourceRandom
-{
-  	XmiMsimGuiSourceAbstract parent_instance;
-};
-
-struct _XmiMsimGuiSourceRandomClass
-{
-  XmiMsimGuiSourceAbstractClass parent_class;
-};
-
 GType xmi_msim_gui_source_random_get_type(void) G_GNUC_CONST;
 
 typedef enum {

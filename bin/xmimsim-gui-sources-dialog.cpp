@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2016-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2016-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,9 +23,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-export-canvas-dialog.h"
 #include "xmi_aux.h"
+#include "xmi_gobject.h"
+#include "xmimsim-gui-private.h"
+#include "xmimsim-gui-plugins-engine.h"
+#include <libpeas/peas.h>
 
 #ifdef HAVE_GOOGLE_ANALYTICS
-#include <xmi_google_analytics.h>
+#include "xmi_google_analytics.h"
 #endif
 
 class Plot2DSources : public Gtk::PLplot::Plot2D {
@@ -49,6 +53,7 @@ extern "C" struct _XmiMsimGuiSourcesDialog
   GtkWidget *generateButton;
   Gtk::PLplot::Canvas *canvas;
   Plot2DSources *plot_window;
+  PeasExtensionSet *extensions;
 };
 
 extern "C" struct _XmiMsimGuiSourcesDialogClass
@@ -60,8 +65,112 @@ G_DEFINE_TYPE(XmiMsimGuiSourcesDialog, xmi_msim_gui_sources_dialog, GTK_TYPE_DIA
 
 static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstract *source);
 
-static void xmi_msim_gui_sources_dialog_class_init(XmiMsimGuiSourcesDialogClass *klass) {
+static void xmi_msim_gui_sources_dialog_finalize(GObject *gobject) {
+	XmiMsimGuiSourcesDialog *self = XMI_MSIM_GUI_SOURCES_DIALOG(gobject);
 
+	G_OBJECT_CLASS(xmi_msim_gui_sources_dialog_parent_class)->finalize(gobject);
+}
+
+static void xmi_msim_gui_sources_dialog_dispose(GObject *gobject) {
+	XmiMsimGuiSourcesDialog *self = XMI_MSIM_GUI_SOURCES_DIALOG(gobject);
+
+	peas_engine_garbage_collect(PEAS_ENGINE(xmi_msim_gui_plugins_engine_get_default()));
+
+	g_clear_object(&self->extensions);
+
+	peas_engine_garbage_collect(PEAS_ENGINE(xmi_msim_gui_plugins_engine_get_default()));
+
+	G_OBJECT_CLASS(xmi_msim_gui_sources_dialog_parent_class)->dispose(gobject);
+}
+
+static void extension_added(PeasExtensionSet *extensions, PeasPluginInfo *info, PeasExtension *exten, XmiMsimGuiSourcesDialog *dialog) {
+	peas_activatable_activate(PEAS_ACTIVATABLE(exten));
+}
+
+static void extension_removed(PeasExtensionSet *extensions, PeasPluginInfo *info, PeasExtension *exten, XmiMsimGuiSourcesDialog *dialog) {
+	peas_activatable_deactivate(PEAS_ACTIVATABLE(exten));
+}
+
+static void switch_page_cb(GtkNotebook *notebook, XmiMsimGuiSourceAbstract *source, guint page_num, XmiMsimGuiSourcesDialog *dialog) {
+	update_plot(dialog, source);
+}
+
+static void xmi_msim_gui_sources_dialog_constructed(GObject *obj) {
+	XmiMsimGuiSourcesDialog *dialog = XMI_MSIM_GUI_SOURCES_DIALOG(obj);
+
+	dialog->extensions = peas_extension_set_new(
+		PEAS_ENGINE(xmi_msim_gui_plugins_engine_get_default ()),
+		XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT,
+		"object", dialog, 
+		"xmi-input-current", dialog->current,
+		NULL);
+	g_signal_connect(dialog->extensions,
+			  "extension-added",
+			  G_CALLBACK(extension_added),
+			  dialog);
+	g_signal_connect(dialog->extensions,
+			  "extension-removed",
+			  G_CALLBACK(extension_removed),
+			  dialog);
+	peas_extension_set_foreach(dialog->extensions, (PeasExtensionSetForeachFunc) extension_added, dialog);
+
+	update_plot(dialog, XMI_MSIM_GUI_SOURCE_ABSTRACT(gtk_notebook_get_nth_page(GTK_NOTEBOOK(dialog->notebookW), 0)));
+	g_signal_connect(G_OBJECT(dialog->notebookW), "switch-page", G_CALLBACK(switch_page_cb), dialog);
+
+}
+
+enum {
+	PROP_0,
+	PROP_CURRENT_INPUT,
+	N_PROPERTIES,
+};
+
+static GParamSpec *props[N_PROPERTIES] = {NULL, };
+
+static void xmi_msim_gui_sources_dialog_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
+
+  XmiMsimGuiSourcesDialog *dialog = XMI_MSIM_GUI_SOURCES_DIALOG(object);
+
+  switch (prop_id) {
+    case PROP_CURRENT_INPUT:
+      dialog->current = (xmi_input *) g_value_dup_boxed(value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void xmi_msim_gui_sources_dialog_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
+
+  XmiMsimGuiSourcesDialog *dialog = XMI_MSIM_GUI_SOURCES_DIALOG(object);
+
+  switch (prop_id) {
+    case PROP_CURRENT_INPUT:
+      g_value_set_boxed(value, dialog->current);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void xmi_msim_gui_sources_dialog_class_init(XmiMsimGuiSourcesDialogClass *klass) {
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+	object_class->dispose = xmi_msim_gui_sources_dialog_dispose;
+	object_class->finalize = xmi_msim_gui_sources_dialog_finalize;
+	object_class->constructed = xmi_msim_gui_sources_dialog_constructed;
+	object_class->set_property = xmi_msim_gui_sources_dialog_set_property;
+	object_class->get_property = xmi_msim_gui_sources_dialog_get_property;
+
+	props[PROP_CURRENT_INPUT] = g_param_spec_boxed(
+		"xmi-input-current",
+		"Current xmi_input",
+		"Current xmi_input",
+		XMI_MSIM_TYPE_INPUT,
+    		(GParamFlags) (G_PARAM_READWRITE | G_PARAM_CONSTRUCT)
+	);
+
+	g_object_class_install_properties(object_class, N_PROPERTIES, props);
 }
 
 static XmiMsimGuiSourceAbstract* get_active_source(XmiMsimGuiSourcesDialog *dialog) {
@@ -327,6 +436,7 @@ static void xmi_msim_gui_sources_dialog_init(XmiMsimGuiSourcesDialog *dialog) {
 	g_signal_connect(G_OBJECT(loadButton), "clicked", G_CALLBACK(load_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect(G_OBJECT(saveButton), "clicked", G_CALLBACK(save_button_clicked_cb), (gpointer) dialog);
 	g_signal_connect(G_OBJECT(dialog->linearW), "toggled", G_CALLBACK(scale_toggled_cb), (gpointer) dialog);
+
 	gtk_widget_show_all(mainHBox);
 }
 
@@ -344,7 +454,7 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 
 	clear_plot(dialog);
 
-	GArray *x, *y;
+	GArray *x = NULL, *y = NULL;
 	xmi_msim_gui_source_abstract_get_plot_data(source, &x, &y);
 
 	if (x == NULL || y == NULL) {
@@ -401,12 +511,7 @@ static void update_plot(XmiMsimGuiSourcesDialog *dialog, XmiMsimGuiSourceAbstrac
 	g_array_unref(y);
 }
 
-static void switch_page_cb(GtkNotebook *notebook, XmiMsimGuiSourceAbstract *source, guint page_num, XmiMsimGuiSourcesDialog *dialog) {
-
-	update_plot(dialog, source);
-}
-
-static void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog) {
+void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog) {
 	g_debug("Source %s after-generate called\n", g_type_name(G_TYPE_FROM_INSTANCE(source)));
 	if (error != NULL) {
 		g_warning("after_generate_cb message: %s\n", error->message);
@@ -433,37 +538,9 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
 
 	g_return_val_if_fail(parent == NULL || GTK_IS_WINDOW(parent), NULL);
 
-	guint ntypes;
-	GType *source_types = g_type_children(XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, &ntypes);
-
-	g_return_val_if_fail(ntypes > 0, NULL);
-
-	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(XMI_MSIM_GUI_TYPE_SOURCES_DIALOG,
-                                   NULL));
+	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, "xmi-input-current", current, NULL));
 
 	gtk_window_set_transient_for(GTK_WINDOW(widget), GTK_WINDOW(parent));
-
-	guint i;
-	for (i = 0 ; i < ntypes ; i++) {
-		GtkWidget *source = GTK_WIDGET(g_object_new(source_types[i], 
-			"xmi-input-current",
-			current,
-			NULL));
-		g_object_ref(source); // work around pygobject bug/feature
-		const gchar *name = xmi_msim_gui_source_abstract_get_name(XMI_MSIM_GUI_SOURCE_ABSTRACT(source));
-		g_debug("source name %s", name);
-		GtkWidget *label = gtk_label_new(name);
-		gtk_notebook_append_page(GTK_NOTEBOOK(widget->notebookW), source, label);
-		g_object_unref(source); // work around pygobject bug/feature
-		// call generate on all sources
-		xmi_msim_gui_source_abstract_generate(XMI_MSIM_GUI_SOURCE_ABSTRACT(source));
-
-		g_signal_connect(G_OBJECT(source), "after-generate", G_CALLBACK(after_generate_cb), widget);
-	}
-
-	update_plot(widget, XMI_MSIM_GUI_SOURCE_ABSTRACT(gtk_notebook_get_nth_page(GTK_NOTEBOOK(widget->notebookW), 0)));
-	g_signal_connect(G_OBJECT(widget->notebookW), "switch-page", G_CALLBACK(switch_page_cb), widget);
-	gtk_widget_show_all(widget->notebookW);
 
 	return GTK_WIDGET(widget);
 }
@@ -475,6 +552,7 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
  * Returns: (transfer full): a freshly allocated #XmiMsimExcitation struct or %NULL.
  */
 xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog *dialog) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_SOURCES_DIALOG(dialog), NULL);
 	xmi_excitation *rv = NULL;
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 	unsigned int i;
@@ -527,8 +605,15 @@ xmi_excitation *xmi_msim_gui_sources_dialog_get_raw_data(XmiMsimGuiSourcesDialog
 }
 
 const gchar* xmi_msim_gui_sources_dialog_get_active_source_name(XmiMsimGuiSourcesDialog *dialog) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_SOURCES_DIALOG(dialog), NULL);
+
 	XmiMsimGuiSourceAbstract *source = get_active_source(dialog);
 
 	return xmi_msim_gui_source_abstract_get_name(source);
 }
 
+GtkNotebook* xmi_msim_gui_sources_dialog_get_notebook(XmiMsimGuiSourcesDialog *dialog) {
+	g_return_val_if_fail(XMI_MSIM_GUI_IS_SOURCES_DIALOG(dialog), NULL);
+
+	return GTK_NOTEBOOK(dialog->notebookW);
+}

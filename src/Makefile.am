@@ -100,6 +100,10 @@ libxmimsim_la_LIBADD = 	@HDF5_LIBS@ \
 			@glib2_LIBS@ \
 			@gmodule_LIBS@
 
+if ENABLE_UPDATER
+libxmimsim_la_LIBADD += @libsoup_LIBS@
+endif
+
 plugin_LTLIBRARIES =
 
 if ENABLE_OPENCL
@@ -184,6 +188,7 @@ libxmimsim_ql_la_CFLAGS = \
 	@xml2_CFLAGS@ \
 	@glib2_CFLAGS@ \
 	@xraylib_CFLAGS@ \
+	@libsoup_CFLAGS@ \
 	@WSTRICT_CFLAGS@
 libxmimsim_ql_la_LIBADD = \
 	@xml2_LIBS@ \

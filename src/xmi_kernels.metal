@@ -108,7 +108,7 @@ kernel void xmi_solid_angle_calculation(device float *grid_dims_r_vals [[ buffer
 	float r1 = grid_dims_r_vals[tid0];
 	float theta1 = grid_dims_theta_vals[tid1];
 
-	const float3 detector_normal = (const float3) (0.0, 0.0, 1.0);
+	const float3 detector_normal(0.0, 0.0, 1.0);
 	float3 cone_base_normal;
 	float full_cone_solid_angle;
 	float full_cone_base_radius;

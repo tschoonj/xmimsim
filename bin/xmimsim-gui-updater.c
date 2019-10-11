@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-utils.h"
 #include "xmi_aux.h"
+#include "xmi_private.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 #include <glib.h>
@@ -169,10 +170,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	GFile *gfile = g_file_new_for_path(dv->download_location);
 
 	gchar *user_agent = g_strdup_printf("XMI-MSIM " PACKAGE_VERSION " updater using libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
-	SoupSession *session = soup_session_new_with_options(
-		SOUP_SESSION_USER_AGENT, user_agent,
-		SOUP_SESSION_TIMEOUT, 5u,
-		NULL);
+	SoupSession *session = xmi_soup_session_new(user_agent);
 	g_free(user_agent);
 	dv->session = session;
 	dv->content_downloaded = 0;

@@ -185,17 +185,16 @@ PKG_CHECK_MODULES([libsoup], libsoup-2.4 >= 2.42.0,
 
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3],
+	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3 libpeas-1.0 >= 1.22.0],
 		[
 			GTK_FOUND=yes
-			AC_SUBST(GTK_PC, "gtkmm-plplot-2.0 >= 2.3")
 		],[
 			GTK_FOUND=no
 		])
 	if test "x$GTK_FOUND" = xno && test "x$enable_gui" = xyes ; then
-		AC_MSG_ERROR([no gtkmm-plplot found on the system.])
+		AC_MSG_ERROR([no gtkmm-plplot and/or libpeas found on the system.])
 	elif test "x$GTK_FOUND" = xno && test "x$enable_gui" = xcheck ; then
-		AC_MSG_WARN([no gtkmm-plplot found on the system. The GUI will not be built.])
+		AC_MSG_WARN([no gtkmm-plplot and/or libpeas found on the system. The GUI will not be built.])
 	else
 		AC_MSG_NOTICE([Building with GUI])
 		AC_DEFINE([HAVE_GUI],[],[building with GUI])
@@ -334,8 +333,8 @@ AC_CHECK_FUNC(expm1,,[AC_MSG_ERROR([Required libc function not found])])
 AC_CHECK_FUNC(log1p,,[AC_MSG_ERROR([Required libc function not found])])
 
 WSTRICT_CFLAGS=
-AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
-AX_CHECK_COMPILE_FLAG([-Werror=deprecated-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated-declarations"],,)
+#AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
+#AX_CHECK_COMPILE_FLAG([-Werror=deprecated-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-prototypes"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)

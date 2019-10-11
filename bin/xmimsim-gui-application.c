@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2018-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-application-window.h"
 #include "xmimsim-gui-colors.h"
 #include "xmimsim-gui-source-abstract.h"
-#include "xmimsim-gui-source-module.h"
 #include "xmimsim-gui-prefs.h"
 #include "xmimsim-gui-private.h"
 #include "xmimsim-gui-utils.h"
@@ -35,6 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-xmsa-viewer-window.h"
 #include "xmimsim-gui-utils-pp.h"
 #include "xmimsim-gui-batch-assistant.h"
+#include "xmimsim-gui-plugins-engine.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
 
@@ -69,6 +69,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 struct _XmiMsimGuiApplication {
 	GtkApplication parent_instance;
+	XmiMsimGuiPluginsEngine *engine;
 };
 
 struct _XmiMsimGuiApplicationClass {
@@ -85,6 +86,8 @@ static void xmi_msim_gui_application_finalize(GObject *gobject) {
 
 static void xmi_msim_gui_application_dispose(GObject *gobject) {
 	XmiMsimGuiApplication *self = XMI_MSIM_GUI_APPLICATION(gobject);
+
+	g_clear_object(&self->engine);
 
 	G_OBJECT_CLASS(xmi_msim_gui_application_parent_class)->dispose(gobject);
 }
@@ -374,74 +377,6 @@ static void check_for_updates_on_click_cb(XmiMsimGuiApplication *app) {
 }
 #endif
 
-static void query_source_modules_dir(gchar *dirname) {
-	GError *error = NULL;
-	GDir *dir = g_dir_open(dirname, 0, &error);
-
-	if (dir == NULL) {
-		g_warning("Could not open %s: %s\n", dirname, error->message);
-		return;
-	}
-
-	// dir exists, let's start creating modules out of these files and load them if possible
-	const gchar *file = NULL;
-	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (!g_str_has_suffix(file, G_MODULE_SUFFIX))
-			continue;
-		if (!g_str_has_prefix(file, "xmimsim-gui-source-"))
-			continue;
-		gchar *full_file = g_build_filename(dirname, file, NULL);
-		XmiMsimGuiSourceModule *module = xmi_msim_gui_source_module_new(full_file);
-		g_free(full_file);
-		if (module != NULL && g_type_module_use(G_TYPE_MODULE(module)) == FALSE)
-			g_type_module_unuse(G_TYPE_MODULE(module));
-	}
-
-	g_dir_close(dir);
-}
-
-static void query_source_modules(void) {
-	gchar *sources_dir;
-
-	// first add the system-wide modules
-	g_debug("Querying system-wide installed modules");
-#ifdef G_OS_WIN32
-	if (xmi_registry_win_query(XMI_REGISTRY_WIN_SOURCES, &sources_dir) == 0) {
-		g_critical("Could not get sources location in registry!");
-		return;
-	}
-#elif defined(MAC_INTEGRATION)
-	if (xmi_resources_mac_query(XMI_RESOURCES_MAC_SOURCES, &sources_dir) == 0) {
-		g_critical("Could not get sources location in resources!");
-		return;
-	}
-#else
-	sources_dir = g_strdup(XMIMSIM_SOURCES_DEFAULT);
-#endif
-	query_source_modules_dir(sources_dir);
-	g_free(sources_dir);
-
-#ifdef MAC_INTEGRATION
-        const gchar *config_dir = xmi_resources_mac_get_user_data_dir();
-#else
-        const gchar *config_dir = g_get_user_config_dir();
-#endif
-
-	//first check if the preferences file exists!
-	sources_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "sources", config_dir);
-	
-	g_debug("Querying locally installed modules");
-	query_source_modules_dir(sources_dir);
-	g_free(sources_dir);
-
-	// get kids
-	guint ntypes;
-	GType *source_types = g_type_children(XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, &ntypes);
-	guint i;
-	for (i = 0 ; i < ntypes ; i++)
-		g_debug("source %s found\n", g_type_name(source_types[i]));
-}
-
 #ifdef HAVE_GOOGLE_ANALYTICS
 
 static gboolean launch_google_analytics(XmiMsimGuiApplication *app) {
@@ -555,8 +490,8 @@ static void app_startup(GApplication *app) {
 	g_object_unref(builder);
 #endif
 
-	// import sources
-	query_source_modules();
+	XmiMsimGuiApplication *self = XMI_MSIM_GUI_APPLICATION(app);
+	self->engine = xmi_msim_gui_plugins_engine_get_default();
 
 #ifdef XMIMSIM_GUI_UPDATER_H
 	g_idle_add((GSourceFunc) check_for_updates_on_init_cb, app);

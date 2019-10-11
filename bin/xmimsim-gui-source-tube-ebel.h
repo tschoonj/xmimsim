@@ -33,37 +33,6 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiSourceTubeEbel XmiMsimGuiSourceTubeEbel;
 typedef struct _XmiMsimGuiSourceTubeEbelClass   XmiMsimGuiSourceTubeEbelClass;
 
-struct _XmiMsimGuiSourceTubeEbel
-{
-  	XmiMsimGuiSourceAbstract parent_instance;
-  	// all our widgets
-	GtkWidget *tubeVoltageW;
-	GtkWidget *transmissionW;
-	GtkWidget *anodeMaterialW;
-	GtkWidget *anodeThicknessW;
-	GtkWidget *anodeDensityW;
-	GtkWidget *filterMaterialW;
-	GtkWidget *filterThicknessW;
-	GtkWidget *filterDensityW;
-	GtkWidget *windowMaterialW;
-	GtkWidget *windowThicknessW;
-	GtkWidget *windowDensityW;
-	GtkWidget *alphaElectronW;
-	GtkWidget *alphaXrayW;
-	GtkWidget *deltaEnergyW;
-	GtkWidget *tubeCurrentW;
-	GtkWidget *tubeSolidAngleW;
-	GtkWidget *transmissionEffW;
-	GtkWidget *transmissionEffFileW;
-	gboolean dispose_called;
-};
-
-struct _XmiMsimGuiSourceTubeEbelClass
-{
-  XmiMsimGuiSourceAbstractClass parent_class;
-
-};
-
 GType xmi_msim_gui_source_tube_ebel_get_type(void) G_GNUC_CONST;
 
 typedef enum {

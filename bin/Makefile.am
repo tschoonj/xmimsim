@@ -37,7 +37,6 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-catalog-dialog.h \
 	xmimsim-gui-layer-dialog.h \
 	xmimsim-gui-type-builtins.h \
-	xmimsim-gui-source-module.h \
 	xmimsim-gui-utils.h \
 	xmimsim-gui-utils-pp.h \
 	xmimsim-gui-export-canvas-dialog.h \
@@ -64,6 +63,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-batch-assistant.h \
 	xmimsim-gui-gobject.h \
 	xmimsim-gui-batch-archive-settings-box.h \
+	xmimsim-gui-plugins-engine.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -78,7 +78,6 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-catalog-dialog.c \
 	xmimsim-gui-layer-dialog.c \
 	xmimsim-gui-type-builtins.c \
-	xmimsim-gui-source-module.c \
 	xmimsim-gui-utils.c \
 	xmimsim-gui-utils-pp.cpp \
 	xmimsim-gui-export-canvas-dialog.cpp \
@@ -102,7 +101,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-xmso-results-application-window.c \
 	xmimsim-gui-batch-assistant.c \
 	xmimsim-gui-gobject.c \
-	xmimsim-gui-batch-archive-settings-box.c
+	xmimsim-gui-batch-archive-settings-box.c \
+	xmimsim-gui-plugins-engine.c \
 	$(NULL)
 
 
@@ -130,51 +130,55 @@ libxmimsim_gui_la_LIBADD = \
 	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
-	@libsoup_LIBS@ \
 	../src/libxmimsim.la \
 	$(NULL)
 
 plugindir = $(libdir)/xmimsim-gui/sources
-plugin_LTLIBRARIES = \
-	xmimsim-gui-source-tube-ebel.la \
-	xmimsim-gui-source-radionuclide.la \
+
+dist_plugin_DATA = \
+	xmimsim-gui-source-tube-ebel.plugin \
+	xmimsim-gui-source-radionuclide.plugin \
 	$(NULL)
 
-xmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
+plugin_LTLIBRARIES = \
+	libxmimsim-gui-source-tube-ebel.la \
+	libxmimsim-gui-source-radionuclide.la \
+	$(NULL)
+libxmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
+	@libsoup_CFLAGS@ \
 	$(NULL)
-xmimsim_gui_source_tube_ebel_la_SOURCES = \
+libxmimsim_gui_source_tube_ebel_la_SOURCES = \
 	xmimsim-gui-source-tube-ebel.h \
 	xmimsim-gui-source-tube-ebel.c \
 	$(NULL)
-xmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
+libxmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
 	$(AM_LDFLAGS) \
 	$(NULL)
-xmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
+libxmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 
-xmimsim_gui_source_radionuclide_la_CPPFLAGS = \
+libxmimsim_gui_source_radionuclide_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	$(NULL)
-xmimsim_gui_source_radionuclide_la_SOURCES = \
+libxmimsim_gui_source_radionuclide_la_SOURCES = \
 	xmimsim-gui-source-radionuclide.h \
 	xmimsim-gui-source-radionuclide.c \
 	$(NULL)
-xmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
+libxmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ \
 	$(AM_LDFLAGS) \
 	$(NULL)
-xmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
-		    
+libxmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 noinst_LTLIBRARIES += \
-	xmimsim-gui-source-random.la
-xmimsim_gui_source_random_la_CPPFLAGS = \
+	libxmimsim-gui-source-random.la
+libxmimsim_gui_source_random_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xml2_CFLAGS@ \
@@ -182,19 +186,20 @@ xmimsim_gui_source_random_la_CPPFLAGS = \
 	@easyRNG_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	$(NULL)
-xmimsim_gui_source_random_la_SOURCES = \
+libxmimsim_gui_source_random_la_SOURCES = \
 	xmimsim-gui-source-random.h \
 	xmimsim-gui-source-random.c \
 	$(NULL)
-xmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
+libxmimsim_gui_source_random_la_LDFLAGS = -module -avoid-version -shared \
 	@LDFLAGS_XMIMSIM_CL@ -rpath /tmp \
 	$(NULL)
-xmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
+libxmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
 	../src/libxmimsim.la
 	@fgsl_LIBS@ \
 	@easyRNG_LIBS@ \
 	@xraylib_LIBS@ \
 	$(NULL)
+		    
 endif
 
 bin_PROGRAMS =  xmimsim \
@@ -328,12 +333,13 @@ libxmimsim_gui_la_CPPFLAGS += \
 	$(NULL)
 libxmimsim_gui_la_LIBADD += \
 	@JsonGlib_LIBS@ \
+	@libsoup_LIBS@ \
 	$(NULL)
 endif
 endif
 
 if OS_WINDOWS
-xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
@@ -353,6 +359,7 @@ xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
+		 @libsoup_CFLAGS@ \
 		 -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
 		 $(AM_CPPFLAGS)
 xmimsim_LDADD = ../src/libxmimsim.la \
@@ -387,6 +394,7 @@ xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
 		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
+		       @libsoup_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
 		       -DXMIMSIM_HDF5_DEFAULT=\"$(datadir)/xmimsim/xmimsimdata.h5\" \
 		       $(AM_CPPFLAGS)
@@ -398,6 +406,7 @@ xmsi2xrmc_LDADD = ../src/libxmimsim.la \
 xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
+		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
 
 
@@ -408,6 +417,7 @@ xmso2xmsi_LDADD = ../src/libxmimsim.la \
 xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
+		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
 
 xmso2svg_SOURCES = xmso2svg.c
@@ -417,6 +427,7 @@ xmso2svg_LDADD = ../src/libxmimsim.la \
 xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ \
+		  @libsoup_CFLAGS@ \
 		  $(AM_CPPFLAGS)
 
 xmso2spe_SOURCES = xmso2spe.c
@@ -426,6 +437,7 @@ xmso2spe_LDADD = ../src/libxmimsim.la \
 xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ \
+		  @libsoup_CFLAGS@ \
 		  $(AM_CPPFLAGS)
 
 xmso2csv_SOURCES = xmso2csv.c
@@ -435,6 +447,7 @@ xmso2csv_LDADD = ../src/libxmimsim.la \
 xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ \
+		  @libsoup_CFLAGS@ \
 		  $(AM_CPPFLAGS)
 
 xmso2htm_SOURCES = xmso2htm.c
@@ -444,6 +457,7 @@ xmso2htm_LDADD = ../src/libxmimsim.la \
 xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
 		  @xraylib_CFLAGS@ \
+		  @libsoup_CFLAGS@ \
 		  $(AM_CPPFLAGS)
 
 xmimsim_db_SOURCES = xmimsim-db.c
@@ -453,6 +467,7 @@ xmimsim_db_LDADD = ../src/libxmimsim.la \
 xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
 		    @xraylib_CFLAGS@ \
+		    @libsoup_CFLAGS@ \
 		    $(AM_CPPFLAGS)
 
 xmsa2xmso_SOURCES = xmsa2xmso.c
@@ -462,6 +477,7 @@ xmsa2xmso_LDADD = ../src/libxmimsim.la \
 xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
+		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
 
 #xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c

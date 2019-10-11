@@ -1,0 +1,4 @@
+[Plugin]
+Module=xmimsim-gui-source-tube-ebel
+Name=Ebel Tube Source Generator
+Loader=C

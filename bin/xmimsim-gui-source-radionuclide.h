@@ -33,23 +33,6 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiSourceRadionuclide XmiMsimGuiSourceRadionuclide;
 typedef struct _XmiMsimGuiSourceRadionuclideClass   XmiMsimGuiSourceRadionuclideClass;
 
-struct _XmiMsimGuiSourceRadionuclide
-{
-  	XmiMsimGuiSourceAbstract parent_instance;
-  	// all our widgets
-	GtkWidget *radioNuclideW;
-	GtkWidget *activityW;
-	GtkWidget *activityUnitW;
-	GtkWidget *nuclideSolidAngleW;
-	gboolean dispose_called;
-};
-
-struct _XmiMsimGuiSourceRadionuclideClass
-{
-  XmiMsimGuiSourceAbstractClass parent_class;
-
-};
-
 GType xmi_msim_gui_source_radionuclide_get_type(void) G_GNUC_CONST;
 
 typedef enum {

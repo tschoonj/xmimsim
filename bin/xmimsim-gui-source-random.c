@@ -42,9 +42,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_aux.h"
 #include <math.h>
 #include <stdio.h>
+#include <libpeas/peas.h>
 
+struct _XmiMsimGuiSourceRandom
+{
+  	XmiMsimGuiSourceAbstract parent_instance;
+};
 
-XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceRandom, xmi_msim_gui_source_random, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+struct _XmiMsimGuiSourceRandomClass
+{
+  XmiMsimGuiSourceAbstractClass parent_class;
+};
+
+G_DEFINE_DYNAMIC_TYPE(XmiMsimGuiSourceRandom, xmi_msim_gui_source_random, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module);
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module) {
+	xmi_msim_gui_source_random_register_type(G_TYPE_MODULE(module));
+
+	peas_object_module_register_extension_type(module, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XMI_MSIM_GUI_TYPE_SOURCE_RANDOM);
+}
 
 static void xmi_msim_gui_source_random_real_generate(XmiMsimGuiSourceAbstract *source);
 

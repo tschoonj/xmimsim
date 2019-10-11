@@ -1,8 +1,8 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y curl
+RUN apt-get update && apt-get upgrade -y && apt-get install -y curl gnupg2
 RUN curl -sSL "http://xmi-apt.tomschoonjans.eu/xmi.packages.key" | apt-key add -
-RUN echo "deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu xenial stable" | tee -a /etc/apt/sources.list > /dev/null
+RUN echo "deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu bionic stable" | tee -a /etc/apt/sources.list > /dev/null
 RUN apt-get update
 RUN apt-get install -y build-essential \
 	git \

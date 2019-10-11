@@ -22,7 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include <glib.h>
 #include <stdint.h>
-#include <xmi_solid_angle.h>
+#ifndef __GI_SCANNER__
+#if defined(HAVE_JSONGLIB) || defined(HAVE_GOOGLE_ANALYTICS)
+#include <libsoup/soup.h>
+#endif
+#endif
+#include "xmi_solid_angle.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,6 +113,12 @@ int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, xmi_solid_angle *
 #endif
 
 int xmi_solid_angle_calculation_f(xmi_inputFPtr inputFPtr, xmi_solid_angle **solid_angle, char *input_string, xmi_main_options *xmo);
+
+#ifndef __GI_SCANNER__
+#if defined(HAVE_JSONGLIB) || defined(HAVE_GOOGLE_ANALYTICS)
+SoupSession* xmi_soup_session_new(const gchar *user_agent);
+#endif
+#endif
 
 #ifdef __cplusplus
 }

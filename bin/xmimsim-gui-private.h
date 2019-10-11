@@ -23,6 +23,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-clipboard-manager.h"
 #include "xmi_job.h"
 #include "xmimsim-gui-application-window.h"
+#include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-sources-dialog.h"
+
+G_BEGIN_DECLS
 
 struct _XmiMsimGuiXmsiConfigScrolledWindow {
 	GtkScrolledWindow parent_instance;
@@ -147,5 +151,9 @@ struct _XmiMsimGuiApplicationWindow {
 	GtkWidget *controls_page;
 	GtkWidget *results_page;
 };
+
+void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog);
+
+G_END_DECLS
 
 #endif

@@ -23,20 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 G_BEGIN_DECLS
 
-
-#define XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(a, b, c) \
-	G_BEGIN_DECLS \
-	G_DEFINE_DYNAMIC_TYPE(a, b, c) \
-	G_MODULE_EXPORT void b ## _load(GTypeModule *module); \
-	G_MODULE_EXPORT void b ## _load(GTypeModule *module) { \
-		b ## _register_type(module); \
-	} \
-	G_MODULE_EXPORT void b ## _unload(GTypeModule *module); \
-	G_MODULE_EXPORT void b ## _unload(GTypeModule *module) { \
-	} \
-	G_END_DECLS
-
-
 #define XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT                  (xmi_msim_gui_source_abstract_get_type ())
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT(obj)                  (G_TYPE_CHECK_INSTANCE_CAST ((obj), XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XmiMsimGuiSourceAbstract))
 #define XMI_MSIM_GUI_SOURCE_ABSTRACT_CLASS(klass)          (G_TYPE_CHECK_CLASS_CAST ((klass), XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XmiMsimGuiSourceAbstractClass))

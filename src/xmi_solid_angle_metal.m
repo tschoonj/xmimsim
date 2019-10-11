@@ -120,13 +120,13 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 		for (i = 0 ; i < sa->grid_dims_theta_n ; i++)
 			grid_dims_theta_vals_float[i] = (float) sa->grid_dims_theta_vals[i];
 
-		id<MTLBuffer> grid_dims_r_vals_metal = [device newBufferWithBytes: grid_dims_r_vals_float length: sizeof(float) * sa->grid_dims_r_n options: MTLResourceStorageModePrivate];
+		id<MTLBuffer> grid_dims_r_vals_metal = [device newBufferWithBytes: grid_dims_r_vals_float length: sizeof(float) * sa->grid_dims_r_n options: MTLResourceStorageModeShared];
 		if (!grid_dims_r_vals_metal) {
 			fprintf(stderr, "Could not create Metal buffer: %s\n", "grid_dims_r_vals_metal");
 			return 0;
 		}
 
-		id<MTLBuffer> grid_dims_theta_vals_metal = [device newBufferWithBytes: grid_dims_theta_vals_float length: sizeof(float) * sa->grid_dims_theta_n options: MTLResourceStorageModePrivate];
+		id<MTLBuffer> grid_dims_theta_vals_metal = [device newBufferWithBytes: grid_dims_theta_vals_float length: sizeof(float) * sa->grid_dims_theta_n options: MTLResourceStorageModeShared];
 		if (!grid_dims_theta_vals_metal) {
 			fprintf(stderr, "Could not create Metal buffer: %s\n", "grid_dims_theta_vals_metal");
 			return 0;

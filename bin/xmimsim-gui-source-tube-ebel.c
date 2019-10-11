@@ -27,6 +27,38 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <xraylib.h>
 #include <math.h>
 #include <string.h>
+#include <libpeas/peas.h>
+
+struct _XmiMsimGuiSourceTubeEbel
+{
+  	XmiMsimGuiSourceAbstract parent_instance;
+  	// all our widgets
+	GtkWidget *tubeVoltageW;
+	GtkWidget *transmissionW;
+	GtkWidget *anodeMaterialW;
+	GtkWidget *anodeThicknessW;
+	GtkWidget *anodeDensityW;
+	GtkWidget *filterMaterialW;
+	GtkWidget *filterThicknessW;
+	GtkWidget *filterDensityW;
+	GtkWidget *windowMaterialW;
+	GtkWidget *windowThicknessW;
+	GtkWidget *windowDensityW;
+	GtkWidget *alphaElectronW;
+	GtkWidget *alphaXrayW;
+	GtkWidget *deltaEnergyW;
+	GtkWidget *tubeCurrentW;
+	GtkWidget *tubeSolidAngleW;
+	GtkWidget *transmissionEffW;
+	GtkWidget *transmissionEffFileW;
+	gboolean dispose_called;
+};
+
+struct _XmiMsimGuiSourceTubeEbelClass
+{
+  XmiMsimGuiSourceAbstractClass parent_class;
+
+};
 
 typedef struct {
 	double tube_voltage;
@@ -48,7 +80,16 @@ typedef struct {
 	gchar *transmission_efficiency_file;
 } xmi_ebel_parameters;
 
-XMI_MSIM_GUI_DEFINE_DYNAMIC_SOURCE_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+G_DEFINE_DYNAMIC_TYPE(XmiMsimGuiSourceTubeEbel, xmi_msim_gui_source_tube_ebel, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module);
+
+G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module) {
+	g_debug("Entering tube peas_register_types");
+	xmi_msim_gui_source_tube_ebel_register_type(G_TYPE_MODULE(module));
+
+	peas_object_module_register_extension_type(module, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XMI_MSIM_GUI_TYPE_SOURCE_TUBE_EBEL);
+}
 
 static void xmi_msim_gui_source_tube_ebel_real_generate(XmiMsimGuiSourceAbstract *source);
 

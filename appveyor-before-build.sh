@@ -56,14 +56,15 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gtkmm3
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-boost
 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-cmake
+	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-libpeas
 	# install plplot from master
 	#git clone --depth 1 -q git@github.com:PLplot/PLplot.git
 	#cd plplot
 	# fix pango.pc
 	#echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
-	curl -L -s -O http://lvserver.ugent.be/~schoon/plplot-5.14.0.tar.gz
-	tar xfz plplot-5.14.0.tar.gz
-	cd plplot-5.14.0
+	curl -L -s -O https://downloads.sourceforge.net/project/plplot/plplot/5.15.0%20Source/plplot-5.15.0.tar.gz
+	tar xfz plplot-5.15.0.tar.gz
+	cd plplot-5.15.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
 	make -j2
 	make install

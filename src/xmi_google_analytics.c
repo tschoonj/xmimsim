@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <config.h>
+#include "xmi_private.h"
 #include "xmi_google_analytics.h"
-#include <libsoup/soup.h>
 #include <glib.h>
 #include <string.h>
 
@@ -130,7 +130,7 @@ static void xmi_msim_google_analytics_tracker_class_init(XmiMsimGoogleAnalyticsT
 }
 
 static void xmi_msim_google_analytics_tracker_init(XmiMsimGoogleAnalyticsTracker *self) {
-	self->session = soup_session_new();
+	self->session = xmi_soup_session_new(NULL);
 }
 
 /**

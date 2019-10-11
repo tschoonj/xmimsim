@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2019-03-26
-GTK3_RUNTIME_VERSION = 3.24.5
+GTK3_RUNTIME_TAG = 2019-10-04
+GTK3_RUNTIME_VERSION = 3.24.11
 GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
 common:
@@ -42,7 +42,6 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-catalog-dialog.h xmimsim-gui-catalog-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-layer-dialog.h xmimsim-gui-layer-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.h
-	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-source-module.h xmimsim-gui-source-module.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-utils.h xmimsim-gui-utils.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-export-canvas-dialog.h xmimsim-gui-export-canvas-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-tools.h xmimsim-gui-tools.h
