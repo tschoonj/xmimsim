@@ -77,6 +77,7 @@ enum {
 
 enum {
 	PROP_ABSTRACT_0,
+	PROP_ABSTRACT_RUNNING,
 	PROP_ABSTRACT_EXECUTABLE,
 	PROP_ABSTRACT_EXTRA_OPTIONS,
 	N_ABSTRACT_PROPERTIES
@@ -222,11 +223,19 @@ static void xmi_msim_batch_abstract_class_init(XmiMsimBatchAbstractClass *klass)
 		XMI_MSIM_TYPE_JOB
 	);
 
+	abstract_props[PROP_ABSTRACT_RUNNING] = g_param_spec_boolean(
+		"running",
+		"Batch running",
+		"Batch running",
+		FALSE,
+    		G_PARAM_READABLE
+	);
+
 	abstract_props[PROP_ABSTRACT_EXECUTABLE] = g_param_spec_string(
 		"executable",
 		"XMI-MSIM main executable",
 		"Full path to the XMI-MSIM main executable",
-		NULL,
+		xmi_get_xmimsim_path(),
     		G_PARAM_READWRITE
 	);
 
@@ -253,6 +262,8 @@ static void xmi_msim_batch_abstract_dispose(GObject *object) {
 }
 
 static void xmi_msim_batch_abstract_finalize(GObject *object) {
+	g_debug("Calling xmi_msim_batch_abstract_finalize");
+
 	XmiMsimBatchAbstract *batch = XMI_MSIM_BATCH_ABSTRACT(object);
 
 	if (batch->priv->active_job)
@@ -311,8 +322,14 @@ static void xmi_msim_batch_abstract_get_property(GObject *object, guint prop_id,
 	XmiMsimBatchAbstract *batch = XMI_MSIM_BATCH_ABSTRACT(object);
 
 	switch (prop_id) {
+		case PROP_ABSTRACT_RUNNING:
+			g_value_set_boolean(value, batch->priv->running);
+			break;
 		case PROP_ABSTRACT_EXECUTABLE:
-			g_value_set_string(value, batch->priv->executable);
+			if (batch->priv->executable)
+				g_value_set_string(value, batch->priv->executable);
+			else
+				g_value_copy(g_param_spec_get_default_value(pspec), value);
 			break;
 		case PROP_ABSTRACT_EXTRA_OPTIONS:
 			g_value_set_boxed(value, batch->priv->extra_options);
@@ -362,12 +379,14 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 	guint job_i;
 
 	batch->priv->running = TRUE;
+	g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_RUNNING]);
 
 	for (job_i = 0 ; job_i < n_jobs ; job_i++) {
 		GError *error = NULL;
 		XmiMsimJob *job = XMI_MSIM_BATCH_ABSTRACT_GET_CLASS(batch)->get_job(batch, job_i, &error);
 		if (error != NULL) {
 			batch->priv->running = FALSE;
+			g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_RUNNING]);
 			batch->priv->finished = TRUE;
 			g_task_return_pointer(task, g_strdup(error->message), g_free);
 			g_clear_error(&error);
@@ -395,6 +414,7 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			g_signal_handler_disconnect(job, sig2);
 			g_signal_handler_disconnect(job, sig3);
 			batch->priv->running = FALSE;
+			g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_RUNNING]);
 			batch->priv->finished = TRUE;
 			XMI_OBJECT_UNREF(job);
 			g_task_return_pointer(task, g_strdup(error->message), g_free);
@@ -420,6 +440,7 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 		// check job status!
 		if (!xmi_msim_job_was_successful(job)) {
 			batch->priv->running = FALSE;
+			g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_RUNNING]);
 			batch->priv->paused = FALSE;
 			batch->priv->finished = TRUE;
 			g_clear_object(&batch->priv->active_job);
@@ -433,7 +454,7 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 			g_main_context_unref(main_context);
 			return;
 		}
-		double progress = (double) job_i / n_jobs;
+		double progress = (double) (job_i + 1)/ n_jobs;
 		g_signal_emit(batch, signals[PROGRESS_EVENT], 0, progress);
 		g_clear_object(&batch->priv->active_job);
 	}
@@ -441,6 +462,7 @@ static void batch_thread(GTask *task, XmiMsimBatchAbstract *batch, gpointer task
 	// we are done!
 	g_signal_emit(batch, signals[ACTIVE_JOB_CHANGED], 0, NULL);
 	batch->priv->running = FALSE;
+	g_object_notify_by_pspec(G_OBJECT(batch), abstract_props[PROP_ABSTRACT_RUNNING]);
 	batch->priv->finished = TRUE;
 	batch->priv->successful = TRUE;
 	g_task_return_pointer(task, g_strdup("Batch has been terminated successfully"), g_free);
@@ -633,6 +655,21 @@ void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gcha
 	g_object_set(batch, "extra-options", extra_options, NULL);
 }
 
+XmiMsimJob* xmi_msim_batch_abstract_get_active_job(XmiMsimBatchAbstract *batch) {
+	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), NULL);
+
+	if (batch->priv->active_job)
+		return g_object_ref(batch->priv->active_job);
+
+	return NULL;	
+}
+
+guint xmi_msim_batch_abstract_get_number_of_jobs(XmiMsimBatchAbstract *batch) {
+	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), 0);
+
+	return XMI_MSIM_BATCH_ABSTRACT_GET_CLASS(batch)->get_number_of_jobs(batch);
+}
+
 GQuark xmi_msim_batch_error_quark(void) {
 	return g_quark_from_static_string("xmi-msim-batch-error-quark");
 }
@@ -721,6 +758,8 @@ static void xmi_msim_batch_multi_dispose(GObject *object) {
 }
 
 static void xmi_msim_batch_multi_finalize(GObject *object) {
+	g_debug("Calling xmi_msim_batch_multi_finalize");
+
 	XmiMsimBatchMulti *batch = XMI_MSIM_BATCH_MULTI(object);
 
 	if (batch->xmsi_files)
@@ -758,7 +797,7 @@ static XmiMsimJob* xmi_msim_batch_multi_real_get_job(XmiMsimBatchAbstract *batch
 	gchar *xmsi_file = g_ptr_array_index(multi->xmsi_files, job_index);
 	xmi_main_options *options = multi->options->len == 1 ? g_ptr_array_index(multi->options, 0) : g_ptr_array_index(multi->options, job_index);
 
-	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : xmi_get_xmimsim_path();
+	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : g_value_dup_string(g_param_spec_get_default_value(abstract_props[PROP_ABSTRACT_EXECUTABLE]));
 	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
 
 	XmiMsimJob *job = xmi_msim_job_new(executable, xmsi_file, options, NULL, NULL, NULL, NULL, extra_options, error);
@@ -864,6 +903,7 @@ enum {
 	PROP_SINGLE_XMSI_DATA,
 	PROP_SINGLE_SINGLE_DATA,
 	PROP_SINGLE_OPTIONS,
+	PROP_SINGLE_ARCHIVE,
 	N_SINGLE_PROPERTIES
 };
 
@@ -928,7 +968,7 @@ static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
 	);
 
 	single_props[PROP_SINGLE_SINGLE_DATA] = g_param_spec_boxed(
-		"single data",
+		"single-data",
 		"XmiMsimBatchSingleData array",
 		"Array of xmi_batch_single_data instances",
 		G_TYPE_PTR_ARRAY,
@@ -941,6 +981,14 @@ static void xmi_msim_batch_single_class_init(XmiMsimBatchSingleClass *klass) {
 		"Job Main Options",
 		XMI_MSIM_TYPE_MAIN_OPTIONS,
     		G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY
+	);
+
+	single_props[PROP_SINGLE_ARCHIVE] = g_param_spec_boxed(
+		"archive",
+		"archive",
+		"archive",
+		XMI_MSIM_TYPE_ARCHIVE,
+    		G_PARAM_READABLE
 	);
 
 	g_object_class_install_properties(object_class, N_SINGLE_PROPERTIES, single_props);
@@ -1016,6 +1064,8 @@ static void xmi_msim_batch_single_dispose(GObject *object) {
 }
 
 static void xmi_msim_batch_single_finalize(GObject *object) {
+	g_debug("Calling xmi_msim_batch_single_finalize");
+
 	XmiMsimBatchSingle *batch = XMI_MSIM_BATCH_SINGLE(object);
 
 	if (batch->xmsi_data)
@@ -1074,6 +1124,9 @@ static void xmi_msim_batch_single_get_property(GObject *object, guint prop_id, G
 			break;
 		case PROP_SINGLE_OPTIONS:
 			g_value_set_boxed(value, batch->options);
+			break;
+		case PROP_SINGLE_ARCHIVE:
+			g_value_set_boxed(value, batch->archive);
 			break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -1153,3 +1206,4 @@ gboolean xmi_msim_batch_single_write_archive(XmiMsimBatchSingle *batch, const ch
 
 	return xmi_archive_write_to_xml_file(batch->archive, xmsa_file, error);
 }
+

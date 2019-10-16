@@ -64,6 +64,7 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-gobject.h \
 	xmimsim-gui-batch-archive-settings-box.h \
 	xmimsim-gui-plugins-engine.h \
+	xmimsim-gui-batch-controls-box.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -103,6 +104,7 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-gobject.c \
 	xmimsim-gui-batch-archive-settings-box.c \
 	xmimsim-gui-plugins-engine.c \
+	xmimsim-gui-batch-controls-box.c \
 	$(NULL)
 
 

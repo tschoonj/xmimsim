@@ -154,6 +154,18 @@ struct _XmiMsimGuiApplicationWindow {
 
 void after_generate_cb(XmiMsimGuiSourceAbstract *source, GError *error, XmiMsimGuiSourcesDialog *dialog);
 
+#define DATA_COMMON_WEIGHT_FRACTION common_weight_fraction_data_quark()
+GQuark common_weight_fraction_data_quark(void);
+
+struct common_weight_fraction_data {
+	double weights_sum;
+	unsigned int count;
+	double inc;
+	GPtrArray *all_xpath_data;
+};
+
+
+
 G_END_DECLS
 
 #endif

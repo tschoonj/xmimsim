@@ -613,7 +613,10 @@ XmiMsimJob* xmi_msim_job_new(
 	g_free(xmimsim_hdf5_escape_ratios);
 #endif
 
-	g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", options->omp_num_threads));
+	// this is a hack to let us use batch extra options to set the number of threads :-)
+	if (options->omp_num_threads != xmi_omp_get_max_threads()) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", options->omp_num_threads));
+	}
 
 	// extra options
 	if (extra_options) {
