@@ -1,0 +1,110 @@
+- hosts: all
+  become: yes
+  pre_tasks:
+    - name: Get system free space
+      shell: df -Th
+      register: df_result
+    - debug:
+        var: df_result
+    - name: Get system free memory
+      shell: free -m
+      register: free_result
+    - debug:
+        var: free_result
+    - name: Ensure vagrant user bashrc has some environment vars
+      blockinfile:
+        dest: "/home/vagrant/.bashrc"
+        block: |
+          export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+          export LD_LIBRARY_PATH=/usr/local/lib
+          export GI_TYPELIB_PATH=/usr/local/lib/girepository-1.0
+        marker: '# {mark} ANSIBLE MANAGED BLOCK - XMI-MSIM'
+        create: yes 
+      become_user: vagrant
+    - name: Install EPEL repo
+      yum:
+        name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+    - name: Install lvserver repo
+      yum:
+        name: "http://lvserver.ugent.be/yum/xmi-repo-key-{{ ansible_distribution_major_version }}.0-1.el{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+    - name: Upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+    - name: Install development tools
+      yum:
+        name: "@Development Tools"
+        state: latest
+    - name: Install GNOME...
+      yum:
+        name: "@^GNOME Desktop"
+        state: latest
+    - name: get default runlevel
+      command: systemctl get-default
+      register: runlevel
+    - name: Set graphical runlevel
+      command: systemctl set-default graphical.target
+      when: runlevel.stdout != "graphical.target"        
+    - name: Install XMI-MSIM dependencies
+      yum:
+        name:
+          - gtkmm-plplot-devel
+          - hdf5-devel
+          - libsoup-devel
+          - fgsl-devel
+          - gsl-devel
+          - libxslt-devel
+          - libpeas-devel
+          - libpeas-loader-python
+          - gcc-gfortran
+        state: latest
+    - name: Install xraylib dependencies
+      yum:
+        name:
+          - swig
+          - python36-Cython 
+          - python2-numpy
+          - python2-devel
+          - python2-setuptools
+          - autoconf
+          - automake
+          - libtool
+          - xorg-x11-xauth
+    - name: Clone xraylib git repository
+      git:
+        repo: 'https://github.com/tschoonj/xraylib.git'
+        dest: xraylib
+        depth: 1
+      become: no
+    - name: Compile xraylib
+      shell: 'autoreconf -fi && ./configure --enable-fortran2003 --enable-python --enable-python-numpy PYTHON=python2.7 CYTHON=cython3.6 && make'
+      args:
+        chdir: xraylib
+      become: no
+    - name: Install xraylib
+      shell: 'make install'
+      args:
+        chdir: xraylib
+    - name: Clone XMI-MSIM git repository
+      git:
+        repo: 'https://github.com/tschoonj/xmimsim.git'
+        dest: xmimsim
+        depth: 1
+      become: no
+    - name: Compile XMI-MSIM
+      shell: 'autoreconf -fi && ./configure --enable-gui --disable-updater --enable-google-analytics PYTHON=python2.7 && make'
+      args:
+        chdir: xmimsim
+      become: no
+    - name: Install XMI-MSIM
+      shell: 'make install'
+      args:
+        chdir: xmimsim
+    - name: Generate HDF5 data
+      shell: '/usr/local/bin/xmimsim-db /usr/local/share/xmimsim/xmimsimdata.h5'
+  roles:
+    - role: PeterMosmans.virtualbox-guest
+      vars:
+        virtualbox_x11: yes
