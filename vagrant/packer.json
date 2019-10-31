@@ -1,0 +1,28 @@
+{
+  "builders": [
+    {
+      "communicator": "ssh",
+      "source_path": "centos/7",
+      "provider": "virtualbox",
+      "add_force": true,
+      "type": "vagrant",
+      "template": "Vagrantfile.template"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "./playbook.yml",
+      "galaxy_file": "ansible-requirements.yml",
+      "extra_arguments": [ "-v" ]
+    }
+  ],
+  "post-processors": [
+    {
+      "name": "upload2vagrant",
+      "type": "vagrant-cloud",
+      "box_tag": "TomSchoonjans/XMI-MSIM-master",
+      "version": "{{ timestamp }}"
+    }
+  ]
+}

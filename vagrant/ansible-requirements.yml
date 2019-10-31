@@ -1,0 +1,3 @@
+---
+- src: PeterMosmans.virtualbox-guest
+  version: '1.7.0'
