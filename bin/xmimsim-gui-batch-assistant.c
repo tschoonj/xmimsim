@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-private.h"
 #include "xmimsim-gui-long-task-window.h"
 #include "xmimsim-gui-xmsa-viewer-window.h"
+#include "xmimsim-gui-batch-multi-selection-type-grid.h"
 
 #include "xmi_xml.h"
 #include "xmi_aux.h"
@@ -31,6 +32,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
+
+static G_DEFINE_QUARK("options-box", options_box)
+#define OPTIONS_BOX_QUARK options_box_quark()
 
 struct _XmiMsimGuiBatchAssistant {
 	GtkAssistant parent_instance;
@@ -69,8 +73,59 @@ static void xmi_msim_gui_batch_assistant_finalize(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_gui_batch_assistant_parent_class)->finalize(gobject);
 }
 
+struct batch_killer_data {
+	GtkWidget *dialog;
+	XmiMsimBatchAbstract *batch_data;
+};
+
+static gboolean batch_killer(struct batch_killer_data *data) {
+
+	if (data->batch_data && xmi_msim_batch_abstract_is_running(data->batch_data)) {
+		return G_SOURCE_CONTINUE;
+	}
+	gtk_dialog_response(GTK_DIALOG(data->dialog), GTK_RESPONSE_CLOSE);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void xmi_msim_gui_batch_assistant_shutdown(XmiMsimGuiBatchAssistant *self) {
-	gtk_widget_destroy(GTK_WIDGET(self));
+	if (!self->batch_data || !xmi_msim_batch_abstract_is_running(self->batch_data)) {
+		gtk_widget_destroy(GTK_WIDGET(self));
+		return;
+	}
+
+	XmiMsimBatchAbstract *batch_data = g_object_ref(self->batch_data);
+	g_debug("batch is running!");
+	GtkWidget *dialog = gtk_dialog_new_with_buttons("Closing Window...",
+		GTK_WINDOW(self),
+		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		"_Kill batch and close", GTK_RESPONSE_OK,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		NULL);
+	GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	GtkWidget *label = gtk_label_new("The window you are trying to close still has a batch running!");
+	gtk_widget_show(label);
+	gtk_box_pack_start(GTK_BOX(content),label, FALSE, FALSE, 3);
+	struct batch_killer_data data = {.dialog = dialog, .batch_data = batch_data};
+	guint source_id = g_timeout_add_seconds(1, (GSourceFunc) batch_killer, &data);
+	switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+		case GTK_RESPONSE_CANCEL:
+		case GTK_RESPONSE_DELETE_EVENT:
+			g_source_remove(source_id);
+			gtk_widget_destroy(dialog);
+			break;
+		case GTK_RESPONSE_OK:
+			g_source_remove(source_id);
+		case GTK_RESPONSE_CLOSE: // from batch_killer!
+		{
+			gtk_widget_destroy(dialog);
+			if (xmi_msim_batch_abstract_is_running(batch_data)) {
+				xmi_msim_batch_abstract_kill(batch_data, NULL);
+			}
+			gtk_widget_destroy(GTK_WIDGET(self));
+		}
+	}
+	g_object_unref(batch_data);
 }
 
 static void xmi_msim_gui_batch_assistant_prepare(GtkAssistant *assistant, GtkWidget *page) {
@@ -162,7 +217,7 @@ static void update_weight_fractions(xmlNodeSetPtr selected_nodes, const gchar *x
 		xmlNodePtr node = selected_nodes->nodeTab[k];
 		xmlChar *txt = xmlNodeGetContent(node);
 		g_assert(txt != NULL);
-		double value = g_ascii_strtod(txt, NULL);
+		double value = g_ascii_strtod((gchar *) txt, NULL);
 		g_assert(value > 0.0);
 		selected_sum += value;
 		xmlFree(txt);
@@ -177,15 +232,15 @@ static void update_weight_fractions(xmlNodeSetPtr selected_nodes, const gchar *x
 		xmlNodePtr node = unselected_nodes->nodeTab[k];
 		xmlChar *txt = xmlNodeGetContent(node);
 		g_assert(txt != NULL);
-		double old_value = g_ascii_strtod(txt, NULL);
+		double old_value = g_ascii_strtod((gchar *) txt, NULL);
 		g_assert(old_value > 0.0);
 		xmlFree(txt);
 		double new_value = old_value * (100.0 - selected_sum) / (100.0 - weights_sum_orig);
-		txt = g_strdup_printf("%g", new_value);
+		txt = BAD_CAST g_strdup_printf("%g", new_value);
 		g_debug("old_value: %g", old_value);
 		g_debug("new_value: %g", new_value);
 		xmlNodeSetContent(node, txt);
-		xmlFree(txt);
+		g_free(txt);
 	}
 
 	xmlXPathFreeNodeSet(unselected_nodes);
@@ -235,7 +290,7 @@ static GPtrArray* get_xmsi_data(XmiMsimGuiBatchAssistant *self, GPtrArray *singl
 			
 			double value = data->start + _index * (data->end - data->start) / data->nsteps;
 
-			xmlXPathObjectPtr xpathObj = xmlXPathNodeEval(root, data->xpath, xpathCtx);
+			xmlXPathObjectPtr xpathObj = xmlXPathNodeEval(root, BAD_CAST data->xpath, xpathCtx);
 			g_assert(xpathObj != NULL && xpathObj->nodesetval->nodeNr == 1);
 
 			xmlNodePtr node = xpathObj->nodesetval->nodeTab[0];
@@ -272,20 +327,21 @@ static GPtrArray* get_xmsi_data(XmiMsimGuiBatchAssistant *self, GPtrArray *singl
 					xmlNodePtr orig_root = xmlDocGetRootElement(orig_doc);
 					xmlXPathContextPtr context = xmlXPathNewContext(orig_doc);
 					
-					xmlXPathObjectPtr xpathObj = xmlXPathNodeEval(orig_root, xpath, context);
+					xmlXPathObjectPtr xpathObj = xmlXPathNodeEval(orig_root, BAD_CAST xpath, context);
 					g_assert(xpathObj != NULL && xpathObj->nodesetval->nodeNr == 1);
 
 					xmlNodePtr node = xpathObj->nodesetval->nodeTab[0];
 					xmlChar *txt = xmlNodeGetContent(node);
 					g_assert(txt != NULL);
-					double value = g_ascii_strtod(txt, NULL);
+					double value = g_ascii_strtod((gchar *) txt, NULL);
 					g_assert(value > 0.0);
+					xmlFree(txt);
 					xmlXPathFreeContext(context);
 					xmlXPathFreeObject(xpathObj);
 
 					// use the doc copy for the update
 					context = xmlXPathNewContext(doc);
-					xpathObj = xmlXPathNodeEval(root, xpath, context);
+					xpathObj = xmlXPathNodeEval(root, BAD_CAST xpath, context);
 					g_assert(xpathObj != NULL && xpathObj->nodesetval->nodeNr == 1);
 					update_weight_fractions(xpathObj->nodesetval, xpath, context, value);
 					xmlXPathFreeContext(context);
@@ -464,7 +520,6 @@ static void single_batch_data_changed_cb(XmiMsimGuiBatchAssistant *self, GParamS
 		xmi_main_options_free(options);
 
 		xmi_msim_gui_batch_controls_box_set_batch_data(XMI_MSIM_GUI_BATCH_CONTROLS_BOX(self->batch_controls_page), self->batch_data);
-		//g_signal_connect_swapped(page, "notify::single-batch-data", G_CALLBACK(single_batch_data_changed_cb), self);
 
 		g_ptr_array_unref(arr);
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(archive_setting_page), TRUE);
@@ -508,6 +563,114 @@ static void xpath_changed_cb(XmiMsimGuiBatchAssistant *self, GParamSpec *pspec, 
 	else {
 		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(selection_page), FALSE);
 	}
+}
+
+static void batch_multi_data_finished_event_cb(XmiMsimBatchAbstract *batch_data, gboolean result, gchar *message, XmiMsimGuiBatchAssistant *self) {
+
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(self->batch_controls_page), TRUE);
+}
+
+static void options_changed_cb(XmiMsimGuiBatchAssistant *self, XmiMsimGuiOptionsBox *_options_box) {
+	g_debug("Entering options_changed_cb");
+
+	// whenever called, update the batch instance
+	if (self->batch_data)
+		g_object_unref(self->batch_data);
+
+	// gather the options
+	GPtrArray *options = g_ptr_array_new_full(self->options_pages->len, (GDestroyNotify) xmi_main_options_free);
+
+	if (self->options_pages->len == 1) {
+		g_ptr_array_add(options, xmi_msim_gui_options_box_get_options(g_ptr_array_index(self->options_pages, 0)));
+	}
+	else {
+		unsigned int i;
+		for (i = 0 ; i < self->options_pages->len ; i++) {
+			GtkWidget *box = g_ptr_array_index(self->options_pages, i);
+			XmiMsimGuiOptionsBox *options_box = g_object_get_qdata(G_OBJECT(box), OPTIONS_BOX_QUARK);
+			g_ptr_array_add(options, xmi_msim_gui_options_box_get_options(options_box));
+		}
+	}
+
+	self->batch_data = xmi_msim_batch_multi_new(self->xmsi_files, options);
+	g_signal_connect(self->batch_data, "notify::running", G_CALLBACK(batch_data_running_changed_cb), self);
+	g_signal_connect(self->batch_data, "finished-event", G_CALLBACK(batch_multi_data_finished_event_cb), self);
+
+	xmi_msim_gui_batch_controls_box_set_batch_data(XMI_MSIM_GUI_BATCH_CONTROLS_BOX(self->batch_controls_page), self->batch_data);
+
+	g_ptr_array_unref(options);
+}
+
+static void selection_type_changed_cb(XmiMsimGuiBatchAssistant *self, GParamSpec *pspec, XmiMsimGuiBatchMultiSelectionTypeGrid *multi_options_question_page) {
+	g_debug("Entering selection_type_changed_cb");
+
+	gtk_assistant_set_page_complete(GTK_ASSISTANT(self), GTK_WIDGET(multi_options_question_page), TRUE);
+
+	XmiMsimGuiBatchMultiSelectionType type;
+	g_object_get(multi_options_question_page, "selection-type", &type, NULL);
+
+	if (self->options_pages) {
+		unsigned int i;
+		for (i = 0 ; i < self->options_pages->len ; i++) {
+			gint page_index = xmi_msim_gui_batch_assistant_get_page(self, g_ptr_array_index(self->options_pages, i));
+			g_assert(page_index >= 0);
+			gtk_assistant_remove_page(GTK_ASSISTANT(self), page_index);
+		}
+		g_ptr_array_free(self->options_pages, TRUE);
+		self->options_pages = NULL;
+	}
+
+	self->options_pages = g_ptr_array_new();
+
+	if (type == XMI_MSIM_GUI_BATCH_MULTI_SELECTION_TYPE_SINGLE_OPTION) {
+		GtkWidget *page = xmi_msim_gui_options_box_new();
+		gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 3);
+		gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
+		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Set the Options");
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, TRUE);
+
+		g_ptr_array_add(self->options_pages, page);
+
+		g_signal_connect_swapped(page, "changed", G_CALLBACK(options_changed_cb), self);
+
+		gtk_widget_show_all(page);
+	}
+	else if (type == XMI_MSIM_GUI_BATCH_MULTI_SELECTION_TYPE_MULTI_OPTION) {
+		unsigned int i;
+		self->options_pages = g_ptr_array_new();
+
+		for (i = 0 ; i < self->xmsi_files->len ; i++) {
+			GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+			gchar *file_name = g_ptr_array_index(self->xmsi_files, i);
+			gchar *basename = g_path_get_basename(file_name);
+			gchar *label_text = g_strdup_printf("<span font_weight=\"bold\" font_size=\"x-large\">%s</span>", basename);
+			g_free(basename);
+			GtkWidget *label = gtk_label_new(label_text);
+			g_free(label_text);
+			gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+			g_object_set(label, "use-markup", TRUE, NULL);
+			gtk_box_pack_start(GTK_BOX(page), label, FALSE, FALSE, 0);
+
+			GtkWidget *options_box = xmi_msim_gui_options_box_new();
+			gtk_box_pack_start(GTK_BOX(page), options_box, TRUE, TRUE, 0);
+			g_object_set_qdata(G_OBJECT(page), OPTIONS_BOX_QUARK, options_box);
+
+			gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 3 + i);
+			gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
+			gchar *title = g_strdup_printf("Set the Options #%d", i + 1);
+			gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, title);
+			g_free(title);
+			gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, TRUE);
+
+			g_ptr_array_add(self->options_pages, page);
+
+			g_signal_connect_swapped(options_box, "changed", G_CALLBACK(options_changed_cb), self);
+
+			gtk_widget_show_all(page);
+		}
+	}
+
+	options_changed_cb(self, NULL);
 }
 
 static void file_chooser_selection_changed_cb(XmiMsimGuiBatchAssistant *self, GtkFileChooser *file_chooser) {
@@ -558,6 +721,21 @@ static void file_chooser_selection_changed_cb(XmiMsimGuiBatchAssistant *self, Gt
 	}
 
 	if (nfilenames > 1) {
+		g_debug("Entering multi mode!");
+
+		// add question page
+		GtkWidget *page = xmi_msim_gui_batch_multi_selection_type_grid_new();
+		gtk_assistant_insert_page(GTK_ASSISTANT(self), page, 2);
+		gtk_assistant_set_page_type(GTK_ASSISTANT(self), page, GTK_ASSISTANT_PAGE_CONTENT);
+		gtk_assistant_set_page_title(GTK_ASSISTANT(self), page, "Select Options Type");
+		gtk_assistant_set_page_complete(GTK_ASSISTANT(self), page, FALSE);
+		gtk_widget_show_all(page);
+
+		g_signal_connect_swapped(page, "notify::selection-type", G_CALLBACK(selection_type_changed_cb), self);
+		self->multi_options_question_page = page;
+
+		selection_type_changed_cb(self, NULL, XMI_MSIM_GUI_BATCH_MULTI_SELECTION_TYPE_GRID(page));
+
 	} else if (nfilenames == 1) {
 		g_debug("Entering single mode!");
 		gchar *filename = g_ptr_array_index(self->xmsi_files, 0);
@@ -604,10 +782,10 @@ static void file_chooser_selection_changed_cb(XmiMsimGuiBatchAssistant *self, Gt
 static void xmi_msim_gui_batch_assistant_init(XmiMsimGuiBatchAssistant *self) {
 
 	GtkWidget *intro_page = gtk_label_new(
-		"<b>Welcome to the XMI-MSIM Batch Mode!</b>\n\n"
-		"Here you will be able to either:\n"
+		"<span font_weight=\"bold\" font_size=\"x-large\">Welcome to the XMI-MSIM Batch Mode!</span>\n\n"
+		"<span font_size=\"x-large\">Here you will be able to either:\n"
 		"1. Simulate a bunch of input-files you created already.\n"
-		"2. Take an input-file and vary one or two parameters within a range.\n"
+		"2. Take a single input-file and vary one or two parameters within a range.</span>\n"
 		);
 	g_object_set(intro_page, "use-markup", TRUE, NULL);
 	gtk_assistant_append_page(GTK_ASSISTANT(self), intro_page);

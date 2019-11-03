@@ -6,6 +6,7 @@
 #include "xmimsim-gui-continuous-energy-dialog.h"
 #include "xmimsim-gui-source-abstract.h"
 #include "xmimsim-gui-xmsi-selection-scrolled-window.h"
+#include "xmimsim-gui-batch-multi-selection-type-grid.h"
 
 /* inspired by https://github.com/endlessm/xapian-glib/blob/master/xapian-glib/xapian-enums.cc#L22 */
 
@@ -83,3 +84,8 @@ XMI_DEFINE_FLAGS_TYPE(XmiMsimGuiXmsiSelectionXPathFlags, xmi_msim_gui_xmsi_selec
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_STRICT_POSITIVE, "strict-positive")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_POSITIVE, "positive")
 	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_XMSI_SELECTION_XPATH_WEIGHT_FRACTION, "weight-fraction"))
+
+XMI_DEFINE_ENUM_TYPE(XmiMsimGuiBatchMultiSelectionType, xmi_msim_gui_batch_multi_selection_type,
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_BATCH_MULTI_SELECTION_TYPE_SINGLE_OPTION, "single-option")
+	XMI_DEFINE_ENUM_VALUE(XMI_MSIM_GUI_BATCH_MULTI_SELECTION_TYPE_MULTI_OPTION, "multi-option"))
+

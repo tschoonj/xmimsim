@@ -23,11 +23,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
-#define XMI_OBJECT_REF(obj) \
-	xmi_object_ref(obj, G_STRLOC)
+//#define XMI_OBJECT_REF(obj) \
+//	xmi_object_ref(obj, G_STRLOC)
 
-#define XMI_OBJECT_UNREF(obj) \
-	xmi_object_unref(obj, G_STRLOC)
+//#define XMI_OBJECT_UNREF(obj) \
+//	xmi_object_unref(obj, G_STRLOC)
+
+#define XMI_OBJECT_REF(obj) g_object_ref(obj)
+#define XMI_OBJECT_UNREF(obj) g_object_unref(obj)
 
 struct _XmiMsimBatchAbstractPrivate {
 	XmiMsimJob *active_job;

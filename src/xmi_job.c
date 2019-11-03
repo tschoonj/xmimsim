@@ -22,11 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include <string.h>
 
-#define XMI_OBJECT_REF(obj) \
-	xmi_object_ref(obj, G_STRLOC)
+//#define XMI_OBJECT_REF(obj) \
+//	xmi_object_ref(obj, G_STRLOC)
 
-#define XMI_OBJECT_UNREF(obj) \
-	xmi_object_unref(obj, G_STRLOC)
+//#define XMI_OBJECT_UNREF(obj) \
+//	xmi_object_unref(obj, G_STRLOC)
+
+#define XMI_OBJECT_REF(obj) g_object_ref(obj)
+#define XMI_OBJECT_UNREF(obj) g_object_unref(obj)
 
 enum {
 	STDOUT_EVENT,
