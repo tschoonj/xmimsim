@@ -368,7 +368,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 			XMI_MSIM_GUI_UPDATER_JSON_TYPE_MISMATCH,
 			"json stream root node is not an array"
 			);
-		g_task_return_error(task, error);
 		return;
 	}
 	JsonArray *rootArray = json_node_get_array(rootNode);
@@ -436,7 +435,6 @@ static void check_for_updates_thread(GTask *task, gpointer source_object, gpoint
 				XMI_MSIM_GUI_UPDATER_JSON_MISSING_MEMBER,
 				"tag root object has no member called message"
 				);
-			g_task_return_error(task, error);
 			return;
 		}
 

@@ -127,6 +127,15 @@ static void choose_logfile(GtkButton *saveButton, XmiMsimGuiBatchControlsBox *se
 }
 
 static void finished_event_cb(XmiMsimBatchAbstract *batch, gboolean result, const gchar *buffer, XmiMsimGuiBatchControlsBox *self) {
+	if (result) {
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "success"), NULL);
+	}
+	else {
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error"), NULL);
+	}
+	if (self->logFile) {
+		g_output_stream_write(G_OUTPUT_STREAM(self->logFile), buffer, strlen(buffer), NULL, NULL);
+	}
 	g_main_loop_quit(self->main_loop);
 }
 
@@ -494,8 +503,8 @@ static void xmi_msim_gui_batch_controls_box_init(XmiMsimGuiBatchControlsBox *sel
 	gtk_container_set_border_width(GTK_CONTAINER(controlsLogW), 2);
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(controlsLogW), FALSE);
 	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(controlsLogW), FALSE);
-	gtk_text_buffer_create_tag(controlsLogB, "error","foreground", "red", NULL);
-	gtk_text_buffer_create_tag(controlsLogB, "success","foreground", "green", NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "error", "foreground", "red", NULL);
+	gtk_text_buffer_create_tag(controlsLogB, "success", "foreground", "green", NULL);
 	gtk_text_buffer_create_tag(controlsLogB, "pause-continue-stopped", "foreground", "orange", NULL);
 	GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);

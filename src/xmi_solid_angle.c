@@ -347,8 +347,15 @@ static herr_t xmi_read_single_solid_angle(hid_t g_id, const char *name, const H5
 	H5Sclose(dspace_id);
 	H5Dclose(dset_id);
 
-	if ((temp_input = xmi_input_read_from_xml_string(xmi_input_string, NULL)) == NULL)
+	GError *error = NULL;
+
+	if ((temp_input = xmi_input_read_from_xml_string(xmi_input_string, &error)) == NULL) {
+		if (error) {
+			fprintf(stderr, "Error calling xmi_input_read_from_xml_string: %s\n", error->message);
+			g_error_free(error);
+		}
 		return -1;
+	}
 
 	if (xmi_check_solid_angle_match(temp_input, data->input) == 1) {
 		//match

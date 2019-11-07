@@ -317,7 +317,6 @@ static void check_for_updates_callback(XmiMsimGuiApplication *app, GAsyncResult 
 		       		"Could not check for updates"
 	                	);
 			gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", error->message);
-			g_error_free(error);
 	     		gtk_dialog_run (GTK_DIALOG (dialog));
 			gtk_widget_destroy(dialog);
 		}
@@ -335,6 +334,12 @@ static void check_for_updates_callback(XmiMsimGuiApplication *app, GAsyncResult 
 
 		}
 	}
+	else if (error != NULL) {
+		g_debug("Update checking failed: %s", error->message);
+	}
+
+	if (error)
+		g_error_free(error);
 
 	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(app), "check-for-updates");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action), TRUE);
