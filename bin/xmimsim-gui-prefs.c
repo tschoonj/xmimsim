@@ -1056,7 +1056,6 @@ static GtkWidget* create_dialog(void) {
 	gtk_window_set_title(GTK_WINDOW(window), "Preferences");
 	gtk_widget_set_size_request(window, 600, 600);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
 
 	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 	//gtk_window_set_deletable(GTK_WINDOW(window), FALSE);
@@ -1368,6 +1367,7 @@ void xmimsim_gui_launch_preferences(GtkWindow *parent) {
 		preferences_dialog = create_dialog();
 		gtk_window_set_application(GTK_WINDOW(preferences_dialog), GTK_APPLICATION(g_application_get_default()));
 		g_signal_connect(preferences_dialog, "destroy", G_CALLBACK(gtk_widget_destroyed), &preferences_dialog);
+		gtk_window_set_destroy_with_parent(GTK_WINDOW(preferences_dialog), TRUE);
 	}
 
 	if (parent != gtk_window_get_transient_for(GTK_WINDOW(preferences_dialog))) {

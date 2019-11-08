@@ -541,6 +541,7 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
 	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, "xmi-input-current", current, NULL));
 
 	gtk_window_set_transient_for(GTK_WINDOW(widget), GTK_WINDOW(parent));
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(widget), TRUE);
 
 	return GTK_WIDGET(widget);
 }

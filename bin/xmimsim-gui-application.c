@@ -176,6 +176,16 @@ static void about_activated(GSimpleAction *action, GVariant *parameter, gpointer
 static void quit_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	g_debug("Calling quit_activated");
 
+	GList *windows = gtk_application_get_windows(GTK_APPLICATION(user_data));
+	GList *l = NULL;
+
+	for (l = windows ; l != NULL ; l = g_list_next(l)) {
+		if (GTK_IS_APPLICATION_WINDOW(l->data)) {
+			g_debug("Closing window %s", G_OBJECT_TYPE_NAME(l->data));
+			gtk_window_close(GTK_WINDOW(l->data));
+		}
+	}
+	
 }
 
 static void new_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
