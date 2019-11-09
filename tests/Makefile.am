@@ -70,8 +70,8 @@ if ENABLE_CUSTOM_DETECTOR
   check_PROGRAMS += test-custom-detector-response
 endif
 
-#TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-batch test-job
+TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+#TESTS = test-batch test-job
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
