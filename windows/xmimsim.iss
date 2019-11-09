@@ -409,7 +409,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
     if (CurStep=ssPostInstall) then
     begin
-	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH=%PATH%;{app}\Bin;{app}\Lib;{app}\GTK'), False);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH={app}\Bin;{app}\Lib;{app}\GTK;%PATH%'), False);
     end;
 end;
 
