@@ -298,20 +298,17 @@ static void xmi_msim_batch_abstract_set_property(GObject *object, guint prop_id,
 
 	XmiMsimBatchAbstract *batch = XMI_MSIM_BATCH_ABSTRACT(object);
 
+	if (batch->priv->running || batch->priv->finished) {
+		g_critical("cannot set properties after batch has started");
+		return;
+	}
+
 	switch (prop_id) {
 		case PROP_ABSTRACT_EXECUTABLE:
-			if (batch->priv->running || batch->priv->finished) {
-				g_critical("cannot set executable after batch has started");
-				break;
-			}
 			g_free(batch->priv->executable);
  			batch->priv->executable = g_value_dup_string(value);
 			break;
     		case PROP_ABSTRACT_EXTRA_OPTIONS:
-			if (batch->priv->running || batch->priv->finished) {
-				g_critical("cannot set extra_options after batch has started");
-				break;
-			}
 			g_strfreev(batch->priv->extra_options);
  			batch->priv->extra_options = g_value_dup_boxed(value);
 			break;
@@ -803,7 +800,7 @@ static XmiMsimJob* xmi_msim_batch_multi_real_get_job(XmiMsimBatchAbstract *batch
 	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : g_value_dup_string(g_param_spec_get_default_value(abstract_props[PROP_ABSTRACT_EXECUTABLE]));
 	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
 
-	XmiMsimJob *job = xmi_msim_job_new(executable, xmsi_file, options, NULL, NULL, NULL, NULL, extra_options, error);
+	XmiMsimJob *job = xmi_msim_job_new(executable, xmsi_file, options, NULL, NULL, NULL, NULL, extra_options);
 	g_free(executable);
 	g_strfreev(extra_options);
 	
@@ -1169,7 +1166,7 @@ static XmiMsimJob* xmi_msim_batch_single_real_get_job(XmiMsimBatchAbstract *batc
 	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : xmi_get_xmimsim_path();
 	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
 
-	XmiMsimJob *job = xmi_msim_job_new(executable, filename_xmsi_full, self->options, NULL, NULL, NULL, NULL, extra_options, error);
+	XmiMsimJob *job = xmi_msim_job_new(executable, filename_xmsi_full, self->options, NULL, NULL, NULL, NULL, extra_options);
 	g_free(executable);
 	g_strfreev(extra_options);
 	g_free(filename_xmsi_full);

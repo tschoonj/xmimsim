@@ -57,16 +57,16 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 		COMPOUND "-test1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
 	g_assert_nonnull(job);
 	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_false(xmi_msim_job_start(job, &error));
+	g_assert_nonnull(error);
 
-	g_assert(error->domain == G_SPAWN_ERROR);
 	g_debug("message: %s", error->message);
 	g_debug("code: %d", error->code);
+	g_assert(error->domain == G_SPAWN_ERROR);
 #ifdef G_OS_WIN32
 	/* in glib 2.58.0 this was fixed so it returns G_SPAWN_ERROR_NOENT, just as on Linux and macOS */
 	g_assert(error->code == G_SPAWN_ERROR_FAILED || error->code == G_SPAWN_ERROR_NOENT);
@@ -115,13 +115,17 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 		"non-existent-file.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
-	g_assert_null(job);
+	g_assert_nonnull(job);
+
+	g_assert_false(xmi_msim_job_start(job, &error));
 
 	g_assert(error->domain == XMI_MSIM_ERROR);
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
+
+	g_object_unref(job);
+	g_error_free(error);
 }
 
 static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
@@ -141,14 +145,18 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 		COMPOUND "-test3.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
-	g_assert_null(job);
+
+	g_assert_nonnull(job);
+	g_assert_false(xmi_msim_job_start(job, &error));
 
 	g_assert(error->domain == XMI_MSIM_ERROR);
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
 	g_assert_cmpstr(error->message, ==, "invalid reference_layer value detected");
+
+	g_object_unref(job);
+	g_error_free(error);
 
 	g_assert_cmpint(unlink(COMPOUND "-test3.xmsi"), ==, 0);
 }
@@ -176,8 +184,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 		COMPOUND "-test4.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
 	g_assert_nonnull(job);
 
@@ -229,8 +236,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 		COMPOUND "-test5.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
 	g_assert_nonnull(job);
 
@@ -292,8 +298,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 		COMPOUND "-test6.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
 	g_assert_nonnull(job);
 
@@ -356,8 +361,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 		COMPOUND "-test7.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
-		extra_options,
-		&error
+		extra_options
 		);
 	g_assert_nonnull(job);
 
