@@ -20,13 +20,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_type_builtins.h"
 #include "xmi_aux.h"
 #include "xmi_xml.h"
+#include "xmi_gobject.h"
 #include <string.h>
 
-#define XMI_OBJECT_REF(obj) \
-	xmi_object_ref(obj, G_STRLOC)
+//#define XMI_OBJECT_REF(obj) \
+//	xmi_object_ref(obj, G_STRLOC)
 
-#define XMI_OBJECT_UNREF(obj) \
-	xmi_object_unref(obj, G_STRLOC)
+//#define XMI_OBJECT_UNREF(obj) \
+//	xmi_object_unref(obj, G_STRLOC)
+
+#define XMI_OBJECT_REF(obj) g_object_ref(obj)
+#define XMI_OBJECT_UNREF(obj) g_object_unref(obj)
 
 enum {
 	STDOUT_EVENT,
@@ -38,6 +42,21 @@ enum {
 };
 
 static guint signals[LAST_SIGNAL];
+
+enum {
+	PROP_JOB_0,
+	PROP_JOB_EXECUTABLE,
+	PROP_JOB_XMSI_FILE,
+	PROP_JOB_OPTIONS,
+	PROP_JOB_SPE_CONV,
+	PROP_JOB_CSV_CONV,
+	PROP_JOB_SVG_CONV,
+	PROP_JOB_HTML_CONV,
+	PROP_JOB_EXTRA_OPTIONS,
+	N_JOB_PROPERTIES
+};
+
+static GParamSpec *job_props[N_JOB_PROPERTIES] = {NULL, };
 
 G_LOCK_DEFINE_STATIC(current_job);
 static XmiMsimJob *current_job = NULL;
@@ -67,22 +86,32 @@ struct _XmiMsimJob {
 	gboolean do_not_emit;
 	gboolean killed;
 	gboolean send_all_stdout_events;
-	GPtrArray *argv;
-	gchar *wd;
 	GIOChannel *stdout_channel;
 	GIOChannel *stderr_channel;
 	guint child_watch_id;
 	guint stdout_watch_id;
 	guint stderr_watch_id;
+	gchar *executable;
 	gchar *xmsi_file;
+	xmi_main_options *options;
+	gchar *spe_conv;
+	gchar *csv_conv;
+	gchar *svg_conv;
+	gchar *html_conv;
+	gchar **extra_options;
 	gchar *xmso_file;
+	GPtrArray *argv;
 };
 
 struct _XmiMsimJobClass {
 	GObjectClass parent_class;
 };
 
-G_DEFINE_TYPE(XmiMsimJob, xmi_msim_job, G_TYPE_OBJECT)
+G_DEFINE_TYPE(
+	XmiMsimJob,
+	xmi_msim_job,
+	G_TYPE_OBJECT)
+
 
 /**
  * xmi_msim_job_kill:
@@ -289,13 +318,18 @@ static void xmi_msim_job_finalize(GObject *gobject) {
 	
 	xmi_msim_job_kill(job, NULL);
 
-	g_spawn_close_pid(job->gpid);
+	if (job->gpid)
+		g_spawn_close_pid(job->gpid);
 
 	g_ptr_array_free(job->argv, TRUE);
-
-	g_free(job->wd);
-
+	g_free(job->executable);
 	g_free(job->xmsi_file);
+	xmi_main_options_free(job->options);
+	g_free(job->spe_conv);
+	g_free(job->csv_conv);
+	g_free(job->svg_conv);
+	g_free(job->html_conv);
+	g_strfreev(job->extra_options);
 
 	g_free(job->xmso_file);
 
@@ -316,11 +350,97 @@ static void init_globals() {
 #endif
 }
 
+static void xmi_msim_job_set_property(GObject *object, guint prop_id, const GValue *value,  GParamSpec *pspec) {
+
+	XmiMsimJob *job = XMI_MSIM_JOB(object);
+
+	if (job->running || job->finished) {
+		g_critical("cannot set properties after job has started");
+		return;
+	}
+
+	switch (prop_id) {
+		case PROP_JOB_EXECUTABLE:
+			g_free(job->executable);
+ 			job->executable = g_value_dup_string(value);
+			break;
+		case PROP_JOB_XMSI_FILE:
+			g_free(job->xmsi_file);
+ 			job->xmsi_file = g_value_dup_string(value);
+			break;
+		case PROP_JOB_OPTIONS:
+			xmi_main_options_free(job->options);
+ 			job->options = g_value_dup_boxed(value);
+			break;
+		case PROP_JOB_SPE_CONV:
+			g_free(job->spe_conv);
+ 			job->spe_conv = g_value_dup_string(value);
+			break;
+		case PROP_JOB_CSV_CONV:
+			g_free(job->csv_conv);
+ 			job->csv_conv = g_value_dup_string(value);
+			break;
+		case PROP_JOB_SVG_CONV:
+			g_free(job->svg_conv);
+ 			job->svg_conv = g_value_dup_string(value);
+			break;
+		case PROP_JOB_HTML_CONV:
+			g_free(job->html_conv);
+ 			job->html_conv = g_value_dup_string(value);
+			break;
+    		case PROP_JOB_EXTRA_OPTIONS:
+			g_strfreev(job->extra_options);
+ 			job->extra_options = g_value_dup_boxed(value);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void xmi_msim_job_get_property(GObject *object, guint prop_id, GValue *value,  GParamSpec *pspec) {
+
+	XmiMsimJob *job = XMI_MSIM_JOB(object);
+
+	switch (prop_id) {
+		case PROP_JOB_EXECUTABLE:
+			if (job->executable)
+				g_value_set_string(value, job->executable);
+			else
+				g_value_copy(g_param_spec_get_default_value(pspec), value);
+			break;
+		case PROP_JOB_XMSI_FILE:
+			g_value_set_string(value, job->xmsi_file);
+			break;
+		case PROP_JOB_OPTIONS:
+			g_value_set_boxed(value, job->xmsi_file);
+			break;
+		case PROP_JOB_SPE_CONV:
+			g_value_set_string(value, job->spe_conv);
+			break;
+		case PROP_JOB_CSV_CONV:
+			g_value_set_string(value, job->csv_conv);
+			break;
+		case PROP_JOB_SVG_CONV:
+			g_value_set_string(value, job->svg_conv);
+			break;
+		case PROP_JOB_HTML_CONV:
+			g_value_set_string(value, job->html_conv);
+			break;
+		case PROP_JOB_EXTRA_OPTIONS:
+			g_value_set_boxed(value, job->extra_options);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
 static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_job_dispose;
 	object_class->finalize = xmi_msim_job_finalize;
+	object_class->set_property = xmi_msim_job_set_property;
+	object_class->get_property = xmi_msim_job_get_property;
 	
 	/**
 	 * XmiMsimJob::stdout-event:
@@ -429,6 +549,73 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 		G_TYPE_DOUBLE // double (between 0 and 1)
 	);
 
+	job_props[PROP_JOB_EXECUTABLE] = g_param_spec_string(
+		"executable",
+		"XMI-MSIM main executable",
+		"Full path to the XMI-MSIM main executable",
+		xmi_get_xmimsim_path(),
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_XMSI_FILE] = g_param_spec_string(
+		"xmsi-file",
+		"XMI-MSIM input-file",
+		"XMI-MSIM input-file",
+		NULL,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_OPTIONS] = g_param_spec_boxed(
+		"options",
+		"XMI-MSIM options",
+		"XMI-MSIM options",
+		XMI_MSIM_TYPE_MAIN_OPTIONS,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_SPE_CONV] = g_param_spec_string(
+		"spe-conv",
+		"SPE outputfile prefix",
+		"SPE outputfile prefix",
+		NULL,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_CSV_CONV] = g_param_spec_string(
+		"csv-conv",
+		"CSV outputfile",
+		"CSV outputfile",
+		NULL,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_SVG_CONV] = g_param_spec_string(
+		"svg-conv",
+		"SVG outputfile",
+		"SVG outputfile",
+		NULL,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_HTML_CONV] = g_param_spec_string(
+		"html-conv",
+		"HTML outputfile",
+		"HTML outputfile",
+		NULL,
+    		G_PARAM_READWRITE
+	);
+
+	job_props[PROP_JOB_EXTRA_OPTIONS] = g_param_spec_boxed(
+		"extra-options",
+		"XMI-MSIM extra options",
+		"Extra options XMI-MSIM main executable",
+		G_TYPE_STRV,
+    		G_PARAM_READWRITE
+	);
+
+	g_object_class_install_properties(object_class, N_JOB_PROPERTIES, job_props);
+	
+
 	init_globals();
 }
 
@@ -437,7 +624,7 @@ static void xmi_msim_job_init(XmiMsimJob *self) {
 
 /**
  * xmi_msim_job_new: (constructor)
- * @xmi_msim_executable: (not nullable): the full path to the %xmimsim executable
+ * @executable: (nullable): the full path to the %xmimsim executable. If %NULL, the default executable will be used.
  * @xmsi_file: (not nullable): the full path to the xmsi input-file
  * @options: (not nullable): an #XmiMsimMainOptions boxed struct containing the options for the job
  * @spe_conv: (nullable): prefix to the SPE files
@@ -445,198 +632,37 @@ static void xmi_msim_job_init(XmiMsimJob *self) {
  * @svg_conv: (nullable): full path to an SVG file
  * @html_conv: (nullable): full path to an HTML file
  * @extra_options: (nullable) (array zero-terminated=1) (element-type utf8): %NULL terminated array of additional options to pass to the executable
- * @error: return location for a GError, or NULL
  *
  * Instantiate a new #XmiMsimJob job object. Use the available methods to start/stop/suspend/resume as well as its signals to follow progress, messages and termination.
  *
  * Returns: (transfer full): the #XmiMsimJob object, or %NULL if an error occurred.
  */
 XmiMsimJob* xmi_msim_job_new(
-	const gchar *xmi_msim_executable,
+	const gchar *executable,
 	const gchar *xmsi_file,
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	gchar **extra_options,
-	GError **error
+	gchar **extra_options
 	) {
 
-	if (!xmsi_file) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmsi_file cannot be NULL");
-		return NULL;
-	}
-	if (!xmi_msim_executable) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmi_msim_executable cannot be NULL");
-		return NULL;
-	}
-	if (!options) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "options cannot be NULL");
-		return NULL;
-	}
+	g_return_val_if_fail(xmsi_file != NULL, NULL);
+	g_return_val_if_fail(options != NULL, NULL);
 
-	XmiMsimJob *job = XMI_MSIM_JOB(g_object_new(XMI_MSIM_TYPE_JOB, NULL));
-
-	// construct argv ptr array
-	job->argv = g_ptr_array_new_full(10, g_free);
-	g_ptr_array_add(job->argv, g_strdup(xmi_msim_executable));
-
-	if (options->use_M_lines) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-M-lines"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-M-lines"));
-	}
-
-	if (options->use_cascade_radiative) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-radiative-cascade"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-radiative-cascade"));
-	}
-
-	if (options->use_cascade_auger) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-auger-cascade"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-auger-cascade"));
-	}
-
-	if (options->use_variance_reduction) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-variance-reduction"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-variance-reduction"));
-	}
-
-	if (options->use_sum_peaks) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-pile-up"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-pile-up"));
-	}
-
-	if (options->use_poisson) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-poisson"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-poisson"));
-	}
-	
-	if (options->use_escape_peaks) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-escape-peaks"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-escape-peaks"));
-	}
-
-	if (options->use_advanced_compton) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-advanced-compton"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-advanced-compton"));
-	}
-
-	if (options->use_default_seeds) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-default-seeds"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-default-seeds"));
-	}
-
-	if (options->extra_verbose) {
-		g_ptr_array_add(job->argv, g_strdup("--very-verbose"));
-	}
-	else { /* always verbose!!! */
-		g_ptr_array_add(job->argv, g_strdup("--verbose"));
-	}
-
-#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
-	if (options->use_gpu) {
-		g_ptr_array_add(job->argv, g_strdup("--enable-gpu"));
-	}
-	else {
-		g_ptr_array_add(job->argv, g_strdup("--disable-gpu"));
-	}
-#endif
-
-	gchar *temp = g_strdup(options->custom_detector_response);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--custom-detector-response=%s", temp));
-	}
-	g_free(temp);
-
-	temp = g_strdup(spe_conv);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--spe-file=%s", temp));
-	}
-	g_free(temp);
-
-	temp = g_strdup(csv_conv);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--csv-file=%s", temp));
-	}
-	g_free(temp);
-
-	temp = g_strdup(svg_conv);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--svg-file=%s", temp));
-	}
-	g_free(temp);
-
-	temp = g_strdup(html_conv);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--htm-file=%s", temp));
-	}
-	g_free(temp);
-
-#ifdef G_OS_WIN32
-	//set solid angles and escape ratios files ourself!
-	char *xmimsim_hdf5_solid_angles = NULL;
-	char *xmimsim_hdf5_escape_ratios = NULL;
-
-	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine solid angles HDF5 file");
-		XMI_OBJECT_UNREF(job);
-		return NULL;
-	}
-	g_ptr_array_add(job->argv, g_strdup_printf("--with-solid-angles-data=%s", xmimsim_hdf5_solid_angles));
-	g_free(xmimsim_hdf5_solid_angles);
-
-	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
-		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine escape ratios HDF5 file");
-		XMI_OBJECT_UNREF(job);
-		return NULL;
-	}
-	g_ptr_array_add(job->argv, g_strdup_printf("--with-escape-ratios-data=%s", xmimsim_hdf5_escape_ratios));
-	g_free(xmimsim_hdf5_escape_ratios);
-#endif
-
-	g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", options->omp_num_threads));
-
-	// extra options
-	if (extra_options) {
-		int i;
-		for (i = 0 ; extra_options[i] != NULL ; i++) {
-			g_ptr_array_add(job->argv, g_strdup(extra_options[i]));
-		}
-	}
-
-	g_ptr_array_add(job->argv, g_strdup(xmsi_file));
-	g_ptr_array_add(job->argv, NULL);
-
-	job->wd = g_path_get_dirname(xmsi_file);
-
-	job->xmsi_file = g_strdup(xmsi_file);
-
-	// read xmsi_file to determine the output-file!
-	xmi_input *input = NULL;
-	g_return_val_if_fail((input = xmi_input_read_from_xml_file(xmsi_file, error)) != NULL, NULL);
-	job->xmso_file = g_strdup(input->general->outputfile);
-	xmi_input_free(input);
-
-	return job;
+	return g_object_new(
+		XMI_MSIM_TYPE_JOB,
+		"executable", executable,
+		"xmsi-file", xmsi_file,
+		"options", options,
+		"spe-conv", spe_conv,
+		"csv-conv", csv_conv,
+		"svg-conv", svg_conv,
+		"html-conv", html_conv,
+		"extra-options", extra_options,
+		NULL
+		);
 }
 
 static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
@@ -874,12 +900,190 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 		G_UNLOCK(current_job);
 		return FALSE;
 	}
+
+	if (!job->xmsi_file) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "xmsi_file cannot be NULL");
+		G_UNLOCK(current_job);
+		return FALSE;
+	}
+
+	if (!job->options) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_INVALID_INPUT, "options cannot be NULL");
+		G_UNLOCK(current_job);
+		return FALSE;
+	}
+
+	// prepare input
+	job->argv = g_ptr_array_new_full(10, g_free);
+	gchar *executable = job->executable != NULL ? g_strdup(job->executable) : g_value_dup_string(g_param_spec_get_default_value(job_props[PROP_JOB_EXECUTABLE]));
+	g_ptr_array_add(job->argv, executable);
+
+	if (job->options->use_M_lines) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-M-lines"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-M-lines"));
+	}
+
+	if (job->options->use_cascade_radiative) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-radiative-cascade"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-radiative-cascade"));
+	}
+
+	if (job->options->use_cascade_auger) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-auger-cascade"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-auger-cascade"));
+	}
+
+	if (job->options->use_variance_reduction) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-variance-reduction"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-variance-reduction"));
+	}
+
+	if (job->options->use_sum_peaks) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-pile-up"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-pile-up"));
+	}
+
+	if (job->options->use_poisson) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-poisson"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-poisson"));
+	}
 	
+	if (job->options->use_escape_peaks) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-escape-peaks"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-escape-peaks"));
+	}
+
+	if (job->options->use_advanced_compton) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-advanced-compton"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-advanced-compton"));
+	}
+
+	if (job->options->use_default_seeds) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-default-seeds"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-default-seeds"));
+	}
+
+	if (job->options->extra_verbose) {
+		g_ptr_array_add(job->argv, g_strdup("--very-verbose"));
+	}
+	else { /* always verbose!!! */
+		g_ptr_array_add(job->argv, g_strdup("--verbose"));
+	}
+
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+	if (job->options->use_gpu) {
+		g_ptr_array_add(job->argv, g_strdup("--enable-gpu"));
+	}
+	else {
+		g_ptr_array_add(job->argv, g_strdup("--disable-gpu"));
+	}
+#endif
+
+	gchar *temp = g_strdup(job->options->custom_detector_response);
+	if (temp && strlen(g_strstrip(temp))) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--custom-detector-response=%s", temp));
+	}
+	g_free(temp);
+
+	temp = g_strdup(job->spe_conv);
+	if (temp && strlen(g_strstrip(temp))) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--spe-file=%s", temp));
+	}
+	g_free(temp);
+
+	temp = g_strdup(job->csv_conv);
+	if (temp && strlen(g_strstrip(temp))) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--csv-file=%s", temp));
+	}
+	g_free(temp);
+
+	temp = g_strdup(job->svg_conv);
+	if (temp && strlen(g_strstrip(temp))) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--svg-file=%s", temp));
+	}
+	g_free(temp);
+
+	temp = g_strdup(job->html_conv);
+	if (temp && strlen(g_strstrip(temp))) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--htm-file=%s", temp));
+	}
+	g_free(temp);
+
+#ifdef G_OS_WIN32
+	//set solid angles and escape ratios files ourself!
+	char *xmimsim_hdf5_solid_angles = NULL;
+	char *xmimsim_hdf5_escape_ratios = NULL;
+
+	if (xmi_get_solid_angle_file(&xmimsim_hdf5_solid_angles, 1) == 0) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine solid angles HDF5 file");
+		G_UNLOCK(current_job);
+		return FALSE;
+	}
+	g_ptr_array_add(job->argv, g_strdup_printf("--with-solid-angles-data=%s", xmimsim_hdf5_solid_angles));
+	g_free(xmimsim_hdf5_solid_angles);
+
+	if (xmi_get_escape_ratios_file(&xmimsim_hdf5_escape_ratios, 1) == 0) {
+		g_set_error_literal(error, XMI_MSIM_JOB_ERROR, XMI_MSIM_JOB_ERROR_HDF5, "Could not determine escape ratios HDF5 file");
+		G_UNLOCK(current_job);
+		return FALSE;
+	}
+	g_ptr_array_add(job->argv, g_strdup_printf("--with-escape-ratios-data=%s", xmimsim_hdf5_escape_ratios));
+	g_free(xmimsim_hdf5_escape_ratios);
+#endif
+
+	// this is a hack to let us use batch extra options to set the number of threads :-)
+	if (job->options->omp_num_threads != xmi_omp_get_max_threads()) {
+		g_ptr_array_add(job->argv, g_strdup_printf("--set-threads=%d", job->options->omp_num_threads));
+	}
+
+	// extra options
+	if (job->extra_options) {
+		int i;
+		for (i = 0 ; job->extra_options[i] != NULL ; i++) {
+			g_ptr_array_add(job->argv, g_strdup(job->extra_options[i]));
+		}
+	}
+
+	g_ptr_array_add(job->argv, g_strdup(job->xmsi_file));
+	g_ptr_array_add(job->argv, NULL);
+
+	gchar *wd = g_path_get_dirname(job->xmsi_file);
+
+	// read xmsi_file to determine the output-file!
+	xmi_input *input = NULL;
+	if ((input = xmi_input_read_from_xml_file(job->xmsi_file, error)) == NULL) {
+		G_UNLOCK(current_job);
+		return FALSE;
+	}
+
+	job->xmso_file = g_strdup(input->general->outputfile);
+	xmi_input_free(input);
+
 	gint out_fh;
 	gint err_fh;
 
-	spawn_rv = g_spawn_async_with_pipes(job->wd, (gchar **) job->argv->pdata, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &job->gpid, NULL, &out_fh, &err_fh, error);
-	
+	spawn_rv = g_spawn_async_with_pipes(wd, (gchar **) job->argv->pdata, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &job->gpid, NULL, &out_fh, &err_fh, error);
+
+	g_free(wd);
+
 	if (spawn_rv == FALSE) {
 		G_UNLOCK(current_job);
 		return FALSE;

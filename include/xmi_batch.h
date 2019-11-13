@@ -61,6 +61,9 @@ gboolean xmi_msim_batch_abstract_was_successful(XmiMsimBatchAbstract *batch);
 
 gboolean xmi_msim_batch_abstract_is_valid_object(XmiMsimBatchAbstract *batch);
 
+XmiMsimJob* xmi_msim_batch_abstract_get_active_job(XmiMsimBatchAbstract *batch);
+guint xmi_msim_batch_abstract_get_number_of_jobs(XmiMsimBatchAbstract *batch);
+
 void xmi_msim_batch_abstract_send_all_stdout_events(XmiMsimBatchAbstract *batch, gboolean setting);
 void xmi_msim_batch_abstract_set_executable(XmiMsimBatchAbstract *batch, const gchar *executable);
 void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gchar **extra_options);

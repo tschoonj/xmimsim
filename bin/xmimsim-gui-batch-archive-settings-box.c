@@ -18,16 +18,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmimsim-gui-batch-archive-settings-box.h"
 #include "xmimsim-gui-compat.h"
 #include "xmimsim-gui-utils.h"
+#include "xmimsim-gui-private.h"
 #include "xmi_xml.h"
 #include <libxml/xpath.h>
 #include <string.h>
 
 // these defines will be used to set and get data in XmiMsimGuiXmsiSelectionXPathData objects
-static G_DEFINE_QUARK("grandfather-mode", grandfather_mode)
-#define DATA_NODE_GRANDFATHER grandfather_mode_quark()
+static G_DEFINE_QUARK("grandfather-node", grandfather_node)
+#define DATA_NODE_GRANDFATHER grandfather_node_quark()
 
-static G_DEFINE_QUARK("common-weight-fraction-data", common_weight_fraction_data)
-#define DATA_COMMON_WEIGHT_FRACTION common_weight_fraction_data_quark()
+G_DEFINE_QUARK("common-weight-fraction-data", common_weight_fraction_data)
 
 static G_DEFINE_QUARK("start-entry", start_entry)
 #define DATA_START_ENTRY start_entry_quark()
@@ -51,14 +51,6 @@ enum {
 	ENTRY_TYPE_START,
 	ENTRY_TYPE_END,
 	ENTRY_TYPE_NSTEPS,
-};
-
-
-struct common_weight_fraction_data {
-	double weights_sum;
-	unsigned int count;
-	double inc;
-	GPtrArray *all_xpath_data;
 };
 
 static void common_weight_fraction_data_free(gpointer _data) {
@@ -898,7 +890,7 @@ gchar* xmi_msim_gui_batch_archive_settings_box_get_archive_name(XmiMsimGuiBatchA
 
 	gchar *rv = NULL;
 
-	g_object_get(self, "archive-name", &rv, NULL);
+	g_object_get(self, "archive-file", &rv, NULL);
 
 	return rv;
 }

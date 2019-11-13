@@ -32,7 +32,7 @@ icons256dir = $(iconsdatadir)/256x256/apps/
 #iconsscalabledir = $(iconsdatadir)/scalable/apps/
 
 if ENABLE_GUI
-dist_appdata_DATA = xmimsim.desktop
+dist_appdata_DATA = com.github.tschoonj.xmimsim.gui.desktop
 dist_icons16_DATA = 16x16/Logo_xmi_msim.png \
 		    16x16/Logo_xmi_msim_red.png \
 		    16x16/Logo_xmi_msim_archive.png \

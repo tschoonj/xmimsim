@@ -1,4 +1,4 @@
-#Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze
+#Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -64,6 +64,8 @@ libxmimsim_gui_include_HEADERS = \
 	xmimsim-gui-gobject.h \
 	xmimsim-gui-batch-archive-settings-box.h \
 	xmimsim-gui-plugins-engine.h \
+	xmimsim-gui-batch-controls-box.h \
+	xmimsim-gui-batch-multi-selection-type-grid.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libxmimsim-gui.la
@@ -103,6 +105,8 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-gobject.c \
 	xmimsim-gui-batch-archive-settings-box.c \
 	xmimsim-gui-plugins-engine.c \
+	xmimsim-gui-batch-controls-box.c \
+	xmimsim-gui-batch-multi-selection-type-grid.c \
 	$(NULL)
 
 

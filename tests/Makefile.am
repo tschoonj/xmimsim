@@ -71,7 +71,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-xmimsim-cl test-xmimsim-metal
+#TESTS = test-gi-xmimsim.py
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \

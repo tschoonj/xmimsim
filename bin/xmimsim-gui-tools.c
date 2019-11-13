@@ -68,10 +68,12 @@ static void xmsa_to_xmso_data_free(struct xmsa_to_xmso_data *data) {
 
 static GtkWidget *get_window(const gchar *title, GtkWidget *main_window) {
 	GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_application(GTK_WINDOW(window), GTK_APPLICATION(g_application_get_default()));
+	gtk_window_set_destroy_with_parent(GTK_WINDOW(window), TRUE);
 	gtk_window_set_title(GTK_WINDOW(window), title);
 	gtk_window_set_default_size(GTK_WINDOW(window), 500, 300);
 	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-	gtk_window_set_modal(GTK_WINDOW(window),TRUE);
+	gtk_window_set_modal(GTK_WINDOW(window), FALSE);
 	gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(main_window));
 	gtk_container_set_border_width(GTK_CONTAINER(window), 3);
 

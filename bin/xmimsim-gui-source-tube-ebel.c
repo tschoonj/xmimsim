@@ -594,7 +594,7 @@ static void xmi_msim_gui_source_tube_ebel_init(XmiMsimGuiSourceTubeEbel *source)
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, TRUE, FALSE, 2);
 
 	label = gtk_label_new("Tube current (mA)");
-	source->tubeCurrentW = gtk_spin_button_new_with_range(0.001, 1000, 0.1);
+	source->tubeCurrentW = gtk_spin_button_new_with_range(0.0001, 1000, 0.0001);
 	gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(source->tubeCurrentW), GTK_UPDATE_IF_VALID);
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);

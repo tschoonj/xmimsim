@@ -565,19 +565,10 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		gtk_entry_get_text(GTK_ENTRY(self->csv_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->svg_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->html_convW)),
-		NULL,
-		&error);
+		NULL
+		);
 
 	xmi_main_options_free(options);
-
-	if (error) {
-		buffer = g_strdup_printf("Could not create new job: %s\n", error->message);
-		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error" ), NULL);
-		g_free(buffer);
-		g_error_free(error);
-		gtk_widget_set_sensitive(self->playButton, TRUE);
-		return;
-	}
 
 	// hook up to 5 signals and start
 	g_signal_connect(G_OBJECT(self->job), "stdout-event", G_CALLBACK(job_stdout_cb), self);

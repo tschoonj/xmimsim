@@ -57,11 +57,36 @@ static void xmi_msim_gui_options_box_finalize(GObject *gobject) {
 	G_OBJECT_CLASS(xmi_msim_gui_options_box_parent_class)->finalize(gobject);
 }
 
+enum {
+	CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 static void xmi_msim_gui_options_box_class_init(XmiMsimGuiOptionsBoxClass *klass) {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
 	object_class->dispose = xmi_msim_gui_options_box_dispose;
 	object_class->finalize = xmi_msim_gui_options_box_finalize;
+
+	/**
+	 * XmiMsimGuiOptionsBox::changed:
+	 * @box: The #XmiMsimGuiOptionsBox object emitting the signal
+	 *
+	 * Emitted whenever a setting in the box was changed
+	 */
+	signals[CHANGED] = g_signal_new(
+		"changed",
+		G_TYPE_FROM_CLASS(klass),
+		G_SIGNAL_RUN_LAST,
+		0, // no default handler
+		NULL,
+		NULL,
+		NULL,
+		G_TYPE_NONE,
+		0
+	);
 }
 
 static void custom_detector_response_toggled_cb(GtkToggleButton *button, XmiMsimGuiOptionsBox *self) {
@@ -73,6 +98,7 @@ static void custom_detector_response_toggled_cb(GtkToggleButton *button, XmiMsim
 		gtk_widget_set_sensitive(self->custom_detector_responseE, FALSE);
 		gtk_widget_set_sensitive(self->custom_detector_responseB, FALSE);
 	}
+	g_signal_emit(self, signals[CHANGED], 0);
 }
 
 static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_info, gpointer data) {
@@ -85,7 +111,7 @@ static gboolean detector_response_dlm_filter(const GtkFileFilterInfo *filter_inf
 	return FALSE;
 }
 
-static void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidget *entry) {
+static void custom_detector_response_clicked_cb(GtkToggleButton *button, XmiMsimGuiOptionsBox *self) {
 	XmiMsimGuiFileChooserDialog *dialog;
 	GtkFileFilter *filter;
 	gchar *filename;
@@ -103,10 +129,15 @@ static void custom_detector_response_clicked_cb(GtkToggleButton *button, GtkWidg
 	xmi_msim_gui_file_chooser_dialog_set_modal(dialog, TRUE);
 	if (xmi_msim_gui_file_chooser_dialog_run(dialog) == GTK_RESPONSE_ACCEPT) {
 		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		gtk_entry_set_text(GTK_ENTRY(entry), filename);
+		gtk_entry_set_text(GTK_ENTRY(self->custom_detector_responseE), filename);
 		g_free(filename);
+		g_signal_emit(self, signals[CHANGED], 0);
 	}
 	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
+}
+
+static void toggled(XmiMsimGuiOptionsBox *self, GtkToggleButton *button) {
+	g_signal_emit(self, signals[CHANGED], 0);
 }
 
 static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
@@ -130,6 +161,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->MlinesW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->MlinesW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->MlinesW, TRUE, FALSE, 0);
 
 	self->rad_cascadeW = gtk_check_button_new_with_label("Simulate the radiative cascade effect");
@@ -139,6 +171,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->rad_cascadeW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->rad_cascadeW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->rad_cascadeW, TRUE, FALSE, 0);
 
 	self->nonrad_cascadeW = gtk_check_button_new_with_label("Simulate the non-radiative cascade effect");
@@ -148,6 +181,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->nonrad_cascadeW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->nonrad_cascadeW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->nonrad_cascadeW, TRUE, FALSE, 0);
 
 	self->variance_reductionW = gtk_check_button_new_with_label("Enable variance reduction techniques");
@@ -157,6 +191,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->variance_reductionW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->variance_reductionW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->variance_reductionW, TRUE, FALSE, 0);
 
 	self->pile_upW = gtk_check_button_new_with_label("Enable pulse pile-up simulation");
@@ -166,6 +201,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->pile_upW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->pile_upW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->pile_upW, TRUE, FALSE, 0);
 
 	self->poissonW = gtk_check_button_new_with_label("Enable Poisson noise generation");
@@ -175,6 +211,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->poissonW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->poissonW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->poissonW, TRUE, FALSE, 0);
 
 	self->escape_peaksW = gtk_check_button_new_with_label("Enable escape peaks support");
@@ -184,6 +221,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->escape_peaksW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->escape_peaksW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->escape_peaksW, TRUE, FALSE, 0);
 
 	self->advanced_comptonW = gtk_check_button_new_with_label("Enable advanced Compton scattering simulation");
@@ -193,6 +231,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->advanced_comptonW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->advanced_comptonW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->advanced_comptonW, TRUE, FALSE, 0);
 
 	self->default_seedsW = gtk_check_button_new_with_label("Enable default seeds support");
@@ -202,6 +241,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->default_seedsW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->default_seedsW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->default_seedsW, TRUE, FALSE, 0);
 
 #if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
@@ -212,6 +252,7 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		preferences_error_handler(NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->gpuW), g_value_get_boolean(&xpv));
+	g_signal_connect_swapped(self->gpuW, "toggled", G_CALLBACK(toggled), self);
 	gtk_box_pack_start(GTK_BOX(self), self->gpuW, TRUE, FALSE, 0);
 #endif
 
@@ -220,13 +261,11 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 	gtk_box_pack_start(GTK_BOX(self), hbox, TRUE, FALSE, 0);
 	self->custom_detector_responseC = gtk_check_button_new_with_label("Custom detector response");
 	gtk_widget_set_tooltip_text(self->custom_detector_responseC, "Loads an alternative detector response routine from a dynamically loadable module. This module must export a function called \"xmi_detector_convolute_all_custom\". More information can be found in the manual");
-	g_signal_connect(G_OBJECT(self->custom_detector_responseC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), self);
 	gtk_box_pack_start(GTK_BOX(hbox), self->custom_detector_responseC, FALSE, FALSE, 0);
 	self->custom_detector_responseE = gtk_entry_new();
 	gtk_editable_set_editable(GTK_EDITABLE(self->custom_detector_responseE), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), self->custom_detector_responseE, TRUE, TRUE, 3);
 	self->custom_detector_responseB = gtk_button_new_from_icon_name("document-open", GTK_ICON_SIZE_BUTTON);
-	g_signal_connect(G_OBJECT(self->custom_detector_responseB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), self->custom_detector_responseE);
 	gtk_box_pack_end(GTK_BOX(hbox), self->custom_detector_responseB, FALSE, FALSE, 0);
 	if (xmimsim_gui_get_prefs(XMIMSIM_GUI_PREFS_CUSTOM_DETECTOR_RESPONSE, &xpv) == 0) {
 		//abort
@@ -243,6 +282,8 @@ static void xmi_msim_gui_options_box_init(XmiMsimGuiOptionsBox *self) {
 		gtk_widget_set_sensitive(self->custom_detector_responseB, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->custom_detector_responseC), FALSE);
 	}
+	g_signal_connect(G_OBJECT(self->custom_detector_responseC), "toggled", G_CALLBACK(custom_detector_response_toggled_cb), self);
+	g_signal_connect(G_OBJECT(self->custom_detector_responseB), "clicked", G_CALLBACK(custom_detector_response_clicked_cb), self);
 	g_value_unset(&xpv);
 }
 
@@ -278,6 +319,8 @@ xmi_main_options* xmi_msim_gui_options_box_get_options(XmiMsimGuiOptionsBox *sel
 }
 
 void xmi_msim_gui_options_box_save_to_prefs(XmiMsimGuiOptionsBox *self) {
+	g_return_if_fail(XMI_MSIM_GUI_IS_OPTIONS_BOX(self));
+
 	GValue xpv = G_VALUE_INIT;
 	g_value_init(&xpv, G_TYPE_BOOLEAN);
 

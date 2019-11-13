@@ -35,15 +35,14 @@ typedef struct _XmiMsimJob		XmiMsimJob;
 typedef struct _XmiMsimJobClass   	XmiMsimJobClass;
 
 XmiMsimJob* xmi_msim_job_new(
-	const gchar *xmi_msim_executable,
+	const gchar *executable,
 	const gchar *xmsi_file,
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
 	const gchar *svg_conv,
 	const gchar *html_conv,
-	gchar **extra_options,
-	GError **error
+	gchar **extra_options
 	);
 
 gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error);
