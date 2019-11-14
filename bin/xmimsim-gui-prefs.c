@@ -295,7 +295,8 @@ void preferences_error_handler(GtkWidget *window) {
 		GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 	gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
-	g_application_quit(g_application_get_default());
+	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), "quit");
+	g_action_activate(action, NULL);
 }
 
 

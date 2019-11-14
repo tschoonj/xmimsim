@@ -561,7 +561,8 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 		gtk_window_set_application(GTK_WINDOW(dialog), GTK_APPLICATION(app));
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
-		g_application_quit(G_APPLICATION(app));
+		GAction *action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), "quit");
+		g_action_activate(action, NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton), g_value_get_boolean(&prefs));
 	g_value_unset(&prefs);

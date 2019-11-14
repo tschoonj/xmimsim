@@ -356,7 +356,8 @@ static void check_for_updates_callback(XmiMsimGuiApplication *app, GAsyncResult 
 
 	if (rv == 1) {
 		//exit XMI-MSIM
-		g_application_quit(G_APPLICATION(app));
+		GAction *quit_action = g_action_map_lookup_action(G_ACTION_MAP(app), "quit");
+		g_action_activate(quit_action, NULL);
 	}
 }
 
@@ -368,7 +369,8 @@ static gboolean check_for_updates_on_init_cb(XmiMsimGuiApplication *app) {
 		GtkWidget *dialog = gtk_message_dialog_new(active_window, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
-		g_application_quit(G_APPLICATION(app));
+		GAction *action = g_action_map_lookup_action(G_ACTION_MAP(app), "quit");
+		g_action_activate(action, NULL);
 	}
 	if (g_value_get_boolean(&prefs) == FALSE) {
 		g_value_unset(&prefs);
