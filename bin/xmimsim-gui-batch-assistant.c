@@ -88,6 +88,12 @@ static gboolean batch_killer(struct batch_killer_data *data) {
 	return G_SOURCE_REMOVE;
 }
 
+static gboolean timeout_killer(GtkWidget *self) {
+	gtk_widget_destroy(self);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void xmi_msim_gui_batch_assistant_shutdown(XmiMsimGuiBatchAssistant *self) {
 	if (!self->batch_data || !xmi_msim_batch_abstract_is_running(self->batch_data)) {
 		gtk_widget_destroy(GTK_WIDGET(self));
@@ -122,7 +128,7 @@ static void xmi_msim_gui_batch_assistant_shutdown(XmiMsimGuiBatchAssistant *self
 			if (xmi_msim_batch_abstract_is_running(batch_data)) {
 				xmi_msim_batch_abstract_kill(batch_data, NULL);
 			}
-			gtk_widget_destroy(GTK_WIDGET(self));
+			g_timeout_add_seconds(1, (GSourceFunc) timeout_killer, self);
 		}
 	}
 	g_object_unref(batch_data);
