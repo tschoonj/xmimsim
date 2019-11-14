@@ -223,7 +223,7 @@ fi
 
 AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBSOUP_FOUND" = xyes])
 
-AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--disable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=check])
+AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--enable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=no])
 
 GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes ; then
@@ -236,11 +236,9 @@ if test "x$GTK_FOUND" = xyes ; then
 		;;
 	esac
 
-	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" != xno ; then
-	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8,[
-			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk3 >= 2.0.8")
-			],[GTK_MAC_INTEGRATION_FOUND=no])
+	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" = xyes ; then
+		AC_DEFINE([MAC_INTEGRATION], [], [Building as macOS App])
+		GTK_MAC_INTEGRATION_FOUND=yes
 	fi
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
@@ -261,7 +259,6 @@ if test "x$enable_google_analytics" != xno ; then
 			AC_MSG_ERROR([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
 		fi
 		AC_MSG_WARN([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
-		GTK_MAC_INTEGRATION_FOUND=no
 		])
 fi
 AM_CONDITIONAL([ENABLE_GOOGLE_ANALYTICS],[test "x$GOOGLE_ANALYTICS_FOUND" = xyes])

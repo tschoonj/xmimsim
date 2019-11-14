@@ -28,12 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib.h>
 #include "xmi_resources.h"
 
-#ifdef G_OS_WIN32
-#include "xmi_registry_win.h"
-#elif defined(MAC_INTEGRATION)
-#include "xmi_resources_mac.h"
-#endif
-
 static void update_xpath_nodes(xmlNodeSetPtr nodes, const xmlChar* value) {
 	int size;
 	int i;

@@ -72,7 +72,6 @@ libxmimsim_la_CFLAGS =  \
 	@xslt_CFLAGS@ \
 	@glib2_CFLAGS@ \
 	@xraylib_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
 	@JsonGlib_CFLAGS@ \
 	@libsoup_CFLAGS@ \
@@ -109,7 +108,7 @@ plugin_LTLIBRARIES =
 if ENABLE_OPENCL
 plugin_LTLIBRARIES += xmimsim-cl.la
 xmimsim_cl_la_CFLAGS = @WSTRICT_CFLAGS@
-xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ $(AM_CPPFLAGS)
+xmimsim_cl_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @CPPFLAGS_CL@ @gmodule_CFLAGS@ @glib2_CFLAGS@ $(AM_CPPFLAGS)
 xmimsim_cl_la_LIBADD = @LIBS_CL@ libxmimsim.la
 xmimsim_cl_la_SOURCES = xmi_solid_angle_cl.c
 xmimsim_cl_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
@@ -123,7 +122,7 @@ if ENABLE_METAL
 
 plugin_LTLIBRARIES += xmimsim-metal.la
 xmimsim_metal_la_CFLAGS = @WSTRICT_CFLAGS@
-xmimsim_metal_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @gmodule_CFLAGS@ @glib2_CFLAGS@ @GTK_MAC_CFLAGS@ $(AM_CPPFLAGS) -DXMI_METAL_KERNEL=\"$(pkgdatadir)/xmi_kernels.metallib\"
+xmimsim_metal_la_CPPFLAGS = -I${top_srcdir}/include -I${top_builddir}/include @gmodule_CFLAGS@ @glib2_CFLAGS@ $(AM_CPPFLAGS) -DXMI_METAL_KERNEL=\"$(pkgdatadir)/xmi_kernels.metallib\"
 xmimsim_metal_la_LIBADD = @LIBS_METAL@ libxmimsim.la
 xmimsim_metal_la_SOURCES = xmi_solid_angle_metal.m
 xmimsim_metal_la_LDFLAGS = -module $(LDFLAGS_XMIMSIM_CL) -avoid-version -shared
@@ -152,7 +151,7 @@ libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 
 noinst_LTLIBRARIES += libxmimsim-osx.la
 libxmimsim_osx_la_SOURCES = xmi_resources_mac.m
-libxmimsim_osx_la_CPPFLAGS = -DMAC_INTEGRATION $(AM_CPPFLAGS)
+libxmimsim_osx_la_CPPFLAGS = $(AM_CPPFLAGS)
 libxmimsim_osx_la_OBJCFLAGS =  \
 	@glib2_CFLAGS@
 

@@ -15,11 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #if !defined(MAC_INTEGRATION)
 #error xmi_resources_mac.c should not be compiled without defining MAC_INTEGRATION
 #endif
 
-#include "config.h"
 #include "xmi_resources_mac.h"
 #include <Foundation/Foundation.h>
 #include <glib.h>
@@ -54,6 +55,12 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 			break;
 		case XMI_RESOURCES_MAC_OPENCL_LIB:
 			temp = g_strdup_printf("%s/", resource_path);
+			break;
+		case XMI_RESOURCES_MAC_METAL_LIB:
+			temp = g_strdup_printf("%s/", resource_path);
+			break;
+		case XMI_RESOURCES_MAC_METAL_KERNEL:
+			temp = g_strdup_printf("%s/xmi_kernels.metallib", resource_path);
 			break;
 		case XMI_RESOURCES_MAC_SOURCES:
 			temp = g_strdup_printf("%s/sources", resource_path);

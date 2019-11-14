@@ -41,10 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include <CL/cl.h>
 #endif
 
-#ifdef MAC_INTEGRATION
-  #include "xmi_resources_mac.h"
-#endif
-
 #include "xmi_resources.h"
 
 #define XMI_OPENCL_MAJOR 1

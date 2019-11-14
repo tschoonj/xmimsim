@@ -30,10 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_google_analytics.h"
 #endif
 
-#ifdef MAC_INTEGRATION
-  #include "xmi_resources_mac.h"
-#endif
-
 enum {
 	FINISHED_EVENT,
 	LAST_SIGNAL

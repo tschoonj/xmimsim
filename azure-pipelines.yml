@@ -58,6 +58,10 @@ jobs:
           EXTRA: --enable-gui --enable-updater --enable-opencl --enable-google-analytics
           USE_EASYRNG: True
           HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
+        easyrng_gui_updater_ocl_ga_app:
+          EXTRA: --enable-gui --enable-updater --enable-opencl --enable-google-analytics --enable-mac-integration
+          USE_EASYRNG: True
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
       
       
     steps:

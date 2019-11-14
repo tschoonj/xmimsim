@@ -32,7 +32,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include "xmi_resources_mac.h"
 	#include <CoreFoundation/CoreFoundation.h>
 	#include <CoreServices/CoreServices.h>
-	#include <gtkosxapplication.h>
 #endif
 
 
@@ -113,8 +112,10 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
   	LSOpenCFURLRef(url,NULL);
   	CFRelease(url);
 
+	// TODO: need to carefully check what to do here...
 	//quit_program_cb((GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));
 #elif defined(G_OS_WIN32)
+	// TODO: use ShellExecuteW to deal with unicode download_location...
 	ShellExecute(NULL, "runas", dv->download_location, NULL, NULL, SW_SHOWNORMAL);
 #endif
 	return;

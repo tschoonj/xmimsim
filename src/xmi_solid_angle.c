@@ -99,7 +99,7 @@ int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, xmi_solid_angle *
 		return 0;
 	}
 	if (!g_module_close(module)) {
-		fprintf(stderr, "Warning: could not close module xmimsim-cl: %s\n", g_module_error());
+		fprintf(stderr, "Warning: could not close module xmimsim-metal: %s\n", g_module_error());
 	}
 	return 1;
 }

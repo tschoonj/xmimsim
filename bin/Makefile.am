@@ -117,7 +117,6 @@ nodist_libxmimsim_gui_la_SOURCES = \
 libxmimsim_gui_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@libsoup_CFLAGS@ \
@@ -131,7 +130,6 @@ libxmimsim_gui_la_LDFLAGS = \
 	$(NULL)
 libxmimsim_gui_la_LIBADD = \
 	@gtkmm3_LIBS@ \
-	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
 	../src/libxmimsim.la \
@@ -301,7 +299,6 @@ xmimsim_gui_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 	$(NULL)
@@ -322,7 +319,6 @@ endif
 
 xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @gtkmm3_LIBS@ \
-		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
 		    @xml2_LIBS@ \
 		    ../src/libxmimsim.la
@@ -360,7 +356,6 @@ xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 		 @xml2_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
-		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
 		 @libsoup_CFLAGS@ \
@@ -369,7 +364,6 @@ xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
-		@GTK_MAC_LIBS@ \
 		@gmodule_LIBS@ \
 		@xraylib_LIBS@
 xmimsim_LDFLAGS = $(AM_LDFLAGS)
@@ -391,12 +385,10 @@ xmimsim_conv_LDADD = $(xmimsim_LDADD)
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la \
-		      @GTK_MAC_LIBS@ \
 		      @xraylib_LIBS@ \
 		      @glib2_LIBS@
 xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
-		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @libsoup_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
@@ -405,7 +397,6 @@ xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmsi2xrmc_SOURCES = xmsi2xrmc.c
 xmsi2xrmc_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
@@ -416,7 +407,6 @@ xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
@@ -426,7 +416,6 @@ xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2svg_SOURCES = xmso2svg.c
 xmso2svg_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -436,7 +425,6 @@ xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -446,7 +434,6 @@ xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -456,7 +443,6 @@ xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -466,7 +452,6 @@ xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmimsim_db_SOURCES = xmimsim-db.c
 xmimsim_db_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
@@ -476,7 +461,6 @@ xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmsa2xmso_SOURCES = xmsa2xmso.c
 xmsa2xmso_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \

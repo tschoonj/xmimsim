@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,13 +23,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" {
 #endif
 
-
-#if defined(MAC_INTEGRATION)
-
 enum xmi_resources_mac {
 	XMI_RESOURCES_MAC_DATA,
 	XMI_RESOURCES_MAC_XMIMSIM_EXEC,
 	XMI_RESOURCES_MAC_OPENCL_LIB,
+	XMI_RESOURCES_MAC_METAL_LIB,
+	XMI_RESOURCES_MAC_METAL_KERNEL,
 	XMI_RESOURCES_MAC_SOURCES,
 };
 
@@ -61,8 +60,6 @@ const char* xmi_resources_mac_get_user_downloads_dir();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
 #endif

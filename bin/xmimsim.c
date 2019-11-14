@@ -55,11 +55,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #endif
 #endif
 
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
-
 //#include <fenv.h>
 
 XMI_MAIN

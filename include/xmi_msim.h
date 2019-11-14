@@ -47,7 +47,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_gobject.h"
 #include "xmi_job.h"
 
-
+// use xmi_config.h for this...
 #ifdef MAC_INTEGRATION
 #include "xmi_resources_mac.h"
 #endif

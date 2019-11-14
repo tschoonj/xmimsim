@@ -49,10 +49,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #endif
 #endif
 
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
 static double calculate_detector_absorption(xmi_input *input, int Z, int line) {
 	double energy = LineEnergy(Z, line, NULL);
 	int i, j;
