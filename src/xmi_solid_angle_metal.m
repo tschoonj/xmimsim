@@ -77,13 +77,14 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_metal(xmi_inputFPtr inputFPtr, x
 		if (metal_kernel_env != NULL) {
 			metal_kernel = g_strdup(metal_kernel_env);
 		}
-#if defined(MAC_INTEGRATION)
-		else if (xmi_resources_mac_query(XMI_RESOURCES_MAC_METAL_KERNEL, &metal_kernel) == 0) {
-			return 0;
-		}
-#endif
 		else {
+#if defined(MAC_INTEGRATION)
+			if (xmi_resources_mac_query(XMI_RESOURCES_MAC_METAL_KERNEL, &metal_kernel) == 0) {
+				return 0;
+			}
+#else
 			metal_kernel = g_strdup(XMI_METAL_KERNEL);
+#endif
 		}
 
 		if (xmo->verbose)

@@ -31,7 +31,7 @@
 		<string>x86_64</string>
 	</array>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.10.5</string>
+	<string>10.13.6</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

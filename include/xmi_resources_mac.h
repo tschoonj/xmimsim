@@ -46,17 +46,17 @@ int xmi_resources_mac_query(int kind, char **resource_file);
 /*
  * Get resources path
  */
-char* xmi_application_get_resource_path();
+char* xmi_application_get_resource_path(void);
 
 /*
  * Get user data dir
  */
-const char* xmi_resources_mac_get_user_data_dir();
+const char* xmi_resources_mac_get_user_data_dir(void);
 
 /*
  * Get user downloads dir
  */
-const char* xmi_resources_mac_get_user_downloads_dir();
+const char* xmi_resources_mac_get_user_downloads_dir(void);
 
 #ifdef __cplusplus
 }

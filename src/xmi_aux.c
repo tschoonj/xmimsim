@@ -689,10 +689,16 @@ SoupSession* xmi_soup_session_new(const gchar *user_agent) {
 	g_object_set(session, "ssl-use-system-ca-file", TRUE, NULL);
 
 	if (g_getenv("XMIMSIM_USE_SYSTEM_CA_FILE") == NULL) {
+#if defined(G_OS_WIN32) || defined(MAC_INTEGRATION)
 #if defined(G_OS_WIN32)
 		gchar *module_dir = g_win32_get_package_installation_directory_of_module(libxmimsim_dll);
 		gchar *ca_file = g_build_filename(module_dir, "GTK", "ssl", "certs", "ca-bundle.crt", NULL);
 		g_free(module_dir);
+#elif defined(MAC_INTEGRATION)
+		gchar *resource_path = xmi_application_get_resource_path();
+		gchar *ca_file = g_build_filename(resource_path, "etc", "openssl", "cert.pem", NULL);
+		g_free(resource_path);
+#endif
 		GError *error = NULL;
 		GTlsDatabase *db = g_tls_file_database_new(ca_file, &error);
 		if (error) {

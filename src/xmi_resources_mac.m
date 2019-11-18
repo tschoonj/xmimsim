@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Foundation/Foundation.h>
 #include <glib.h>
 
-char* xmi_application_get_resource_path() {
+char* xmi_application_get_resource_path(void) {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	char *str = NULL;
 	NSString *path = [[NSBundle mainBundle] resourcePath];
@@ -81,7 +81,7 @@ G_LOCK_DEFINE_STATIC(global);
 static char *global_user_data_dir = NULL;
 static char *global_user_downloads_dir = NULL;
 
-const char *xmi_resources_mac_get_user_data_dir() {
+const char *xmi_resources_mac_get_user_data_dir(void) {
 
 	G_LOCK(global);
 
@@ -99,7 +99,7 @@ const char *xmi_resources_mac_get_user_data_dir() {
 	return global_user_data_dir;
 }
 
-const char* xmi_resources_mac_get_user_downloads_dir() {
+const char* xmi_resources_mac_get_user_downloads_dir(void) {
 
 	G_LOCK(global);
 
