@@ -2179,7 +2179,7 @@ gboolean xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op
 		while (attr != NULL) {
 			if (xmlStrncmp(attr->name, BAD_CAST "step", 4) == 0) {
 				int stepnr = -1;
-				if (sscanf(attr->name, "step%d", &stepnr) != 1) {
+				if (sscanf((const char *) attr->name, "step%d", &stepnr) != 1) {
 					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error parsing step attribute of xml file");
 					return 0;
 				}
@@ -2602,7 +2602,7 @@ static xmlNodePtr xmi_new_child_with_index_printf(xmlNodePtr nodePtr, const xmlC
 		va_start(args, message_format);
 		msg = g_strdup_vprintf(message_format, args);
 		va_end(args);
-		rv = xmlNewChild(nodePtr, NULL, node_name_full, BAD_CAST msg);
+		rv = xmlNewChild(nodePtr, NULL, BAD_CAST node_name_full, BAD_CAST msg);
 		g_free(msg);
 	}
 	g_free(node_name_full);
@@ -2631,7 +2631,7 @@ static void xmi_new_prop_with_index_printf(xmlNodePtr nodePtr, const xmlChar *pr
 		va_start(args, message_format);
 		msg = g_strdup_vprintf(message_format, args);
 		va_end(args);
-		xmlNewProp(nodePtr, prop_name_full, BAD_CAST msg);
+		xmlNewProp(nodePtr, BAD_CAST prop_name_full, BAD_CAST msg);
 		g_free(msg);
 	}
 	g_free(prop_name_full);

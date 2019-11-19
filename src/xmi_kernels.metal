@@ -93,7 +93,7 @@ kernel void xmi_solid_angle_calculation(device float *grid_dims_r_vals [[ buffer
 	const uint tid0 = tid_offset0 + tid.x;
 	const uint tid1 = tid_offset1 + tid.y;
 	const uint tid_max0 = gid.x * RANGE_DIVIDER;
-	const uint tid_max1 = gid.y * RANGE_DIVIDER;
+	//const uint tid_max1 = gid.y * RANGE_DIVIDER;
 	threefry4x32_key_t k = {{tid0, 0xdecafbad, 0xfacebead, tid1}};
 	threefry4x32_ctr_t c = {{0, 0xf00dcafe, 0xdeadbeef, 0xbeeff00d}};
 
