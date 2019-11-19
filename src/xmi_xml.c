@@ -126,6 +126,8 @@ gboolean xmi_xmlLoadCatalog(GError **error) {
 	rv = xmi_xmlCatalogAdd(share, error);
 	g_free(share);
 
+#elif defined(QUICKLOOK)
+// this function is not required for the quicklook plugin
 #elif defined(MAC_INTEGRATION)
 
 	gchar *resource_path = xmi_application_get_resource_path();
@@ -142,8 +144,6 @@ gboolean xmi_xmlLoadCatalog(GError **error) {
 
 	g_string_free(resource_path_string, TRUE);
 
-#elif defined(QUICKLOOK)
-// this function is not required for the quicklook plugin
 #else
 	char catalog[] = XMI_CATALOG;
 
