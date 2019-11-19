@@ -32,6 +32,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_main.h"
 #include <string.h>
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+  #include "xmi_google_analytics.h"
+#endif
+
 typedef struct {
 	GtkWidget *window;
 	GtkWidget *entry;
@@ -379,6 +383,11 @@ static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		return ;
 	}
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSI2XRMC", NULL);
+#endif
+
 	xmi_main_options *options = xmi_main_options_new();
 	options->use_sum_peaks = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_pileupW)) == TRUE ? 1 : 0;
 	options->use_poisson = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->enable_poissonW)) == TRUE ? 1 : 0;
@@ -499,6 +508,10 @@ static void xmso2xmsi_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	if (strcmp(outputfile,"(optional)") == 0)
 		outputfile = NULL;
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2XMSI", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -562,7 +575,10 @@ static void xmso2csv_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 		convoluted = 1;
 	}
 
-
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2CSV", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -620,7 +636,10 @@ static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 		convoluted = 1;
 	}
 
-
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2HTML", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -678,7 +697,10 @@ static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 		convoluted = 1;
 	}
 
-
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2SVG", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -737,6 +759,10 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 
 	int interaction_number = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(xt->spinner));
 
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2SPE", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
@@ -747,9 +773,6 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	       		GTK_BUTTONS_CLOSE,
 	       		"An error occured while performing the conversion"
                 	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
 	}
 	else {
 		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
@@ -758,11 +781,11 @@ static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	       		GTK_BUTTONS_CLOSE,
 	       		"The conversion was successfully performed."
                 	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
-
 	}
+
+    gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy(dialog);
+	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), TRUE);
 }
 
 static void xmsa_to_xmso_callback(GtkWidget *job_dialog, GAsyncResult *result, xmi_tools *xt) {
@@ -835,6 +858,11 @@ static void xmsa2xmso_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	else {
 		fprintf(stderr,"Neither button is active. Should not occur\n");
 	}
+
+#ifdef HAVE_GOOGLE_ANALYTICS
+	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
+	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSA2XMSO", NULL);
+#endif
 
 	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
 
