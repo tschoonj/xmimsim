@@ -220,10 +220,13 @@ GtkWidget *xmi_msim_gui_continuous_energy_dialog_new(GtkWindow *parent, XmiMsimG
 
   widget = GTK_WIDGET(g_object_new(XMI_MSIM_GUI_TYPE_CONTINUOUS_ENERGY_DIALOG,
                                    "continuous-energy-dialog-type", type,
+                                   "use-header-bar", TRUE,
                                    NULL));
 
   gtk_window_set_transient_for(GTK_WINDOW(widget),
                                GTK_WINDOW(parent));
+
+  gtk_window_set_destroy_with_parent(GTK_WINDOW(widget), TRUE);
 
   return widget;
 }
