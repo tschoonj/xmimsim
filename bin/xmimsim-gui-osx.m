@@ -1,4 +1,4 @@
-
+#import <config.h>
 #import "xmimsim-gui-osx.h"
 #import <ApplicationServices/ApplicationServices.h>
 #import <AvailabilityMacros.h>
@@ -12,6 +12,47 @@
 
 #endif
 
+#ifdef MAC_INTEGRATION
+
+@interface _XmiMsimGuiOSXApplicationDelegate : NSObject <NSApplicationDelegate> {
+}
+@end
+
+@implementation _XmiMsimGuiOSXApplicationDelegate
+-(BOOL) application: (NSApplication*) sender openFile: (NSString *) file {
+	gchar *utf8_path =  g_strdup([file UTF8String]);
+	g_debug("Calling openFile for %s", utf8_path);
+	GFile *gfile = g_file_new_for_path(utf8_path);
+	g_application_open(g_application_get_default(), &gfile, 1, "");
+	g_object_unref(gfile);
+	g_free(utf8_path);
+
+	return YES;
+}
+
+@end
+XmiMsimGuiOSXApplicationDelegate* xmi_msim_gui_osx_app_delegate_new(void) {
+	g_debug("Calling xmi_msim_gui_osx_app_delegate_new");
+	[NSApp setDelegate: [_XmiMsimGuiOSXApplicationDelegate new]];
+	return [NSApp delegate];
+}
+
+void xmi_msim_gui_osx_app_delegate_free(XmiMsimGuiOSXApplicationDelegate *delegate) {
+	if (delegate)
+		[(id) delegate release];
+}
+
+#else
+
+XmiMsimGuiOSXApplicationDelegate* xmi_msim_gui_osx_app_delegate_new(void) {
+	return NULL;
+}
+
+void xmi_msim_gui_osx_app_delegate_free(XmiMsimGuiOSXApplicationDelegate *delegate) {
+}
+
+#endif
+
 void xmi_msim_gui_osx_app_disable_tabbing(void) {
 
 	if ([NSWindow respondsToSelector:@selector(setAllowsAutomaticWindowTabbing:)]) {
@@ -20,7 +61,7 @@ void xmi_msim_gui_osx_app_disable_tabbing(void) {
 	
 }
 
-void xmi_msim_gui_osx_nswindow_set_file(GtkWidget *window, const gchar *filename) {
+void xmi_msim_gui_osx_window_set_file(GtkWidget *window, const gchar *filename) {
 	g_return_if_fail(window != NULL);
 	GdkWindow *dwindow = gtk_widget_get_window(window);
 	g_return_if_fail(dwindow != NULL); // this happens sometimes for some reason...
@@ -41,11 +82,7 @@ void xmi_msim_gui_osx_nswindow_set_file(GtkWidget *window, const gchar *filename
 	[pool drain];
 }
 
-void xmi_msim_gui_osx_app_minimize_all(void) {
-	[NSApp miniaturizeAll:nil];
-}
-
-void xmi_msim_gui_osx_app_bring_to_front(GtkWidget *window) {
+void xmi_msim_gui_osx_window_bring_to_front(GtkWidget *window) {
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
 
 	//bring window to front if necessary
@@ -55,21 +92,8 @@ void xmi_msim_gui_osx_app_bring_to_front(GtkWidget *window) {
 		[qwindow deminiaturize:nil];
 }
 
-void xmi_msim_gui_osx_app_enable_full_screen(GtkWidget *window) {
+void xmi_msim_gui_osx_window_enable_full_screen(GtkWidget *window) {
 	//only works in Lion and newer
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
 	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-}
-
-void xmi_msim_gui_osx_app_send_notification(const char *title, const char *text) {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc]init];
-
-	NSUserNotification *notification = [[NSUserNotification alloc] init];
- 	[notification setTitle:[NSString stringWithUTF8String:title]];
-	[notification setInformativeText:[NSString stringWithUTF8String:text]];
-	[notification setSoundName:NSUserNotificationDefaultSoundName];
-	NSUserNotificationCenter *center = [NSUserNotificationCenter defaultUserNotificationCenter];
-	[center deliverNotification:notification];
-
-	[pool drain];
 }

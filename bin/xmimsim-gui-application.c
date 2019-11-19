@@ -70,6 +70,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 struct _XmiMsimGuiApplication {
 	GtkApplication parent_instance;
 	XmiMsimGuiPluginsEngine *engine;
+#ifdef __APPLE__
+	XmiMsimGuiOSXApplicationDelegate *delegate;
+#endif
 };
 
 struct _XmiMsimGuiApplicationClass {
@@ -80,6 +83,10 @@ G_DEFINE_TYPE(XmiMsimGuiApplication, xmi_msim_gui_application, GTK_TYPE_APPLICAT
 
 static void xmi_msim_gui_application_finalize(GObject *gobject) {
 	XmiMsimGuiApplication *self = XMI_MSIM_GUI_APPLICATION(gobject);
+
+#ifdef __APPLE__
+	xmi_msim_gui_osx_app_delegate_free(self->delegate);
+#endif
 
 	G_OBJECT_CLASS(xmi_msim_gui_application_parent_class)->finalize(gobject);
 }
@@ -474,14 +481,6 @@ static void app_startup(GApplication *app) {
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
-#ifdef MAC_INTEGRATION
-	char *resource_path = xmi_application_get_resource_path();
-	char *gtls_system_ca_file = g_strdup_printf("%s/share/curl/curl-ca-bundle.crt", resource_path);
-	g_setenv("GTLS_SYSTEM_CA_FILE", gtls_system_ca_file, TRUE);
-	g_free(resource_path);
-	g_free(gtls_system_ca_file);
-#endif
-
 	setbuf(stdout, NULL);
 
 	// populate action map
@@ -523,6 +522,9 @@ static void app_startup(GApplication *app) {
 		g_warning("Could not load XML catalog: %s\n", error->message);
 		g_clear_error(&error);
 	}
+#ifdef __APPLE__
+	self->delegate = xmi_msim_gui_osx_app_delegate_new();
+#endif
 }
 
 static void app_activate(GApplication *app) {

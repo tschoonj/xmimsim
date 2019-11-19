@@ -5,7 +5,7 @@ if test "x$GTK_DEBUG_LAUNCHER" != x; then
 fi
 
 if test "x$GTK_DEBUG_GDB" != x; then
-    EXEC="gdb --args"
+    EXEC="lldb -- "
 else
     EXEC=exec
 fi
