@@ -225,8 +225,8 @@ INTROSPECTION_GIRS =
 INTROSPECTION_SCANNER_ARGS = \
 	-I$(top_builddir) \
 	--warn-all \
-	--identifier-filter-cmd="python $(srcdir)/identfilter.py" \
-	--symbol-filter-cmd="python $(srcdir)/symbolfilter.py" \
+	--identifier-filter-cmd="python3 $(srcdir)/identfilter.py" \
+	--symbol-filter-cmd="python3 $(srcdir)/symbolfilter.py" \
 	--c-include=include/xmi_gobject.h \
 	--c-include=include/xmi_data_structs.h \
 	--accept-unprefixed \

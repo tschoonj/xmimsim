@@ -22,7 +22,9 @@ RUN apt-get install -y build-essential \
 	libgirepository1.0-dev \
 	swig \
 	python-dev \
-	python-numpy
+	python-numpy \
+	python3
+
 
 RUN apt-get install -y libeasyrng-dev
 
