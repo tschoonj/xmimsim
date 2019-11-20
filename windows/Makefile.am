@@ -20,6 +20,8 @@ GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-
 common:
 	cp ../src/libxmimsim-0.def .
 	cp ../bin/libxmimsim-gui-0.def .
+	unix2dos -n $(top_srcdir)/include/xmi_msim.h xmi_msim.h
+	unix2dos -n $(top_builddir)/include/xmi_config.h xmi_config.h
 	unix2dos -n $(top_srcdir)/include/xmi_random.h xmi_random.h
 	unix2dos -n $(top_srcdir)/include/xmi_data_structs.h xmi_data_structs.h
 	unix2dos -n $(top_srcdir)/include/xmi_xml.h xmi_xml.h
@@ -29,13 +31,17 @@ common:
 	unix2dos -n $(top_srcdir)/include/xmi_xslt.h xmi_xslt.h
 	unix2dos -n $(top_srcdir)/include/xmi_detector.h xmi_detector.h
 	unix2dos -n $(top_srcdir)/include/xmi_data.h xmi_data.h
-	unix2dos -n $(top_srcdir)/include/xmi_msim.h xmi_msim.h
 	unix2dos -n $(top_srcdir)/include/xmi_ebel.h xmi_ebel.h
 	unix2dos -n $(top_srcdir)/include/xmi_aux.h xmi_aux.h
 	unix2dos -n $(top_srcdir)/include/xmi_xrmc.h xmi_xrmc.h
-	unix2dos -n $(top_srcdir)/include/xmi_registry_win.h xmi_registry_win.h
 	unix2dos -n $(top_srcdir)/include/xmi_error.h xmi_error.h
 	unix2dos -n $(top_srcdir)/include/xmi_spline.h xmi_spline.h
+	unix2dos -n $(top_srcdir)/include/xmi_transmission_efficiency.h xmi_transmission_efficiency.h
+	unix2dos -n $(top_srcdir)/include/xmi_gobject.h xmi_gobject.h
+	unix2dos -n $(top_srcdir)/include/xmi_job.h xmi_job.h
+	unix2dos -n $(top_srcdir)/include/xmi_batch.h xmi_batch.h
+	unix2dos -n $(top_srcdir)/include/xmi_registry_win.h xmi_registry_win.h
+	unix2dos -n $(top_srcdir)/include/xmi_google_analytics.h xmi_google_analytics.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-prefs.h xmimsim-gui-prefs.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-source-abstract.h xmimsim-gui-source-abstract.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-compound-dialog.h  xmimsim-gui-compound-dialog.h

@@ -15,11 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <config.h>
+#include <xmi_config.h>
 #include <math.h>
 #include <unistd.h>
 
-#ifndef HAVE_LIBSOUP
+#ifndef XMI_MSIM_HAVE_LIBSOUP
 #error "libsoup is required to run the testsuite!"
 #endif
 
