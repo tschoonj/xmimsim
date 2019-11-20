@@ -90,10 +90,16 @@ static void xmi_msim_gui_plugins_engine_init(XmiMsimGuiPluginsEngine *engine) {
 	g_irepository_prepend_search_path(xmimsim_typelib_dir);
 	g_free(xmimsim_typelib_dir);
 	g_free(installation_dir);
+#elif defined(MAC_INTEGRATION)
+	gchar *resource_path = xmi_application_get_resource_path();
+	gchar *xmimsim_typelib_dir = g_build_filename(resource_path, "lib", "girepository-1.0", NULL);
+	g_irepository_prepend_search_path(xmimsim_typelib_dir);
+	g_free(xmimsim_typelib_dir);
+	g_free(resource_path);
 #endif
 
 	for (i = 0 ; i < G_N_ELEMENTS(gir_pairs) ; i++) {
-
+		g_debug("Loading %s-%s", gir_pairs[i].namespace, gir_pairs[i].version);
 		if (!g_irepository_require(g_irepository_get_default (), gir_pairs[i].namespace, gir_pairs[i].version, 0, &error)) {
 			g_warning("Could not load %s repository: %s", gir_pairs[i].namespace, error->message);
 			g_error_free(error);
