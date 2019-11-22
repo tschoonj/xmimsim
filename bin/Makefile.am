@@ -31,6 +31,8 @@ if ENABLE_GUI
 libxmimsim_gui_includedir = ${includedir}/xmimsim-gui
 
 libxmimsim_gui_include_HEADERS = \
+	xmimsim-gui.h \
+	xmimsim-gui-pp.h \
 	xmimsim-gui-prefs.h \
 	xmimsim-gui-source-abstract.h \
 	xmimsim-gui-compound-dialog.h \
@@ -255,6 +257,7 @@ xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selec
 xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
 	@xml2_CFLAGS@ \
 	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \

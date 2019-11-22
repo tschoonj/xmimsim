@@ -42,6 +42,7 @@ common:
 	unix2dos -n $(top_srcdir)/include/xmi_batch.h xmi_batch.h
 	unix2dos -n $(top_srcdir)/include/xmi_registry_win.h xmi_registry_win.h
 	unix2dos -n $(top_srcdir)/include/xmi_google_analytics.h xmi_google_analytics.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui.h xmimsim-gui.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-prefs.h xmimsim-gui-prefs.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-source-abstract.h xmimsim-gui-source-abstract.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-compound-dialog.h  xmimsim-gui-compound-dialog.h
@@ -49,9 +50,33 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-layer-dialog.h xmimsim-gui-layer-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-type-builtins.h xmimsim-gui-type-builtins.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-utils.h xmimsim-gui-utils.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-utils-pp.h xmimsim-gui-utils-pp.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-export-canvas-dialog.h xmimsim-gui-export-canvas-dialog.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-tools.h xmimsim-gui-tools.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-sources-dialog.h xmimsim-gui-sources-dialog.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-discrete-energy-dialog.h xmimsim-gui-discrete-energy-dialog.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-continuous-energy-dialog.h xmimsim-gui-continuous-energy-dialog.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-compat.h xmimsim-gui-compat.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-colors.h xmimsim-gui-colors.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-xmsi-selection-scrolled-window.h xmimsim-gui-xmsi-selection-scrolled-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-options-box.h xmimsim-gui-options-box.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-xmsa-viewer-window.h xmimsim-gui-xmsa-viewer-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-xmso-results-scrolled-window.h xmimsim-gui-xmso-results-scrolled-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-undo-manager.h xmimsim-gui-undo-manager.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-layer-box.h xmimsim-gui-layer-box.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-clipboard-manager.h xmimsim-gui-clipboard-manager.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-long-task-window.h xmimsim-gui-long-task-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-controls-scrolled-window.h xmimsim-gui-controls-scrolled-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-xmsi-config-scrolled-window.h xmimsim-gui-xmsi-config-scrolled-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-application.h xmimsim-gui-application.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-application-window.h xmimsim-gui-application-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-xmso-results-application-window.h xmimsim-gui-xmso-results-application-window.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-assistant.h xmimsim-gui-batch-assistant.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-gobject.h xmimsim-gui-gobject.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-archive-settings-box.h xmimsim-gui-batch-archive-settings-box.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-plugins-engine.h xmimsim-gui-plugins-engine.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-controls-box.h xmimsim-gui-batch-controls-box.h
+	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-multi-selection-type-grid.h xmimsim-gui-batch-multi-selection-type-grid.h
 
 
 gtk3_runtime_file_stamp:
