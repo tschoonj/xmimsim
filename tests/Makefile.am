@@ -37,13 +37,16 @@ AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export 
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 endif
 
+dist_check_SCRIPTS = $(NULL)
 
+if !OS_WINDOWS
 if HAVE_INTROSPECTION
 if HAVE_PYTHON
-dist_check_SCRIPTS = \
+dist_check_SCRIPTS += \
      test-gi-xmimsim.py
 endif
-endif     
+endif
+endif
 
 if ENABLE_GUI
   check_PROGRAMS += test-xmso2svg
