@@ -849,6 +849,7 @@ single_run:
 	}
 
 	//write to xml outputfile
+	xi->general->outputfile = g_strdup(argv[2]);
 	xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
 	if (xmi_output_write_to_xml_file(output, argv[2], &error) == 0) {
 		g_fprintf(stderr, "Could not write to %s: %s\n", argv[2], error->message);
