@@ -394,7 +394,7 @@ static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 
 	rv = 0;
 
-	*detector = (xmi_detector *) g_malloc(sizeof(xmi_detector));
+	*detector = g_malloc(sizeof(xmi_detector));
 
 	//get parameters from result, if available
 	params = g_key_file_get_string_list(pymcaFile, "result", "fittedpar", &nparams, NULL);
@@ -425,7 +425,7 @@ static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 				return rv;
 			}
 		}
-		(*detector)->fano= g_key_file_get_double(pymcaFile, "result.config.detector","fano", &error);
+		(*detector)->fano = g_key_file_get_double(pymcaFile, "result.config.detector","fano", &error);
 		if (error != NULL) {
 			g_clear_error(&error);
 			(*detector)->fano = g_key_file_get_double(pymcaFile, "detector","fano", &error);
@@ -434,7 +434,7 @@ static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 				return rv;
 			}
 		}
-		(*detector)->noise= g_key_file_get_double(pymcaFile, "result.config.detector","noise", &error);
+		(*detector)->noise = g_key_file_get_double(pymcaFile, "result.config.detector","noise", &error);
 		if (error != NULL) {
 			g_clear_error(&error);
 			(*detector)->noise = g_key_file_get_double(pymcaFile, "detector","noise", &error);
@@ -444,7 +444,12 @@ static int read_detector_params(GKeyFile *pymcaFile, xmi_detector **detector) {
 			}
 		}
 	}
-	(*detector)->pulse_width= g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
+
+	double pulse_width = g_key_file_get_double(pymcaFile, "xrfmc.setup","pulse_width", NULL);
+	if (pulse_width <= 0.0)
+		pulse_width = 10E-6;
+
+	(*detector)->pulse_width = pulse_width;
 	type = g_key_file_get_string(pymcaFile, "result.config.detector", "detele", &error);
 	if (error != NULL) {
 		g_clear_error(&error);
