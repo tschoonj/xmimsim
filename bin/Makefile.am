@@ -221,51 +221,23 @@ bin_PROGRAMS =  xmimsim \
 		$(NULL)
 
 noinst_PROGRAMS = $(NULL)
-if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
-#noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
-endif
-#xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
-#xmimsim_gui_layer_box_test_CPPFLAGS = \
+#if ENABLE_GUI
+#noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
+#endif
+
+#xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
+#xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
 #	@xml2_CFLAGS@ \
 #	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+#	@xraylib_CFLAGS@ \
 #	$(AM_CPPFLAGS) \
 #	$(NULL)
-#xmimsim_gui_layer_box_test_LDADD = \
+#xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
 #	libxmimsim-gui.la \
 #	../src/libxmimsim.la \
 #	@gtkmm3_LIBS@ \
 #	@xml2_LIBS@ \
 #	$(NULL)
-
-#xmimsim_gui_controls_scrolled_window_test_SOURCES = xmimsim-gui-controls-scrolled-window-test.c
-#xmimsim_gui_controls_scrolled_window_test_CPPFLAGS = \
-#	@xml2_CFLAGS@ \
-#	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-#	$(AM_CPPFLAGS) \
-#	$(NULL)
-#xmimsim_gui_controls_scrolled_window_test_LDADD = \
-#	libxmimsim-gui.la \
-#	../src/libxmimsim.la \
-#	@gtkmm3_LIBS@ \
-#	@xml2_LIBS@ \
-#	$(NULL)
-
-xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
-xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
-	@xml2_CFLAGS@ \
-	@gtkmm3_CFLAGS@ \
-	@xraylib_CFLAGS@ \
-	$(AM_CPPFLAGS) \
-	$(NULL)
-xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
-	libxmimsim-gui.la \
-	../src/libxmimsim.la \
-	@gtkmm3_LIBS@ \
-	@xml2_LIBS@ \
-	$(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -347,12 +319,6 @@ xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
-
-#xmimsim_test_SOURCES = xmimsim-test.c
-#xmimsim_test_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_xml_SOURCES = xmimsim-test-xml.c
-#xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
@@ -470,15 +436,6 @@ xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
 		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
-
-#xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
-#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
-#xmimsim_test_boone1_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
-#xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
 
 -include $(INTROSPECTION_MAKEFILE)
