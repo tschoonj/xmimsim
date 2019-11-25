@@ -97,8 +97,8 @@ else
 	tar xfz hdf5-1.8.12.tar.gz
 	cd hdf5-1.8.12
 	# add support for UTF-8 filenames
-	curl -L -s -O https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5-1.8.12.diff
-	patch -p1 < hdf5-1.8.12.diff
+	curl -H 'Cache-Control: no-cache' -L -s -O https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5_1.8.12.diff
+	patch -p1 < hdf5_1.8.12.diff
 	autoreconf -i
 	./configure --disable-fortran --disable-cxx --disable-hl --prefix=$HOME/install --disable-static CPPFLAGS=-D_GNU_SOURCE=1
 	# patch hdf5 -> https://tschoonj.github.io/blog/2014/01/29/building-a-64-bit-version-of-hdf5-with-mingw-w64/
