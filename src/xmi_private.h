@@ -69,36 +69,6 @@ void xmi_history_element_free(xmi_history_element *element);
 
 #ifndef __GI_SCANNER__
 
-#ifdef G_OS_WIN32
-  #include <windows.h>
-  #define XMI_ARGC_ORIG argc_orig
-  #define XMI_ARGV_ORIG argv_orig
-  #define XMI_ARGC argc
-  #define XMI_ARGV argv
-  #define XMI_MAIN int main(int argc_orig, char *argv_orig[]) {\
-	int argc;\
-	char **argv;\
-	int argc_counter;\
-	LPWSTR WinCommandLine = GetCommandLineW();\
-	LPWSTR *WinArgv = CommandLineToArgvW(WinCommandLine,&argc);\
-	argv = (char **) g_malloc(sizeof(char *)*argc);\
-	for (argc_counter = 0 ; argc_counter < argc ; argc_counter++) {\
-		int size_needed = WideCharToMultiByte(CP_UTF8, 0, WinArgv[argc_counter], -1, NULL, 0, NULL, NULL); \
-		char *argvSingle = (char *) g_malloc(sizeof(char) * size_needed); \
-		WideCharToMultiByte(CP_UTF8, 0 , WinArgv[argc_counter], -1, argvSingle, size_needed, NULL, NULL); \
-		argv[argc_counter] = argvSingle; \
-	} \
-	LocalFree(WinArgv);
-
-#else
-  #define XMI_ARGC_ORIG argc
-  #define XMI_ARGV_ORIG argv
-  #define XMI_ARGC argc
-  #define XMI_ARGV argv
-  #define XMI_MAIN int main(int argc, char *argv[]) {
-
-#endif
-
 extern int64_t XMI_H5T_NATIVE_DOUBLE;
 extern int64_t XMI_H5T_NATIVE_INT;
 

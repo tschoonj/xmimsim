@@ -10,9 +10,9 @@
 #define N_SINGLE 6
 
 gchar *extra_options[4] = {
-	"--with-hdf5-data=" HDF5_DATA_DIR "/xmimsimdata-" COMPOUND ".h5",
-	"--with-solid-angles-data=solid-angles.h5",
-	"--with-escape-ratios-data=escape-ratios.h5",
+	"--with-hdf5-data=" HDF5_DATA_DIR "/xmimsimdata-" COMPOUND "\u03B1.h5",
+	"--with-solid-angles-data=solid-angles\u03B1.h5",
+	"--with-escape-ratios-data=escape-ratios\u03B1.h5",
 	NULL
 };
 
@@ -422,8 +422,8 @@ static void setup_data_multi(SetupDataMulti *data, gconstpointer user_data) {
 		layer->thickness += 0.1;
 		gchar tmpl[] = "tmp.XXXXXX";
 		mktemp(tmpl);
-		gchar *xmsi_file = g_strdup_printf("%s%d.xmsi", tmpl, i);
-		gchar *xmso_file = g_strdup_printf("%s%d.xmso", tmpl, i);
+		gchar *xmsi_file = g_strdup_printf("%s%d\u03B1.xmsi", tmpl, i);
+		gchar *xmso_file = g_strdup_printf("%s%d\u03B1.xmso", tmpl, i);
 		g_free(input->general->outputfile);
 		input->general->outputfile = g_strdup(xmso_file);
 		g_assert(xmi_input_validate(input) == 0);
@@ -836,7 +836,7 @@ int main(int argc, char *argv[]) {
 	g_assert(cd != NULL);
 
 	// generate appropriate xmimsimdata.h5 file
-	gchar data_file[] = HDF5_DATA_DIR "/xmimsimdata-" COMPOUND ".h5";
+	gchar data_file[] = HDF5_DATA_DIR "/xmimsimdata-" COMPOUND "\u03B1.h5";
 	//if (g_access(data_file, R_OK) != 0)
 		g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
 

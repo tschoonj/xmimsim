@@ -163,42 +163,42 @@ char *xmi_version_string() {
 	g_string_append_printf(string, "XMI-MSIM %s\n\n", VERSION);
 	g_string_append(string,"Compiled with ");
 	//xraylib
-	g_string_append_printf(string, "xraylib %i.%i, ", XRAYLIB_MAJOR, XRAYLIB_MINOR);
+	g_string_append_printf(string, "xraylib %d.%d.%d, ", XRAYLIB_MAJOR, XRAYLIB_MINOR, XRAYLIB_MICRO);
 	//glib
-	g_string_append_printf(string, "glib %i.%i.%i, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+	g_string_append_printf(string, "glib %d.%d.%d, ", GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
 	//gtk2
 #ifdef HAVE_GUI
-	g_string_append_printf(string, "gtk+ %i.%i.%i, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-	g_string_append_printf(string, "gtkmm %i.%i.%i, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
+	g_string_append_printf(string, "gtk+ %d.%d.%d, ", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+	g_string_append_printf(string, "gtkmm %d.%d.%d, ", GTKMM_MAJOR_VERSION, GTKMM_MINOR_VERSION, GTKMM_MICRO_VERSION);
 #endif
 	//hdf5
-	g_string_append_printf(string, "HDF5 %i.%i.%i, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
+	g_string_append_printf(string, "HDF5 %d.%d.%d, ", H5_VERS_MAJOR, H5_VERS_MINOR, H5_VERS_RELEASE);
 	//libxml2
 	g_string_append_printf(string, "libxml2 %s,\n", LIBXML_DOTTED_VERSION);
 	//libxslt
 	g_string_append_printf(string, "libxslt %s, ", LIBXSLT_DOTTED_VERSION);
-	//fgsl
 #ifdef FGSL_VERSION
+	//fgsl
 	g_string_append_printf(string, "fgsl %s, ", G_STRINGIFY(FGSL_VERSION));
 #endif
 #ifdef EASYRNG_VERSION
 	g_string_append_printf(string, "easyRNG %s, ", G_STRINGIFY(EASYRNG_VERSION));
 #endif
 #ifdef HAVE_GUI
-	g_string_append_printf(string, "gtkmm-plplot %i.%i", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
+	g_string_append_printf(string, "gtkmm-plplot %d.%d", GTKMM_PLPLOT_MAJOR_VERSION, GTKMM_PLPLOT_MINOR_VERSION);
 #endif
 
 #ifdef HAVE_LIBSOUP
-	g_string_append_printf(string, ", libsoup %i.%i.%i", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
+	g_string_append_printf(string, ", libsoup %d.%d.%d", SOUP_MAJOR_VERSION, SOUP_MINOR_VERSION, SOUP_MICRO_VERSION);
 #endif
 
 #ifdef HAVE_JSONGLIB
-	g_string_append_printf(string, ", json-glib %i.%i.%i", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
+	g_string_append_printf(string, ", json-glib %d.%d.%d", JSON_MAJOR_VERSION, JSON_MINOR_VERSION, JSON_MICRO_VERSION);
 #endif
 
 	g_string_append(string, "\n\n");
 	g_string_append(string,
-"Copyright (C) 2010-2018 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"

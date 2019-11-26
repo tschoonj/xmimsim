@@ -25,35 +25,44 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-XMI_MAIN
+int main(int argc, char **argv) {
 	static gchar *outputfile=NULL;
 	GError *error = NULL;
 	static int version = 0;
+	static gchar **filenames = NULL;
 
 	GOptionContext *context;
 	static GOptionEntry entries[] = {
 		{"outputfile",'o',0,G_OPTION_ARG_FILENAME,&outputfile,"Use FILE as new XMSI outputfile", "FILE"},
 		{"version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL},
+		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "", NULL},
 		{NULL}
 	};
 
+#ifdef G_OS_WIN32
+	argv = g_win32_get_command_line();
+#else
+	argv = g_strdupv(argv);
+#endif
+
 	//parse options
-	context = g_option_context_new ("XMSO_file XMSI_file");
-	g_option_context_add_main_entries (context, entries, NULL);
+	context = g_option_context_new("XMSO_file XMSI_file");
+	g_option_context_add_main_entries(context, entries, NULL);
 	g_option_context_set_summary(context, "xmso2xmsi: a utility for the extraction of the XMSI inputfile from an XMSO file\n");
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+	if (!g_option_context_parse_strv(context, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
 	}
+	g_strfreev(argv);
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());
+		g_fprintf(stdout, "%s", xmi_version_string());
 		return 0;
 	}
 
-	if (argc != 3) {
+	if (filenames == NULL || g_strv_length(filenames) != 2) {
 		fprintf(stderr,"Two arguments are required\n");
-		fprintf(stderr,"%s",  g_option_context_get_help(context, FALSE, NULL ));
+		fprintf(stderr, "%s", g_option_context_get_help(context, FALSE, NULL));
 		return 1;
 	}
 
@@ -63,7 +72,7 @@ XMI_MAIN
 		return 1;
 	}
 
-	if (xmi_xmso_to_xmsi_xslt(argv[1], argv[2], outputfile) == 0) {
+	if (xmi_xmso_to_xmsi_xslt(filenames[0], filenames[1], outputfile) == 0) {
 		return 1;
 	}
 

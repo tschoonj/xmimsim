@@ -104,7 +104,7 @@ struct spe_data * read_spe(const char *filename) {
 	struct spe_data *rv = NULL;
 	char buffer[1024];
 
-	spePtr = fopen(filename, "r");
+	spePtr = g_fopen(filename, "r");
 	if (spePtr == NULL) {
 		fprintf(stderr, "Could not open %s for reading\n", filename);
 		return NULL;
@@ -117,7 +117,7 @@ struct spe_data * read_spe(const char *filename) {
 			fprintf(stderr,"An error occurred while reading %s...\nAre you sure this is an SPE file?\n",filename);
 			return NULL;
 		}
-	} while (strstr(buffer,"$DATA:") == NULL);
+	} while (strstr(buffer, "$DATA:") == NULL);
 
 	fscanf(spePtr,"%u %u",&(rv->channel_first),&(rv->channel_last));
 
@@ -133,6 +133,8 @@ struct spe_data * read_spe(const char *filename) {
 			return NULL;
 		}
 	}
+
+	fclose(spePtr);
 
 	return rv;
 }
@@ -402,4 +404,41 @@ int remove_xml_tags(const char *filename_old, const char *filename_new,  const c
 
 gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
 	return FALSE;
+}
+
+void test_compare_channels_and_csv(double **channels, const gchar *csv_file) {
+
+	GFile *file = g_file_new_for_path(csv_file);
+	GFileInputStream *file_stream = g_file_read(file, NULL, NULL);
+	g_object_unref(file);
+  	GDataInputStream *data_stream = g_data_input_stream_new(G_INPUT_STREAM(file_stream));
+  	g_data_input_stream_set_newline_type(data_stream, G_DATA_STREAM_NEWLINE_TYPE_ANY);
+
+	char *line = (char *) 1;
+  	int nlines = 0;
+
+  	while (line) {
+  		gsize linelen;
+    	GError *tmp_error = NULL;
+    	line = g_data_input_stream_read_line(data_stream, &linelen, NULL, &tmp_error);
+    	g_assert_null(tmp_error);
+    	if (line == NULL)
+	 		break;
+    	if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+      		continue;
+    	}
+    	gchar **splitted = g_strsplit(line, ",", 0);
+
+    	int i;
+ 	   	for (i = 2 ; i < g_strv_length(splitted) ; i++) {
+    		double csv_value = g_ascii_strtod(splitted[i], NULL);
+      		g_assert_cmpfloat(channels[i-1][nlines], ==, csv_value);
+    	}
+
+    	g_free(line);
+    	g_strfreev(splitted);
+    	nlines++;
+  	}
+  	g_object_unref(file_stream);
+  	g_object_unref(data_stream);
 }

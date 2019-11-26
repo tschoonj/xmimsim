@@ -3,13 +3,14 @@
 #include "xmi_msim.h"
 #include "libxmimsim-test.h"
 #include <unistd.h>
+#include <glib/gstdio.h>
 
 #define COMPOUND "C6H12O6" // sweet, sweet sugar
 
 gchar *extra_options[4] = {
-	"--with-hdf5-data=xmimsimdata-" COMPOUND ".h5",
-	"--with-solid-angles-data=solid-angles.h5",
-	"--with-escape-ratios-data=escape-ratios.h5",
+	"--with-hdf5-data=xmimsimdata-" COMPOUND "\u03B1.h5",
+	"--with-solid-angles-data=solid-angles\u03B1.h5",
+	"--with-escape-ratios-data=escape-ratios\u03B1.h5",
 	NULL
 };
 
@@ -48,13 +49,13 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	// write input to file -> not necessary here...
 	GError *error = NULL;
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test1.xmso");
+	data->input->general->outputfile = g_strdup(COMPOUND "-test1\u03B1.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test1.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test1\u03B1.xmsi", &error));
 
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_NON_EXISTENT_EXEC"),
-		COMPOUND "-test1.xmsi",
+		COMPOUND "-test1\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -83,7 +84,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 
 	g_object_unref(job);
 
-	g_assert_cmpint(unlink(COMPOUND "-test1.xmsi"), ==, 0);
+	g_assert_cmpint(g_unlink(COMPOUND "-test1\u03B1.xmsi"), ==, 0);
 }
 
 static void test_fail_finished_cb(XmiMsimJob *job, gboolean result, const gchar *buffer, SetupData *data) {
@@ -112,7 +113,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		"non-existent-file.xmsi",
+		"non-existent-file\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -132,17 +133,17 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_test_log_set_fatal_handler(test_log_fatal_false, NULL);
 	GError *error = NULL;
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test3.xmso");
+	data->input->general->outputfile = g_strdup(COMPOUND "-test3\u03B1.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
 	// file is valid now, let's make it invalid...
 	data->input->composition->reference_layer = 5;
 	g_assert(xmi_input_validate(data->input) != 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test3.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test3\u03B1.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		COMPOUND "-test3.xmsi",
+		COMPOUND "-test3\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -158,7 +159,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_object_unref(job);
 	g_error_free(error);
 
-	g_assert_cmpint(unlink(COMPOUND "-test3.xmsi"), ==, 0);
+	g_assert_cmpint(g_unlink(COMPOUND "-test3\u03B1.xmsi"), ==, 0);
 }
 
 static void test_special_event_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *buffer, gpointer data) {
@@ -173,17 +174,27 @@ static void test_special_event_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event,
 
 static void test_good_input_file_simple(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
+	const gchar *xmsi_file = COMPOUND "-test4\u03B1.xmsi";
+	const gchar *xmso_file = COMPOUND "-test4\u03B1.xmso";
+	const gchar *spe_conv_prefix = COMPOUND "-test4\u03B2";
+	const gchar *csv_conv = COMPOUND "-test4\u03B3.csv";
+	const gchar *svg_conv = COMPOUND "-test4\u03B4.svg";
+	const gchar *html_conv = COMPOUND "-test4\u03B5.html";
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test4.xmso");
+
+	data->input->general->outputfile = g_strdup(xmso_file);
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test4.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, xmsi_file, &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		COMPOUND "-test4.xmsi",
+		xmsi_file,
 		data->options,
-		NULL, NULL, NULL, NULL,
+		spe_conv_prefix,
+		csv_conv,
+		svg_conv,
+		html_conv,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -213,8 +224,36 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 
 	g_object_unref(job);
 
-	g_assert_cmpint(unlink(COMPOUND "-test4.xmsi"), ==, 0);
-	g_assert_cmpint(unlink(COMPOUND "-test4.xmso"), ==, 0);
+	// test output
+  	xmi_output *output = NULL;
+  	g_assert_nonnull(output = xmi_output_read_from_xml_file(xmso_file, NULL));
+	
+  	test_compare_channels_and_csv(output->channels_conv, csv_conv);
+
+	unsigned int i;
+
+  	for (i = output->use_zero_interactions ? 0 : 1 ; i <= output->ninteractions ; i++) {
+		gchar *spe_file = g_strdup_printf("%s_%d.spe", spe_conv_prefix, i);
+
+		struct spe_data *sd = read_spe(spe_file);
+		g_assert_nonnull(sd);
+		g_assert_cmpint(output->input->detector->nchannels, ==, sd->nchannels);
+
+    	//compare channel contents
+		unsigned int j;
+	    for (j = 0 ; j < sd->nchannels ; j++) {
+    		g_assert_cmpfloat(output->channels_conv[i][j], ==, sd->data[j]);
+	    }
+		g_assert_cmpint(g_unlink(spe_file), ==, 0);
+	}
+
+	xmi_output_free(output);
+
+	g_assert_cmpint(g_unlink(xmsi_file), ==, 0);
+	g_assert_cmpint(g_unlink(xmso_file), ==, 0);
+	g_assert_cmpint(g_unlink(csv_conv), ==, 0);
+	g_assert_cmpint(g_unlink(svg_conv), ==, 0);
+	g_assert_cmpint(g_unlink(html_conv), ==, 0);
 }
 
 static gboolean stop_timeout(XmiMsimJob *job) {
@@ -226,14 +265,14 @@ static gboolean stop_timeout(XmiMsimJob *job) {
 static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test5.xmso");
+	data->input->general->outputfile = g_strdup(COMPOUND "-test5\u03B1.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test5.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test5\u03B1.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		COMPOUND "-test5.xmsi",
+		COMPOUND "-test5\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -268,7 +307,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 
 	g_object_unref(job);
 
-	g_assert(unlink(COMPOUND "-test5.xmsi") == 0);
+	g_assert(g_unlink(COMPOUND "-test5\u03B1.xmsi") == 0);
 }
 
 static gboolean suspend_resume_timeout(XmiMsimJob *job) {
@@ -288,14 +327,14 @@ static gboolean suspend_resume_timeout(XmiMsimJob *job) {
 static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test6.xmso");
+	data->input->general->outputfile = g_strdup(COMPOUND "-test6\u03B1.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test6.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test6\u03B1.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		COMPOUND "-test6.xmsi",
+		COMPOUND "-test6\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -330,8 +369,8 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 
 	g_object_unref(job);
 
-	g_assert(unlink(COMPOUND "-test6.xmsi") == 0);
-	g_assert(unlink(COMPOUND "-test6.xmso") == 0);
+	g_assert(g_unlink(COMPOUND "-test6\u03B1.xmsi") == 0);
+	g_assert(g_unlink(COMPOUND "-test6\u03B1.xmso") == 0);
 }
 
 static gboolean suspend_stop_timeout(XmiMsimJob *job) {
@@ -351,14 +390,14 @@ static gboolean suspend_stop_timeout(XmiMsimJob *job) {
 static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer user_data) {
 	GError *error = NULL;
 
-	data->input->general->outputfile = g_strdup(COMPOUND "-test7.xmso");
+	data->input->general->outputfile = g_strdup(COMPOUND "-test7\u03B1.xmso");
 	g_assert(xmi_input_validate(data->input) == 0);
-	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test7.xmsi", &error));
+	g_assert_true(xmi_input_write_to_xml_file(data->input, COMPOUND "-test7\u03B1.xmsi", &error));
 
 	// write input to file
 	XmiMsimJob* job = xmi_msim_job_new(
 		g_getenv("XMIMSIM_EXEC"),
-		COMPOUND "-test7.xmsi",
+		COMPOUND "-test7\u03B1.xmsi",
 		data->options,
 		NULL, NULL, NULL, NULL,
 		extra_options
@@ -393,7 +432,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 
 	g_object_unref(job);
 
-	g_assert(unlink(COMPOUND "-test7.xmsi") == 0);
+	g_assert(g_unlink(COMPOUND "-test7\u03B1.xmsi") == 0);
 }
 
 int main(int argc, char *argv[]) {
@@ -418,7 +457,7 @@ int main(int argc, char *argv[]) {
 	g_assert(cd != NULL);
 
 	// generate appropriate xmimsimdata.h5 file
-	gchar data_file[] = "xmimsimdata-" COMPOUND ".h5";
+	gchar data_file[] = "xmimsimdata-" COMPOUND "\u03B1.h5";
 	g_assert(xmi_db(data_file, cd->Elements, cd->nElements));
 
 	g_test_add("/job/non-existent-executable",
@@ -479,7 +518,7 @@ int main(int argc, char *argv[]) {
 
 	// cleanup
 	FreeCompoundData(cd);
-	unlink(data_file);
+	g_unlink(data_file);
 
 	return rv;
 }

@@ -7,91 +7,31 @@
 #include <gio/gio.h>
 #include <math.h>
 #include <unistd.h>
+#include <glib/gstdio.h>
 
 int main(int argc, char *argv[]) {
 
   //init test
   g_assert(test_init() == 1);
 
-  //file should be present already
-  g_assert(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 1) == 1);
+	//download file
+  if (g_access(TEST_XMSO, R_OK) != 0)
+	  g_assert_cmpint(test_download_file(TEST_XMSO_URL), ==, 1);
+
+  g_assert_cmpint(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 1), ==, 1);
 
   //let's read both files in and compare...
   xmi_output *output = NULL;
   g_assert_nonnull(output = xmi_output_read_from_xml_file(TEST_XMSO, NULL));
 
-  GFile *file = g_file_new_for_path(TEST_CSV);
-  GFileInputStream *file_stream = g_file_read(file, NULL, NULL);
-  g_object_unref(file);
-  GDataInputStream *data_stream = g_data_input_stream_new(G_INPUT_STREAM(file_stream));
-  g_data_input_stream_set_newline_type(data_stream, G_DATA_STREAM_NEWLINE_TYPE_ANY);
-
-  char *line = (char *) 1;
-  int nlines = 0;
-
-  while (line) {
-    gsize linelen;
-    GError *tmp_error = NULL;
-    line = g_data_input_stream_read_line(data_stream, &linelen, NULL, &tmp_error);
-    g_assert_null(tmp_error);
-    if (line == NULL)
-	    break;
-    if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
-      continue;
-    }
-    gchar **splitted = g_strsplit(line, ",", 0);
-
-    int i;
-    for (i = 2 ; i < g_strv_length(splitted) ; i++) {
-      double csv_value = g_ascii_strtod(splitted[i], NULL);
-      g_assert_cmpfloat(output->channels_conv[i-1][nlines], ==, csv_value);
-    }
-
-    g_free(line);
-    g_strfreev(splitted);
-    nlines++;
-  }
-  g_object_unref(file_stream);
-  g_object_unref(data_stream);
+  test_compare_channels_and_csv(output->channels_conv, TEST_CSV);
 
   //now let's try unconvoluted
-  g_assert(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 0) == 1);
+  g_assert_cmpint(xmi_xmso_to_csv_xslt(TEST_XMSO, TEST_CSV, 0), ==, 1);
 
-  file = g_file_new_for_path(TEST_CSV);
-  file_stream = g_file_read(file, NULL, NULL);
-  g_object_unref(file);
-  data_stream = g_data_input_stream_new(G_INPUT_STREAM(file_stream));
-  g_data_input_stream_set_newline_type(data_stream, G_DATA_STREAM_NEWLINE_TYPE_ANY);
+  test_compare_channels_and_csv(output->channels_unconv, TEST_CSV);
 
-  line = (char *) 1;
-  nlines = 0;
-
-  while (line) {
-    gsize linelen;
-    GError *tmp_error = NULL;
-    line = g_data_input_stream_read_line(data_stream, &linelen, NULL, &tmp_error);
-    g_assert_null(tmp_error);
-    if (line == NULL)
-	    break;
-    if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
-      continue;
-    }
-    gchar **splitted = g_strsplit(line, ",", 0);
-
-    int i;
-    for (i = 2 ; i < g_strv_length(splitted) ; i++) {
-      double csv_value = g_ascii_strtod(splitted[i], NULL);
-      g_assert_cmpfloat(output->channels_unconv[i-1][nlines], ==, csv_value);
-    }
-
-    g_free(line);
-    g_strfreev(splitted);
-    nlines++;
-  }
-  g_object_unref(file_stream);
-  g_object_unref(data_stream);
-
-  unlink(TEST_CSV);
+  g_unlink(TEST_CSV);
   xmi_output_free(output);
 
   return 0;

@@ -36,8 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-XMI_MAIN
-
+int main(int argc, char **argv) {
 	xmi_main_options *options = xmi_main_options_new();
 	xmi_inputFPtr inputFPtr;
 	xmi_escape_ratios *escape_ratios_def=NULL;
@@ -45,6 +44,7 @@ XMI_MAIN
 	GError *error = NULL;
 	GOptionContext *context;
 	int version = 0;
+	gchar **filenames = NULL;
 
 	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 30);
 #define ADD_OPTION(long_name, short_name, flags, arg, arg_data, description, arg_description) \
@@ -64,6 +64,7 @@ XMI_MAIN
 	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
 	ADD_OPTION("very-verbose", 'V', 0, G_OPTION_ARG_NONE, &options->extra_verbose, "Even more verbose mode", NULL );
 	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "display version information", NULL );
+	ADD_OPTION(G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "xmsi-file", NULL);
 
 	xmi_init_hdf5();
 
@@ -73,23 +74,30 @@ XMI_MAIN
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
+#ifdef G_OS_WIN32
+	argv = g_win32_get_command_line();
+#else
+	argv = g_strdupv(argv);
+#endif
 
 	//parse options
 	context = g_option_context_new("XMSO-file XMSI-file XMSO-file");
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim-conv");
-	if (!g_option_context_parse(context, &argc, &argv, &error)) {
-		g_print ("option parsing failed: %s\n", error->message);
-		exit (1);
+	if (!g_option_context_parse_strv(context, &argv, &error)) {
+		g_print("option parsing failed: %s\n", error->message);
+		return 1;
 	}
 
+	g_strfreev(argv);
+
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());
+		g_fprintf(stdout, "%s", xmi_version_string());
 		return 0;
 	}
 
-	if (argc != 4) {
-		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+	if (filenames == NULL || g_strv_length(filenames) != 3) {
+		g_fprintf(stderr, "%s\n", g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
@@ -123,9 +131,9 @@ XMI_MAIN
 	}
 
 	//read in the outputfile
-	char *xmsofile = argv[1];
-	char *xmsifile = argv[2];
-	char *new_xmsofile = argv[3];
+	char *xmsofile = filenames[0];
+	char *xmsifile = filenames[1];
+	char *new_xmsofile = filenames[2];
 	xmi_output *xmso_in, *xmso_out;
 	xmi_input *xmsi_in;
 
@@ -244,7 +252,7 @@ XMI_MAIN
 		return 1;
 	}
 	else if (options->verbose)
-		g_fprintf(stdout,"Output written to XMSO file %s\n",new_xmsofile);
+		g_fprintf(stdout, "Output written to XMSO file %s\n", new_xmsofile);
 
 	return 0;
 }

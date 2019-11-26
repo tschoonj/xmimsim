@@ -832,7 +832,7 @@ static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, X
 	gboolean rv = TRUE;
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
-		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
+		pipe_status = g_io_channel_read_line(source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", xmi_msim_executable, pid, pipe_error->message);
 			g_error_free(pipe_error);
@@ -1107,16 +1107,13 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 
 	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_HIGH_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
 
-	const gchar *encoding = NULL;
-	g_get_charset(&encoding);
-
-	g_io_channel_set_encoding(job->stdout_channel, encoding, NULL);
+	g_io_channel_set_encoding(job->stdout_channel, "UTF-8", NULL);
 	g_io_channel_set_close_on_unref(job->stdout_channel, TRUE);
 	job->stdout_watch_id = g_io_add_watch_full(job->stdout_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stdout_channel);
 
-	g_io_channel_set_encoding(job->stderr_channel, encoding, NULL);
-	g_io_channel_set_close_on_unref(job->stderr_channel,TRUE);
+	g_io_channel_set_encoding(job->stderr_channel, "UTF-8", NULL);
+	g_io_channel_set_close_on_unref(job->stderr_channel, TRUE);
 	job->stderr_watch_id = g_io_add_watch_full(job->stderr_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stderr_channel);
 

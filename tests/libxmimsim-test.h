@@ -56,6 +56,8 @@ int remove_xml_tags(const char *filename_old, const char *filename_new, const ch
 
 gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
 
+void test_compare_channels_and_csv(double **channels, const gchar *csv_file);
+
 G_END_DECLS
 
 #endif

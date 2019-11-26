@@ -21,8 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <math.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
-XMI_MAIN
+int main(int argc, char **argv) {
 	xmi_main_options *options = xmi_main_options_new();
 
 	xmi_input *input;
@@ -39,6 +40,7 @@ XMI_MAIN
 	gchar *detector_file = NULL;
 	gchar *convoluted_file = NULL;
 	gchar *unconvoluted_file = NULL;
+	gchar **filenames = NULL;
 	double rotate_angle_z = 0.0;
 
 	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 16);
@@ -63,26 +65,34 @@ XMI_MAIN
 	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
 	ADD_OPTION("disable-pile-up", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Disable pile-up (default)", NULL );
 	ADD_OPTION("rotate-angle-z", 0, 0, G_OPTION_ARG_DOUBLE, &rotate_angle_z, "Rotate all objects, source and detector around XRMC's Z-axis by ANGLE degrees", "ANGLE");
-	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
+	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL);
+	ADD_OPTION(G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "xmsi-file", NULL);
 	
-	//parse options
+#ifdef G_OS_WIN32
+	argv = g_win32_get_command_line();
+#else
+	argv = g_strdupv(argv);
+#endif
 
-	context = g_option_context_new ("XMSI_file");
+	//parse options
+	context = g_option_context_new("XMSI_file");
 	GError *error = NULL;
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmsi2xrmc: a utility for the conversion of an XMI-MSIM input-file to the corresponding XRMC input-files.\n");
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+	if (!g_option_context_parse_strv(context, &argv, &error)) {
 		g_print ("option parsing failed: %s\n", error->message);
 		return 1;
 	}
 
+	g_strfreev(argv);
+
 	if (version) {
-		fprintf(stdout,"%s",xmi_version_string());
+		g_fprintf(stdout, "%s", xmi_version_string());
 		return 0;
 	}
 
-	if (argc != 2) {
-		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+	if (filenames == NULL || g_strv_length(filenames) != 1) {
+		g_fprintf(stderr, "%s\n", g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
@@ -122,15 +132,15 @@ XMI_MAIN
 
 	//load xml catalog
 	if (xmi_xmlLoadCatalog(&error) == 0) {
-		fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
+		g_fprintf(stderr, "Could not load XML catalog: %s\n", error->message);
 		return 1;
 	}
 
 	//read in the inputfile
-	input = xmi_input_read_from_xml_file(argv[1], &error);
+	input = xmi_input_read_from_xml_file(filenames[0], &error);
 
 	if (input == NULL) {
-		fprintf(stderr, "Could not read %s: %s\n", argv[1], error->message);
+		g_fprintf(stderr, "Could not read %s: %s\n", filenames[0], error->message);
 		return 1;
 	}
 
