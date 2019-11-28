@@ -655,6 +655,11 @@ void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gcha
 	g_object_set(batch, "extra-options", extra_options, NULL);
 }
 
+/**
+ * xmi_msim_batch_abstract_get_active_job:
+ * @batch: an instance of XmiMsim.BatchAbstract
+ * Returns: (transfer full): the currently active job, or %NULL
+ */
 XmiMsimJob* xmi_msim_batch_abstract_get_active_job(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), NULL);
 
