@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <json-glib/json-glib.h>
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <glib/gstdio.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -191,7 +192,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		return;
 	}
 
-	gchar **download_locations = g_value_get_boxed(&prefs);
+	gchar **download_locations = g_value_dup_boxed(&prefs);
 	g_value_unset(&prefs);
 
 	for (i = 0 ; i < g_strv_length(download_locations) ; i++) {
@@ -207,7 +208,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		dv->stream = stream;
 		SoupMessage *msg = soup_message_new("GET", url);
 		dv->msg = msg;
-		soup_message_body_set_accumulate (msg->response_body, FALSE);
+		soup_message_body_set_accumulate(msg->response_body, FALSE);
 		g_signal_connect (msg, "got-headers", G_CALLBACK(download_got_headers), dv);
 		g_signal_connect (msg, "got-chunk", G_CALLBACK(download_got_chunk), dv);
 
@@ -225,7 +226,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			//checksum check
 			if (dv->md5sum_comp != NULL && strcmp(g_checksum_get_string(dv->md5sum_comp), dv->md5sum_tag) != 0) {
 				//checksums don't match!
-				unlink(dv->download_location);
+				g_unlink(dv->download_location);
 				gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Checksum error");
 				gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 				gtk_widget_set_sensitive(dv->button, FALSE);
@@ -240,7 +241,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
-			gtk_button_set_label(GTK_BUTTON(dv->button), "_Quit");
+			gtk_button_set_label(GTK_BUTTON(dv->button), "Quit");
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 			g_free(buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
@@ -250,7 +251,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		}
 		else if (dv->status_code == SOUP_STATUS_CANCELLED) {
 			//aborted
-			unlink(dv->download_location);
+			g_unlink(dv->download_location);
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download aborted");
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gtk_widget_set_sensitive(dv->button, FALSE);
@@ -259,12 +260,14 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			break;
 		}
 		else {
-			unlink(dv->download_location);
+			g_unlink(dv->download_location);
 			g_debug("%s could not be downloaded: %s", url, dv->reason_phrase);
 			rv = -1;
 		}
 		// cleanup should happen here...
 	}
+
+	g_strfreev(download_locations);
 
 	if (rv == -1) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download failed");

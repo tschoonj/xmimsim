@@ -274,7 +274,7 @@ xmi_output* run_main(const char *compound) {
 	g_assert(solid_angle_def != NULL);
 	
 	xmi_free_solid_angle(solid_angle_def);
-	unlink(data_file);
+	g_unlink(data_file);
 	g_free(data_file);
 	FreeCompoundData(cd);
 	xmi_input_free(input);

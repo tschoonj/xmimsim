@@ -929,7 +929,7 @@ int main(int argc, char *argv[]) {
 
 	// cleanup
 	FreeCompoundData(cd);
-	unlink(data_file);
+	g_unlink(data_file);
 
 	return rv;
 }

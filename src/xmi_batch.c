@@ -934,7 +934,7 @@ static void single_active_job_finished_event_handler_cb(XmiMsimBatchSingle *batc
 	g_debug("Adding %s to archive", xmso_file);
 
 	// cleanup
-	unlink(xmso_file);
+	g_unlink(xmso_file);
 	g_free(xmso_file);
 	unlink(xmsi_file);
 	g_free(xmsi_file);
