@@ -303,11 +303,8 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 				g_free(information);
 			}
 		}
-		// has to be a fileicon...
-		//GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
-		//g_notification_set_icon(notification, icon);
-		//g_object_unref(icon);
 		if (notification) {
+			g_notification_set_default_action (notification, "app.focus-window");
 			g_application_send_notification(g_application_get_default(), NULL, notification);
 			g_object_unref(notification);
 		}

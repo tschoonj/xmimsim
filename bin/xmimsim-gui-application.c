@@ -278,6 +278,10 @@ static void help_email_activated(GSimpleAction *action, GVariant *parameter, gpo
 	xmi_msim_gui_utils_open_email(g_variant_get_string(parameter, NULL));
 }
 
+static void focus_window_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    gtk_window_deiconify(gtk_application_get_active_window(GTK_APPLICATION(user_data)));
+}
+
 static GActionEntry app_entries[] = {
 	{"new", new_activated, NULL, NULL, NULL},
 	{"open", open_activated, NULL, NULL, NULL},
@@ -294,6 +298,7 @@ static GActionEntry app_entries[] = {
 	{"xmso2html", xmso2html_activated, NULL, NULL, NULL},
 	{"xmso2svg", xmso2svg_activated, NULL, NULL, NULL},
 	{"xmsa2xmso", xmsa2xmso_activated, NULL, NULL, NULL},
+	{"focus-window", focus_window_activated, NULL, NULL, NULL},
 	{"quit", quit_activated, NULL, NULL, NULL},
 	{"help-url", help_url_activated, "s", NULL, NULL},
 	{"help-email", help_email_activated, "s", NULL, NULL},
