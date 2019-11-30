@@ -100,7 +100,6 @@ static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 
 static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	gtk_dialog_response(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_QUIT);
-
 #ifdef MAC_INTEGRATION
 	gchar *file = g_strdup_printf("file://%s",dv->download_location);
 	CFURLRef url = CFURLCreateWithBytes (
@@ -116,8 +115,6 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	// TODO: use ShellExecuteW to deal with unicode download_location...
 	ShellExecuteW(NULL, L"runas", g_utf8_to_utf16(dv->download_location, -1, NULL, NULL, NULL), NULL, NULL, SW_SHOWNORMAL);
 #endif
-	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), "quit");
-	g_action_activate(action, NULL);
 	return;
 }
 
