@@ -155,7 +155,7 @@ static void about_activated(GSimpleAction *action, GVariant *parameter, gpointer
 		NULL
 	};
 
-	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2018 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2019 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
 
 	static const gchar comments[] = "A tool for predicing the spectral response of ED-XRF spectrometers using Monte Carlo simulations\n\n\nPlease read carefully the License section and the links therein.";
 
