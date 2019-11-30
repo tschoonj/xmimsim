@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -112,13 +112,12 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
     	);
   	LSOpenCFURLRef(url,NULL);
   	CFRelease(url);
-
-	// TODO: need to carefully check what to do here...
-	//quit_program_cb((GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));
 #elif defined(G_OS_WIN32)
 	// TODO: use ShellExecuteW to deal with unicode download_location...
-	ShellExecute(NULL, "runas", dv->download_location, NULL, NULL, SW_SHOWNORMAL);
+	ShellExecuteW(NULL, L"runas", g_utf8_to_utf16(dv->download_location, -1, NULL, NULL, NULL), NULL, NULL, SW_SHOWNORMAL);
 #endif
+	GAction *action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), "quit");
+	g_action_activate(action, NULL);
 	return;
 }
 
@@ -178,7 +177,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	dv->content_downloaded = 0;
 
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
-	gtk_button_set_label(GTK_BUTTON(dv->button), "_Stop");
+	gtk_button_set_label(GTK_BUTTON(dv->button), "Stop");
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
@@ -489,7 +488,7 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 	//write your own code for this
 	GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(app));
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater", active_window,
-		active_window != NULL ? GTK_DIALOG_MODAL : 0, "_Cancel", GTK_RESPONSE_REJECT, NULL);
+		(active_window != NULL ? GTK_DIALOG_MODAL : 0) | GTK_DIALOG_DESTROY_WITH_PARENT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	gtk_window_set_application(GTK_WINDOW(update_dialog), GTK_APPLICATION(app));
 
 	gtk_window_set_default_size(GTK_WINDOW(update_dialog), 600, 600);
