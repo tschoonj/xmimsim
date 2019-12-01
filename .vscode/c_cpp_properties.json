@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/local/opt/glib/include/glib-2.0",
+                "/usr/local/opt/glib/lib/glib-2.0/include/",
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libxml2",
+                "/usr/local/include/xraylib",
+                "/usr/local/opt/libsoup/include/libsoup-2.4",
+                "/usr/local/opt/gtk+3/include/gtk-3.0",
+                "/usr/local/opt/pango/include/pango-1.0",
+                "/usr/local/opt/harfbuzz/include/harfbuzz",
+                "/usr/local/opt/cairo/include/cairo/",
+                "/usr/local/opt/gdk-pixbuf/include/gdk-pixbuf-2.0",
+                "/usr/local/opt/atk/include/atk-1.0/",
+                "/usr/local/opt/gtkmm-plplot/include/gtkmm-plplot-2.0",
+                "/usr/local/opt/gtkmm-plplot/lib/gtkmm-plplot-2.0/include/",
+                "/usr/local/opt/gtkmm3/include/gtkmm-3.0",
+                "/usr/local/opt/gtkmm3/lib/gtkmm-3.0/include",
+                "/usr/local/opt/gtkmm3/lib/gdkmm-3.0/include",
+                "/usr/local/opt/pangomm/include/pangomm-1.4",
+                "/usr/local/opt/pangomm/lib/pangomm-1.4/include",
+                "/usr/local/opt/glibmm/include/glibmm-2.4",
+                "/usr/local/opt/glibmm/lib/glibmm-2.4/include",
+                "/usr/local/opt/json-glib/include/json-glib-1.0",
+                "/usr/local/opt/hdf5/include"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/local/opt/llvm/bin/clang",
+            "cppStandard": "c++11"
+        }
+    ],
+    "version": 4
+}
