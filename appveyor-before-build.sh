@@ -5,7 +5,7 @@ set -x
 
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
-#export GTKMM_PLPLOT_BRANCH=master
+export GTKMM_PLPLOT_BRANCH=master
 export XRAYLIB_BRANCH=master
 
 # install xraylib

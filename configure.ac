@@ -189,7 +189,7 @@ PKG_CHECK_MODULES([libsoup], libsoup-2.4 >= 2.42.0,
 
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3 libpeas-1.0 >= 1.22.0],
+	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.4 libpeas-1.0 >= 1.22.0],
 		[
 			GTK_FOUND=yes
 		],[

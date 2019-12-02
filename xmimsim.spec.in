@@ -27,7 +27,7 @@ BuildRequires: easyRNG-devel
 Requires: easyRNG
 %endif
 
-BuildRequires: gtkmm-plplot-devel
+BuildRequires: gtkmm-plplot-devel >= 2.4
 Requires: gtkmm-plplot
 
 %if 0%{?fedora} >= 26 || 0%{?rhel} >= 7
