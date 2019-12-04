@@ -34,6 +34,38 @@
             ],
             "compilerPath": "/usr/local/opt/llvm/bin/clang",
             "cppStandard": "c++11"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/include/glib-2.0",
+                "/usr/lib64/glib-2.0/include",
+                "/usr/include/libxml2",
+                "/dls_sw/apps/xraylib/3.99.0-gcc8/7/include/xraylib",
+                "/usr/include/libsoup-2.4",
+                "/dls_sw/apps/hdf5/1.10.3/include",
+                "/usr/include/gtk-3.0/",
+                "/dls_sw/apps/gtkmm-plplot/2.3/7/include",
+                "/usr/include/pango-1.0",
+                "/dls_sw/apps/gtkmm-plplot/2.3/7/lib/gtkmm-plplot-2.0/include/",
+                "/usr/lib64/gtkmm-3.0/include/",
+                "/usr/include/cairo",
+                "/usr/lib64/gdkmm-3.0/include/",
+                "/usr/include/json-glib-1.0/",
+                "/usr/include/gdk-pixbuf-2.0",
+                "/usr/lib64/pangomm-1.4/include/",
+                "/usr/include/atk-1.0",
+                "/usr/lib64/glibmm-2.4/include/",
+                "/dls_sw/apps/cuda/9.2/include",
+                "/usr/include/libpeas-1.0",
+                "/usr/include/gobject-introspection-1.0"
+            ],
+            "defines": [],
+            "compilerPath": "/dls_sw/apps/gcc/8.3.0/7/bin/gcc",
+            "cStandard": "c99",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64"
         }
     ],
     "version": 4
