@@ -33,10 +33,12 @@ if OS_WINDOWS
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/.libs/xmso2csv.exe' ; export XMSO2CSV_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/.libs/xmso2spe.exe' ; export XMSO2SPE_EXEC ;
 else
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/xmso2csv' ; export XMSO2CSV_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/xmso2spe' ; export XMSO2SPE_EXEC ;
 endif
 
 dist_check_SCRIPTS = $(NULL)
@@ -76,7 +78,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 #TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-xmso2csv 
+TESTS = test-xmso2csv test-xmso2spe
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -130,6 +132,7 @@ test_xmso2csv_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@libsoup_CFLAGS@
 test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2csv_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_xmso2xmsi_SOURCES = test-xmso2xmsi.c
 test_xmso2xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
@@ -166,6 +169,7 @@ test_xmso2spe_SOURCES = test-xmso2spe.c
 test_xmso2spe_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2spe_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2spe_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_poly_solve_quadratic_SOURCES = test-poly-solve-quadratic.F90
 test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@

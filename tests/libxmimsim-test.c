@@ -406,7 +406,7 @@ gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level,
 	return FALSE;
 }
 
-void test_compare_channels_and_csv(double **channels, const gchar *csv_file) {
+void test_compare_channels_and_csv(int nchannels, double **channels, const gchar *csv_file) {
 
 	GFile *file = g_file_new_for_path(csv_file);
 	GFileInputStream *file_stream = g_file_read(file, NULL, NULL);
@@ -439,6 +439,19 @@ void test_compare_channels_and_csv(double **channels, const gchar *csv_file) {
     	g_strfreev(splitted);
     	nlines++;
   	}
+	g_assert_cmpint(nchannels, ==, nlines);
   	g_object_unref(file_stream);
   	g_object_unref(data_stream);
+}
+
+void test_compare_channels_and_spe(int nchannels, double *channels, const gchar *spe_file) {
+	struct spe_data *sd = read_spe(spe_file);
+    g_assert_nonnull(sd);
+    g_assert_cmpint(nchannels, ==, sd->nchannels);
+    //compare channel contents
+    int j;
+    for (j = 0 ; j < sd->nchannels ; j++) {
+      g_assert_cmpfloat(channels[j], ==, sd->data[j]);
+    }
+    free_spe_data(sd);
 }

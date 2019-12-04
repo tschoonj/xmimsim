@@ -228,7 +228,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
   	xmi_output *output = NULL;
   	g_assert_nonnull(output = xmi_output_read_from_xml_file(xmso_file, NULL));
 	
-  	test_compare_channels_and_csv(output->channels_conv, csv_conv);
+  	test_compare_channels_and_csv(output->input->detector->nchannels, output->channels_conv, csv_conv);
 
 	unsigned int i;
 

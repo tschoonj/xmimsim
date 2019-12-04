@@ -42,13 +42,13 @@ static void teardown_data(SetupData *data, gconstpointer user_data) {
 static void test_api_convoluted(SetupData *data, gconstpointer user_data) {
   g_assert_cmpint(xmi_xmso_to_csv_xslt(data->xmso_file, data->csv_file, 1), ==, 1);
 
-  test_compare_channels_and_csv(data->output->channels_conv, data->xmso_file);
+  test_compare_channels_and_csv(data->output->input->detector->nchannels, data->output->channels_conv, data->csv_file);
 }
 
 static void test_api_unconvoluted(SetupData *data, gconstpointer user_data) {
   g_assert_cmpint(xmi_xmso_to_csv_xslt(data->xmso_file, data->csv_file, 0), ==, 1);
 
-  test_compare_channels_and_csv(data->output->channels_unconv, data->xmso_file);
+  test_compare_channels_and_csv(data->output->input->detector->nchannels, data->output->channels_unconv, data->csv_file);
 }
 
 static void test_executable_convoluted(SetupData *data, gconstpointer user_data) {
@@ -62,7 +62,7 @@ static void test_executable_convoluted(SetupData *data, gconstpointer user_data)
   g_assert_true(g_subprocess_wait(process, NULL, NULL));
   g_assert_true(g_subprocess_get_successful(process));
 
-  test_compare_channels_and_csv(data->output->channels_conv, data->xmso_file);
+  test_compare_channels_and_csv(data->output->input->detector->nchannels, data->output->channels_conv, data->csv_file);
 }
 
 static void test_executable_unconvoluted(SetupData *data, gconstpointer user_data) {
@@ -76,7 +76,7 @@ static void test_executable_unconvoluted(SetupData *data, gconstpointer user_dat
   g_assert_true(g_subprocess_wait(process, NULL, NULL));
   g_assert_true(g_subprocess_get_successful(process));
 
-  test_compare_channels_and_csv(data->output->channels_unconv, data->xmso_file);
+  test_compare_channels_and_csv(data->output->input->detector->nchannels, data->output->channels_unconv, data->csv_file);
 }
 
 int main(int argc, char *argv[]) {
