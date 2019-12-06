@@ -35,12 +35,14 @@ AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/.libs
 AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/.libs/xmso2csv.exe' ; export XMSO2CSV_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/.libs/xmso2spe.exe' ; export XMSO2SPE_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSA2XMSO_EXEC='$(abs_top_builddir)/bin/.libs/xmsa2xmso.exe' ; export XMSA2XMSO_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2HTM_EXEC='$(abs_top_builddir)/bin/.libs/xmso2htm.exe' ; export XMSO2HTM_EXEC ;
 else
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/xmso2csv' ; export XMSO2CSV_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/xmso2spe' ; export XMSO2SPE_EXEC ;
 AM_TESTS_ENVIRONMENT += XMSA2XMSO_EXEC='$(abs_top_builddir)/bin/xmsa2xmso' ; export XMSA2XMSO_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2HTM_EXEC='$(abs_top_builddir)/bin/xmso2htm' ; export XMSO2HTM_EXEC ;
 endif
 
 dist_check_SCRIPTS = $(NULL)
@@ -80,7 +82,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 #TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-xmso2csv test-xmso2spe test-xmsa2xmso
+TESTS = test-xmso2csv test-xmso2spe test-xmsa2xmso test-xmso2htm
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -167,6 +169,7 @@ test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2htm_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2htm_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_xmso2spe_SOURCES = test-xmso2spe.c
 test_xmso2spe_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
