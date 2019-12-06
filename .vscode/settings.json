@@ -4,5 +4,6 @@
         "${workspaceFolder}/build",
         "/Users/schoon/github/xmimsim/build",
         "/usr/local/include/xraylib"
-    ]
+    ],
+    "C_Cpp.errorSquiggles": "Enabled"
 }
