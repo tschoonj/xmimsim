@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
   {
     UserData user_data = {.prefix = "test-xmso2htm\u03b1", .use_executable = 0, .use_convoluted = 1};
 	  g_test_add("/xmso2htm/api/convoluted",
-			 SetupData,
+			SetupData,
 			&user_data,
 			setup_data,
 			test_wrapper,
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
   {
     UserData user_data = {.prefix = "test-xmso2htm\u03b2", .use_executable = 0, .use_convoluted = 0};
 	  g_test_add("/xmso2htm/api/unconvoluted",
-			 SetupData,
+			SetupData,
 			&user_data,
 			setup_data,
 			test_wrapper,
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
   {
     UserData user_data = {.prefix = "test-xmso2htm\u03b3", .use_executable = 1, .use_convoluted = 1};
 	  g_test_add("/xmso2htm/executable/convoluted",
-			 SetupData,
+			SetupData,
 			&user_data,
 			setup_data,
 			test_wrapper,
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
   {
     UserData user_data = {.prefix = "test-xmso2htm\u03b4", .use_executable = 1, .use_convoluted = 0};
 	  g_test_add("/xmso2htm/executable/unconvoluted",
-			 SetupData,
+			SetupData,
 			&user_data,
 			setup_data,
 			test_wrapper,
