@@ -12,7 +12,6 @@
 	</gresource>
 	<gresource prefix="/com/github/tschoonj/xmimsim/xslt">
 		<file alias="xmso2xmsi.xml">../xml/xmso2xmsi.xml</file>
-		<file alias="xmso2svg.xml">../xml/xmso2svg.xml</file>
 		<file alias="xmso2spe.xml">../xml/xmso2spe.xml</file>
 		<file alias="xmso2csv.xml">../xml/xmso2csv.xml</file>
 		<file alias="xmso2htm.xml">../xml/xmso2htm.xml</file>

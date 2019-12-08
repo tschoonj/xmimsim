@@ -22,7 +22,6 @@
 #define TEST_XMSA_COPY_2 "CaSO4_28keV_pol_2D_copy.xmsa"
 
 #define TEST_CSV "test.csv"
-#define TEST_SVG "test.svg"
 #define TEST_HTM "test.htm"
 #define TEST_SPE "test.spe"
 

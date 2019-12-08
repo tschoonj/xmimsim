@@ -40,7 +40,6 @@ XmiMsimJob* xmi_msim_job_new(
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
-	const gchar *svg_conv,
 	const gchar *html_conv,
 	gchar **extra_options
 	);

@@ -105,8 +105,6 @@ struct _XmiMsimGuiControlsScrolledWindow {
 	GtkWidget *spe_convB;
 	GtkWidget *csv_convW;
 	GtkWidget *csv_convB;
-	GtkWidget *svg_convW;
-	GtkWidget *svg_convB;
 	GtkWidget *html_convW;
 	GtkWidget *html_convB;
 

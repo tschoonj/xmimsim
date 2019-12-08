@@ -101,7 +101,6 @@ Source: "{#builddir}\bin\.libs\xmimsim-conv.exe" ; DestDir: "{app}\Bin" ; Compon
 Source: "{#builddir}\bin\.libs\xmimsim-gui.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-pymca.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2xmsi.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#builddir}\bin\.libs\xmso2svg.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2spe.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core

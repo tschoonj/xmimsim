@@ -59,7 +59,6 @@ endif
 endif
 
 if ENABLE_GUI
-  check_PROGRAMS += test-xmso2svg
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
 endif
 
@@ -83,8 +82,8 @@ if ENABLE_CUSTOM_DETECTOR
   check_PROGRAMS += test-custom-detector-response
 endif
 
-#TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-TESTS = test-xmso2csv test-xmso2spe test-xmsa2xmso test-xmso2htm test-xmso2xmsi
+TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
+#TESTS = test-xmso2csv test-xmso2spe test-xmsa2xmso test-xmso2htm test-xmso2xmsi
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -155,12 +154,6 @@ test_xmsa2xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@libsoup_CFLAGS@
 test_xmsa2xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
 test_xmsa2xmso_CFLAGS = -std=c99 $(AM_CFLAGS)
-
-test_xmso2svg_SOURCES = test-xmso2svg.c
-test_xmso2svg_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
-test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtkmm3_LIBS@ @glib2_LIBS@ 
 
 test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.c
 test_gui_utils_get_solid_angle_from_slits_CPPFLAGS = -I${srcdir} -I${top_srcdir}/bin \

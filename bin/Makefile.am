@@ -209,7 +209,6 @@ endif
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
 		xmimsim-pymca \
-		xmso2svg \
 		xmso2xmsi \
 		xmso2spe \
 		xmso2csv \
@@ -382,15 +381,6 @@ xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
 		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
-
-xmso2svg_SOURCES = xmso2svg.c
-xmso2svg_LDADD = ../src/libxmimsim.la \
-		 @glib2_LIBS@
-xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
-		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ \
-		  @libsoup_CFLAGS@ \
-		  $(AM_CPPFLAGS)
 
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \

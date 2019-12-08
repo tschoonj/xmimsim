@@ -94,8 +94,6 @@ int main(int argc, char **argv) {
 	gchar *spe_file_conv=NULL;
 	gchar *csv_file_noconv=NULL;
 	gchar *csv_file_conv=NULL;
-	gchar *svg_file_noconv=NULL;
-	gchar *svg_file_conv=NULL;
 	gchar *htm_file_noconv=NULL;
 	gchar *htm_file_conv=NULL;
 	double zero_sum;
@@ -128,8 +126,6 @@ int main(int argc, char **argv) {
 	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
 	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
 	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
-	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
-	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
 	ADD_OPTION("htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL);
 	ADD_OPTION("htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL);
 	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
@@ -653,24 +649,6 @@ int main(int argc, char **argv) {
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		xmi_output_free(output);
-		if (svg_file_conv != NULL) {
-			// 1 = convoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
-				return 1;
-			}
-			else if (options->verbose)
-				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
-		}
-
-		if (svg_file_noconv != NULL) {
-                        // 0 = unconvoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 0) == 0) {
-				return 1;
-			}
-			else if (options->verbose)
-				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
-		}
-
 
 		if (htm_file_conv != NULL) {
 			// 1 = convoluted

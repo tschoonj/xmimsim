@@ -26,7 +26,6 @@ G_BEGIN_DECLS
 
 void xmso2xmsi_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
 void xmso2csv_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
-void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
 void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
 void xmso2spe_activated(GSimpleAction *action, GVariant *parameter, gpointer data);
 void xmsi2xrmc_activated(GSimpleAction *action, GVariant *parameter, gpointer data);

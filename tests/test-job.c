@@ -57,7 +57,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 		g_getenv("XMIMSIM_NON_EXISTENT_EXEC"),
 		COMPOUND "-test1\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -115,7 +115,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 		g_getenv("XMIMSIM_EXEC"),
 		"non-existent-file\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -145,7 +145,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test3\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 
@@ -178,7 +178,6 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	const gchar *xmso_file = COMPOUND "-test4\u03B1.xmso";
 	const gchar *spe_conv_prefix = COMPOUND "-test4\u03B2";
 	const gchar *csv_conv = COMPOUND "-test4\u03B3.csv";
-	const gchar *svg_conv = COMPOUND "-test4\u03B4.svg";
 	const gchar *html_conv = COMPOUND "-test4\u03B5.html";
 
 
@@ -193,7 +192,6 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 		data->options,
 		spe_conv_prefix,
 		csv_conv,
-		svg_conv,
 		html_conv,
 		extra_options
 		);
@@ -252,7 +250,6 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_assert_cmpint(g_unlink(xmsi_file), ==, 0);
 	g_assert_cmpint(g_unlink(xmso_file), ==, 0);
 	g_assert_cmpint(g_unlink(csv_conv), ==, 0);
-	g_assert_cmpint(g_unlink(svg_conv), ==, 0);
 	g_assert_cmpint(g_unlink(html_conv), ==, 0);
 }
 
@@ -274,7 +271,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test5\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -336,7 +333,7 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test6\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -399,7 +396,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test7\u03B1.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);

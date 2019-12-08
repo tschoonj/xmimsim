@@ -24,7 +24,6 @@ extern "C" {
 
 int xmi_xmso_to_xmsi_xslt(char *xmsofile, char *xmsifile, char *outputfile);
 //passing 1 for convoluted will use the convoluted spectra, 0 the unconvoluted
-int xmi_xmso_to_svg_xslt(char *xmsofile, char *svgfile, unsigned convoluted);
 int xmi_xmso_to_spe_xslt(char *xmsofile, char *spefile, unsigned convoluted, int interaction_number);
 int xmi_xmso_to_csv_xslt(char *xmsofile, char *csvfile, unsigned convoluted);
 int xmi_xmso_to_htm_xslt(char *xmsofile, char *htmlfile, unsigned convoluted);

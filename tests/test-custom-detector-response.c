@@ -92,7 +92,7 @@ static void test_custom_detector_response_non_existent_plugin(SetupData *data, g
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -136,7 +136,7 @@ static void test_custom_detector_response_plugin1(SetupData *data, gconstpointer
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -182,7 +182,7 @@ static void test_custom_detector_response_plugin2(SetupData *data, gconstpointer
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);

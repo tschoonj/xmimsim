@@ -296,7 +296,6 @@ static GActionEntry app_entries[] = {
 	{"xmso2csv", xmso2csv_activated, NULL, NULL, NULL},
 	{"xmso2spe", xmso2spe_activated, NULL, NULL, NULL},
 	{"xmso2html", xmso2html_activated, NULL, NULL, NULL},
-	{"xmso2svg", xmso2svg_activated, NULL, NULL, NULL},
 	{"xmsa2xmso", xmsa2xmso_activated, NULL, NULL, NULL},
 	{"focus-window", focus_window_activated, NULL, NULL, NULL},
 	{"quit", quit_activated, NULL, NULL, NULL},

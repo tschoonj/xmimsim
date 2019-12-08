@@ -361,7 +361,6 @@ SAVE_BUTTON_CLICKED_CALLBACK(xmsi, "*.xmsi", "*.XMSI", "XMI-MSIM inputfiles", "X
 SAVE_BUTTON_CLICKED_CALLBACK(xmso, "*.xmso", "*.XMSO", "XMI-MSIM outputfiles", "XMI-MSIM outputfile", ".xmso")
 SAVE_BUTTON_CLICKED_CALLBACK(csv, "*.csv", "*.CSV", "Comma separated values files", "CSV file", ".csv")
 SAVE_BUTTON_CLICKED_CALLBACK(html, "*.html", "*.HTML", "Hypertext Markup Language files", "HTML file", ".html")
-SAVE_BUTTON_CLICKED_CALLBACK(svg, "*.svg", "*.SVG", "Scalable Vector Graphics files", "SVG file", ".svg")
 SAVE_BUTTON_CLICKED_CALLBACK(spe, "*.spe", "*.SPE", "SPE files", "SPE file", ".spe")
 
 static void xmsi2xrmc_apply_button_clicked_cb(GtkButton *button, gpointer data) {
@@ -667,66 +666,6 @@ static void xmso2html_apply_button_clicked_cb(GtkButton *button, gpointer data) 
 	}
 }
 
-static void xmso2svg_apply_button_clicked_cb(GtkButton *button, gpointer data) {
-	xmi_tools *xt = (xmi_tools *) data;
-	GtkWidget *dialog;
-
-	//first check if the two first entries are filled
-	if (strlen(gtk_entry_get_text(GTK_ENTRY(xt->entry1))) == 0 || strlen(gtk_entry_get_text(GTK_ENTRY(xt->entry2))) == 0) {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_ERROR,
-	       		GTK_BUTTONS_CLOSE,
-	       		"An XMSO file and an SVG file must be selected for the conversion to be performed"
-                	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		return ;
-	}
-
-	gchar *xmsofile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry1));
-	gchar *svgfile = (char *) gtk_entry_get_text(GTK_ENTRY(xt->entry2));
-	unsigned convoluted;
-
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button1)))
-		convoluted = 1;
-	else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(xt->button2)))
-		convoluted = 0;
-	else {
-		fprintf(stderr,"Neither button is active. Should not occur\n");
-		convoluted = 1;
-	}
-
-#ifdef HAVE_GOOGLE_ANALYTICS
-	XmiMsimGoogleAnalyticsTracker *tracker = xmi_msim_google_analytics_tracker_get_global();
-	xmi_msim_google_analytics_tracker_send_event(tracker, "XMI-MSIM-GUI", "USE-TOOLS", "XMSO2SVG", NULL);
-#endif
-
-	gtk_widget_set_sensitive(GTK_WIDGET(xt->apply), FALSE);
-
-	if (!xmi_xmso_to_svg_xslt(xmsofile, svgfile, convoluted)) {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_ERROR,
-	       		GTK_BUTTONS_CLOSE,
-	       		"An error occured while performing the conversion"
-                	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_destroy(xt->window);
-	}
-	else {
-		dialog = gtk_message_dialog_new (GTK_WINDOW(xt->window),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-	       		GTK_MESSAGE_INFO,
-	       		GTK_BUTTONS_CLOSE,
-	       		"The conversion was successfully performed."
-                	);
-     		gtk_dialog_run (GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
-		gtk_widget_destroy(xt->window);
-	}
-}
 static void xmso2spe_apply_button_clicked_cb(GtkButton *button, gpointer data) {
 	xmi_tools *xt = (xmi_tools *) data;
 	GtkWidget *dialog;
@@ -1145,91 +1084,6 @@ void xmso2html_activated(GSimpleAction *action, GVariant *parameter, gpointer da
 	button = gtk_button_new_with_mnemonic("_Apply");
 	xt4->apply = button;
 	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2html_apply_button_clicked_cb), xt4);
-	gtk_grid_attach(GTK_GRID(grid), button, 0, 6, 3, 1);
-
-	gtk_container_add(GTK_CONTAINER(window), grid);
-
-	gtk_widget_show_all(window);
-}
-
-void xmso2svg_activated(GSimpleAction *action, GVariant *parameter, gpointer data) {
-	GtkWidget *main_window = GTK_WIDGET(gtk_application_get_active_window(GTK_APPLICATION(data)));
-	GtkWidget *window;
-	GtkWidget *grid;
-	GtkWidget *button;
-	GtkWidget *label, *text;
-	xmi_tools *xt1, *xt2, *xt4;
-	GtkWidget *button1, *button2;
-
-	xt1 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
-	xt2 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
-	xt4 = (xmi_tools *) g_malloc(sizeof(xmi_tools));
-
-	grid = gtk_grid_new(); // 7 rows, 3 cols
-	gtk_grid_set_row_spacing(GTK_GRID(grid), 3);
-	gtk_grid_set_column_spacing(GTK_GRID(grid), 3);
-	window = get_window("Convert XMSO to SVG", main_window);
-	xt4->window = window;
-
-	GtkWidget *frame = get_description_frame("This tool allows for the extraction of the generated spectra as scalable vector graphic files (SVG). Both the convoluted and unconvoluted data are available for extraction");
-	gtk_grid_attach(GTK_GRID(grid), frame, 0, 0, 3, 1);
-
-	label = gtk_label_new("XMSO file");
-	gtk_widget_set_halign(label, GTK_ALIGN_START);
-	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
-	gtk_grid_attach(GTK_GRID(grid), label, 0, 1, 1, 1);
-	text = gtk_entry_new();
-	if (get_active_filename(main_window, XMSO_TYPE))
-		gtk_entry_set_text(GTK_ENTRY(text), get_active_filename(main_window, XMSO_TYPE));
-	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
-	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
-	gtk_widget_set_hexpand(text, TRUE);
-	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_grid_attach(GTK_GRID(grid), text, 1, 1, 1, 1);
-	button = gtk_button_new_from_icon_name("document-open", GTK_ICON_SIZE_BUTTON);
-	gtk_widget_set_halign(button, GTK_ALIGN_END);
-	gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
-	gtk_grid_attach(GTK_GRID(grid), button, 2, 1, 1, 1);
-	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso_open_button_clicked_cb), xt1);
-	xt1->window = window;
-	xt1->entry = text;
-	xt4->entry1 = text;
-
-	label = gtk_label_new("SVG file");
-	gtk_widget_set_halign(label, GTK_ALIGN_START);
-	gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
-	gtk_grid_attach(GTK_GRID(grid), label, 0, 2, 1, 1);
-	text = gtk_entry_new();
-	gtk_widget_set_halign(text, GTK_ALIGN_FILL);
-	gtk_widget_set_valign(text, GTK_ALIGN_CENTER);
-	gtk_widget_set_hexpand(text, TRUE);
-	gtk_editable_set_editable(GTK_EDITABLE(text), FALSE);
-	gtk_grid_attach(GTK_GRID(grid), text, 1, 2, 1, 1);
-	button = gtk_button_new_from_icon_name("document-save", GTK_ICON_SIZE_BUTTON);
-	gtk_widget_set_halign(button, GTK_ALIGN_END);
-	gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
-	gtk_grid_attach(GTK_GRID(grid), button, 2, 2, 1, 1);
-	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(svg_save_button_clicked_cb), xt2);
-	xt2->window = window;
-	xt2->entry = text;
-	xt4->entry2 = text;
-
-	//checkbutton here
-	button1 = gtk_radio_button_new_with_label_from_widget(NULL, "Use spectra after detector convolution");
-	gtk_grid_attach(GTK_GRID(grid), button1, 0, 3, 3, 1);
-	xt4->button1 = button1;
-	button2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(button1), "Use spectra before detector convolution");
-	gtk_grid_attach(GTK_GRID(grid), button2, 0, 4, 3, 1);
-	xt4->button2 = button2;
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button1), TRUE);
-
-	gtk_grid_attach(GTK_GRID(grid), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), 0, 5, 3, 1);
-
-	button = gtk_button_new_with_mnemonic("_Apply");
-	gtk_widget_set_halign(button, GTK_ALIGN_CENTER);
-	gtk_widget_set_valign(button, GTK_ALIGN_CENTER);
-	xt4->apply = button;
-	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(xmso2svg_apply_button_clicked_cb), xt4);
 	gtk_grid_attach(GTK_GRID(grid), button, 0, 6, 3, 1);
 
 	gtk_container_add(GTK_CONTAINER(window), grid);

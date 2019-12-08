@@ -87,8 +87,6 @@ int main(int argc, char **argv) {
 	gchar *spe_file_conv=NULL;
 	gchar *csv_file_noconv=NULL;
 	gchar *csv_file_conv=NULL;
-	gchar *svg_file_noconv=NULL;
-	gchar *svg_file_conv=NULL;
 	gchar *excitation_file = NULL;
 	gchar *geometry_file = NULL;
 	gchar *detector_file = NULL;
@@ -120,8 +118,6 @@ int main(int argc, char **argv) {
 	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
 	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
 	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
-	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
-	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
 	ADD_OPTION("with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL);
 	ADD_OPTION("enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL);
 	ADD_OPTION("disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL);
@@ -949,26 +945,6 @@ single_run:
 		}
 		fclose(csv_convPtr);
 	}
-
-	//svg files
-	if (svg_file_conv != NULL) {
-		// 0 = convoluted
-		if (xmi_xmso_to_svg_xslt(filenames[1], svg_file_conv, 1) == 0) {
-			return 1;
-		}
-		else if (options->verbose)
-			g_fprintf(stdout, "Output written to SVG file %s\n", svg_file_conv);
-	}
-
-	if (svg_file_noconv != NULL) {
-       		// 1 = unconvoluted
-		if (xmi_xmso_to_svg_xslt(filenames[1], svg_file_noconv, 0) == 0) {
-			return 1;
-		}
-		else if (options->verbose)
-			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
-	}
-
 
 	return 0;
 }
