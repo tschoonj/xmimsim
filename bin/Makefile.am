@@ -313,7 +313,7 @@ endif
 endif
 
 if OS_WINDOWS
-#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
