@@ -224,7 +224,7 @@ static void update_weight_fractions(xmlNodeSetPtr selected_nodes, const gchar *x
 		xmlChar *txt = xmlNodeGetContent(node);
 		g_assert(txt != NULL);
 		double value = g_ascii_strtod((gchar *) txt, NULL);
-		g_assert(value > 0.0);
+		g_assert(value >= 0.0);
 		selected_sum += value;
 		xmlFree(txt);
 	}
