@@ -48,6 +48,15 @@ TEST_XMSO_URL = "https://github.com/tschoonj/xmimsim/wiki/test.xmso"
 TEST_XMSO = "test.xmso"
 TEST_XMSO_COPY = "test-copy.xmso"
 
+TEST_XMSA_URL_1_NEW = "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_1D_new.xmsa"
+TEST_XMSA_1_NEW = "CaSO4_28keV_pol_1D_new.xmsa"
+TEST_XMSA_COPY_1_NEW = "CaSO4_28keV_pol_1D_new_copy.xmsa"
+
+TEST_XMSA_URL_2_NEW = "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_2D_new.xmsa"
+TEST_XMSA_2_NEW = "CaSO4_28keV_pol_2D_new.xmsa"
+TEST_XMSA_COPY_2_NEW = "CaSO4_28keV_pol_2D_new_copy.xmsa"
+
+
 SQRT_2 = math.sqrt(2.0)
 SQRT_2_2 = math.sqrt(2.0)/2.0
 
@@ -457,6 +466,84 @@ class TestWriteXMSO(unittest.TestCase):
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.Error.quark(), XmiMsim.Error.XML))
             self.assertTrue("No such file or directory" in err.message)
+
+class TestReadXMSA(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # download XMSA files
+        urlretrieve(TEST_XMSA_URL_1_NEW)
+        urlretrieve(TEST_XMSA_URL_2_NEW)
+
+    @classmethod
+    def tearDownClass(cls):
+        # remove the XMSA files
+        os.remove(TEST_XMSA_1_NEW)
+        os.remove(TEST_XMSA_2_NEW)
+
+    def _test_internals(self):
+        archive = XmiMsim.Archive.read_from_xml_file(self.xmsa_file)
+        temp_output = archive.output[XmiMsim.row_major_array_get_offset(archive.dims, self.indices_arr)]
+        self.assertAlmostEqual(temp_output.get_spectrum_convoluted(3)[101], self.counts_3_101, delta=0.01)
+        history = temp_output.get_history()
+        element = history[20]
+        self.assertAlmostEqual(element.total_counts, self.var_red_history_2_total_counts, delta=10.0)
+        element_line = element.lines["KM2"]
+        self.assertAlmostEqual(element_line.total_counts, self.var_red_history_2_lines_2_total_counts, delta=0.1)
+        element_line_interaction = element_line.interactions[3]
+        self.assertAlmostEqual(element_line_interaction, self.var_red_history_2_lines_2_interactions_2_counts, delta=0.01)
+
+    def test_1D(self):
+        self.xmsa_file = TEST_XMSA_1_NEW
+        self.indices_arr = (1, )
+        self.counts_3_101 = 41713.8
+        self.var_red_history_2_total_counts = 2.16209e+06
+        self.var_red_history_2_lines_2_total_counts = 101510.0
+        self.var_red_history_2_lines_2_interactions_2_counts = 787.47
+
+        self._test_internals()
+
+    def test_2D(self):
+        self.xmsa_file = TEST_XMSA_2_NEW
+        self.indices_arr = (5, 5)
+        self.counts_3_101 = 24822.2
+        self.var_red_history_2_total_counts = 1.43601e+07
+        self.var_red_history_2_lines_2_total_counts = 674216.0
+        self.var_red_history_2_lines_2_interactions_2_counts = 1956.04
+
+        self._test_internals()
+
+class TestWriteXMSA(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # download XMSA files
+        urlretrieve(TEST_XMSA_URL_1_NEW)
+        urlretrieve(TEST_XMSA_URL_2_NEW)
+
+    @classmethod
+    def tearDownClass(cls):
+        # remove the XMSA files
+        os.remove(TEST_XMSA_1_NEW)
+        os.remove(TEST_XMSA_2_NEW)
+        os.remove(TEST_XMSA_COPY_1_NEW)
+        os.remove(TEST_XMSA_COPY_2_NEW)
+
+    def _test_internals(self):
+        archive = XmiMsim.Archive.read_from_xml_file(self.xmsa_file)
+        archive.write_to_xml_file(self.xmsa_file_copy)
+        archive_copy = XmiMsim.Archive.read_from_xml_file(self.xmsa_file_copy)
+        self.assertTrue(archive.equals(archive_copy))
+
+    def test_1D(self):
+        self.xmsa_file = TEST_XMSA_1_NEW
+        self.xmsa_file_copy = TEST_XMSA_COPY_1_NEW
+
+        self._test_internals()
+
+    def test_2D(self):
+        self.xmsa_file = TEST_XMSA_2_NEW
+        self.xmsa_file_copy = TEST_XMSA_COPY_2_NEW
+
+        self._test_internals()
 
 @unittest.skipUnless(HAVE_XRAYLIB, "Install xraylib's python bindings to run this test")
 class TestJob(unittest.TestCase):
@@ -1006,5 +1093,5 @@ class TestBatchSingle(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    #unittest.main(verbosity=2, module=TestGoogleAnalyticsTracker())
+    #unittest.main(verbosity=2, module=TestWriteXMSA())
     unittest.main(verbosity=2)

@@ -2662,6 +2662,13 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	return 0;
 }
 
+/**
+ * xmi_row_major_array_get_indices:
+ * @dims: (array) (element-type int): The dimensions of the array for which the indices are needed
+ * @offset: The offset of the element of interest, assumming a row-major ordering
+ *
+ * Returns: (transfer full) (array) (element-type int): the array containing the indices corresponding to offset
+ */
 GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
 	g_return_val_if_fail(dims != NULL && offset >= 0, NULL);
 	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, NULL);
@@ -2692,6 +2699,13 @@ GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
 	return rv;
 }
 
+/**
+ * xmi_row_major_array_get_offset:
+ * @dims: (array) (element-type int): The dimensions of the array for which the indices are needed
+ * @indices: (array) (element-type int): The indices of the requested element in the array, along the dimensions
+ *
+ * Returns: the offset
+ */
 gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices) {
 	g_return_val_if_fail(dims != NULL && indices != NULL, -1);
 	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, -1);

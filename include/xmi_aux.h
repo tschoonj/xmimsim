@@ -117,12 +117,12 @@ gchar* xmi_get_xmimsim_path(void);
 #ifndef __GI_SCANNER__
 GError* xmi_error_convert_xrl_to_glib(xrl_error *error);
 
-gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices);
-GArray* xmi_row_major_array_get_indices(GArray *dims, int offset);
-
 gpointer xmi_object_ref(gpointer obj, const gchar *strloc);
 void xmi_object_unref(gpointer obj, gchar *strloc);
 #endif
+
+gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices);
+GArray* xmi_row_major_array_get_indices(GArray *dims, int offset);
 
 #ifdef __cplusplus
 }
