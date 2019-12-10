@@ -112,51 +112,45 @@ int main(int argc, char *argv[]) {
 
   g_assert_nonnull(output = xmi_output_read_from_xml_file(TEST_XMSO, NULL));
 
-  {
-    UserData user_data = {.prefix = "test-xmso2xmsi\u03b1", .use_executable = 0, .change_outputfile = 1};
-	  g_test_add("/xmso2xmsi/api/change-outputfile",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data1 = {.prefix = "test-xmso2xmsi\u03b1", .use_executable = 0, .change_outputfile = 1};
+	g_test_add("/xmso2xmsi/api/change-outputfile",
+		SetupData,
+		&user_data1,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2xmsi\u03b2", .use_executable = 0, .change_outputfile = 0};
-	  g_test_add("/xmso2xmsi/api/keep-outputfile",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data2 = {.prefix = "test-xmso2xmsi\u03b2", .use_executable = 0, .change_outputfile = 0};
+	g_test_add("/xmso2xmsi/api/keep-outputfile",
+		SetupData,
+		&user_data2,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2xmsi\u03b3", .use_executable = 1, .change_outputfile = 1};
-	  g_test_add("/xmso2xmsi/executable/change-outputfile",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data3 = {.prefix = "test-xmso2xmsi\u03b3", .use_executable = 1, .change_outputfile = 1};
+	g_test_add("/xmso2xmsi/executable/change-outputfile",
+		SetupData,
+		&user_data3,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2xmsi\u03b4", .use_executable = 1, .change_outputfile = 0};
-	  g_test_add("/xmso2xmsi/executable/keep-outputfile",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data4 = {.prefix = "test-xmso2xmsi\u03b4", .use_executable = 1, .change_outputfile = 0};
+	g_test_add("/xmso2xmsi/executable/keep-outputfile",
+		SetupData,
+		&user_data4,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
   int rv = g_test_run();
+  
   xmi_output_free(output);
+
   return rv;
 }

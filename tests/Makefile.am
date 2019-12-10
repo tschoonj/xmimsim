@@ -83,7 +83,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-xmso2csv test-xmso2spe test-xmsa2xmso test-xmso2htm test-xmso2xmsi
+#TESTS = test-read-xmsa
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \

@@ -93,49 +93,41 @@ int main(int argc, char *argv[]) {
   if (g_access(TEST_XMSO, R_OK) != 0)
 	  g_assert_cmpint(test_download_file(TEST_XMSO_URL), ==, 1);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2htm\u03b1", .use_executable = 0, .use_convoluted = 1};
-	  g_test_add("/xmso2htm/api/convoluted",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data1 = {.prefix = "test-xmso2htm\u03b1", .use_executable = 0, .use_convoluted = 1};
+	g_test_add("/xmso2htm/api/convoluted",
+		SetupData,
+		&user_data1,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2htm\u03b2", .use_executable = 0, .use_convoluted = 0};
-	  g_test_add("/xmso2htm/api/unconvoluted",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data2 = {.prefix = "test-xmso2htm\u03b2", .use_executable = 0, .use_convoluted = 0};
+	g_test_add("/xmso2htm/api/unconvoluted",
+		SetupData,
+		&user_data2,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2htm\u03b3", .use_executable = 1, .use_convoluted = 1};
-	  g_test_add("/xmso2htm/executable/convoluted",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data3 = {.prefix = "test-xmso2htm\u03b3", .use_executable = 1, .use_convoluted = 1};
+	g_test_add("/xmso2htm/executable/convoluted",
+		SetupData,
+		&user_data3,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
-  {
-    UserData user_data = {.prefix = "test-xmso2htm\u03b4", .use_executable = 1, .use_convoluted = 0};
-	  g_test_add("/xmso2htm/executable/unconvoluted",
-			SetupData,
-			&user_data,
-			setup_data,
-			test_wrapper,
-			teardown_data
-			);
-  }
+  UserData user_data4 = {.prefix = "test-xmso2htm\u03b4", .use_executable = 1, .use_convoluted = 0};
+	g_test_add("/xmso2htm/executable/unconvoluted",
+		SetupData,
+		&user_data4,
+		setup_data,
+		test_wrapper,
+		teardown_data
+		);
 
   return g_test_run();
 }
