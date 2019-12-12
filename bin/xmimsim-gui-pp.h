@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,24 +15,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_RANDOM_H
-#define XMI_RANDOM_H
+#ifndef XMI_MSIM_GUI_PP_H
+#define XMI_MSIM_GUI_PP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "xmimsim-gui.h"
 
-
-//all functions return 1 on success, 0 on error
-
-int xmi_start_random_acquisition(void);
-
-int xmi_end_random_acquisition(void);
-
-int xmi_get_random_numbers(unsigned long int *numbers,long int n);
-
-#ifdef __cplusplus
-}
-#endif
+// here follows a list of headers that contain C++ code
+#include "xmimsim-gui-export-canvas-dialog.h"
 
 #endif
+

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <json-glib/json-glib.h>
 #include <glib.h>
 #include <glib/gprintf.h>
+#include <glib/gstdio.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
@@ -32,7 +33,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	#include "xmi_resources_mac.h"
 	#include <CoreFoundation/CoreFoundation.h>
 	#include <CoreServices/CoreServices.h>
-	#include <gtkosxapplication.h>
 #endif
 
 
@@ -100,7 +100,6 @@ static void stop_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 
 static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
 	gtk_dialog_response(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_QUIT);
-
 #ifdef MAC_INTEGRATION
 	gchar *file = g_strdup_printf("file://%s",dv->download_location);
 	CFURLRef url = CFURLCreateWithBytes (
@@ -112,10 +111,9 @@ static void exit_button_clicked_cb(GtkButton *button, struct DownloadVars *dv) {
     	);
   	LSOpenCFURLRef(url,NULL);
   	CFRelease(url);
-
-	//quit_program_cb((GtkosxApplication *) g_object_new(GTKOSX_TYPE_APPLICATION,NULL), gtk_window_get_transient_for(GTK_WINDOW(dv->update_dialog)));
 #elif defined(G_OS_WIN32)
-	ShellExecute(NULL, "runas", dv->download_location, NULL, NULL, SW_SHOWNORMAL);
+	// TODO: use ShellExecuteW to deal with unicode download_location...
+	ShellExecuteW(NULL, L"runas", g_utf8_to_utf16(dv->download_location, -1, NULL, NULL, NULL), NULL, NULL, SW_SHOWNORMAL);
 #endif
 	return;
 }
@@ -176,7 +174,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 	dv->content_downloaded = 0;
 
 	gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, FALSE);
-	gtk_button_set_label(GTK_BUTTON(dv->button), "_Stop");
+	gtk_button_set_label(GTK_BUTTON(dv->button), "Stop");
 	g_signal_handler_disconnect(dv->button, dv->downloadG);
 	dv->stopG = g_signal_connect(button, "clicked", G_CALLBACK(stop_button_clicked_cb), dv);
 
@@ -190,7 +188,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		return;
 	}
 
-	gchar **download_locations = g_value_get_boxed(&prefs);
+	gchar **download_locations = g_value_dup_boxed(&prefs);
 	g_value_unset(&prefs);
 
 	for (i = 0 ; i < g_strv_length(download_locations) ; i++) {
@@ -206,7 +204,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		dv->stream = stream;
 		SoupMessage *msg = soup_message_new("GET", url);
 		dv->msg = msg;
-		soup_message_body_set_accumulate (msg->response_body, FALSE);
+		soup_message_body_set_accumulate(msg->response_body, FALSE);
 		g_signal_connect (msg, "got-headers", G_CALLBACK(download_got_headers), dv);
 		g_signal_connect (msg, "got-chunk", G_CALLBACK(download_got_chunk), dv);
 
@@ -224,7 +222,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			//checksum check
 			if (dv->md5sum_comp != NULL && strcmp(g_checksum_get_string(dv->md5sum_comp), dv->md5sum_tag) != 0) {
 				//checksums don't match!
-				unlink(dv->download_location);
+				g_unlink(dv->download_location);
 				gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Checksum error");
 				gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 				gtk_widget_set_sensitive(dv->button, FALSE);
@@ -239,7 +237,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			g_signal_handler_disconnect(dv->button, dv->stopG);
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gchar *buffer = g_strdup_printf("The new version of XMI-MSIM was downloaded as\n%s\nPress Quit to terminate XMI-MSIM.",dv->download_location);
-			gtk_button_set_label(GTK_BUTTON(dv->button), "_Quit");
+			gtk_button_set_label(GTK_BUTTON(dv->button), "Quit");
 			gtk_label_set_text(GTK_LABEL(dv->label), buffer);
 			g_free(buffer);
 			dv->exitG = g_signal_connect(button, "clicked", G_CALLBACK(exit_button_clicked_cb), dv);
@@ -249,7 +247,7 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 		}
 		else if (dv->status_code == SOUP_STATUS_CANCELLED) {
 			//aborted
-			unlink(dv->download_location);
+			g_unlink(dv->download_location);
 			gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download aborted");
 			gtk_dialog_set_response_sensitive(GTK_DIALOG(dv->update_dialog), GTK_RESPONSE_REJECT, TRUE);
 			gtk_widget_set_sensitive(dv->button, FALSE);
@@ -258,12 +256,14 @@ static void download_button_clicked_cb(GtkButton *button, struct DownloadVars *d
 			break;
 		}
 		else {
-			unlink(dv->download_location);
+			g_unlink(dv->download_location);
 			g_debug("%s could not be downloaded: %s", url, dv->reason_phrase);
 			rv = -1;
 		}
 		// cleanup should happen here...
 	}
+
+	g_strfreev(download_locations);
 
 	if (rv == -1) {
 		gtk_progress_bar_set_text(GTK_PROGRESS_BAR(dv->progressbar),"Download failed");
@@ -485,7 +485,7 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 	//write your own code for this
 	GtkWindow *active_window = gtk_application_get_active_window(GTK_APPLICATION(app));
 	GtkWidget *update_dialog = gtk_dialog_new_with_buttons("XMI-MSIM updater", active_window,
-		active_window != NULL ? GTK_DIALOG_MODAL : 0, "_Cancel", GTK_RESPONSE_REJECT, NULL);
+		(active_window != NULL ? GTK_DIALOG_MODAL : 0) | GTK_DIALOG_DESTROY_WITH_PARENT, "_Cancel", GTK_RESPONSE_REJECT, NULL);
 	gtk_window_set_application(GTK_WINDOW(update_dialog), GTK_APPLICATION(app));
 
 	gtk_window_set_default_size(GTK_WINDOW(update_dialog), 600, 600);
@@ -561,7 +561,8 @@ int xmi_msim_gui_updater_download_updates_dialog(XmiMsimGuiApplication *app, gch
 		gtk_window_set_application(GTK_WINDOW(dialog), GTK_APPLICATION(app));
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
-		g_application_quit(G_APPLICATION(app));
+		GAction *action = g_action_map_lookup_action(G_ACTION_MAP(g_application_get_default()), "quit");
+		g_action_activate(action, NULL);
 	}
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton), g_value_get_boolean(&prefs));
 	g_value_unset(&prefs);

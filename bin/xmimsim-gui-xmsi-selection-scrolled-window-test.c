@@ -15,9 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
-#include "xmimsim-gui-colors.h"
-#include "xmi_xml.h"
+#include "xmimsim-gui.h"
 
 static gboolean delete_event( GtkWidget *widget,
                               GdkEvent  *event,

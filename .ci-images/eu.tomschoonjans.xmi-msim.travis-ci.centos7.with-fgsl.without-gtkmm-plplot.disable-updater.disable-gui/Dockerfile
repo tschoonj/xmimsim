@@ -23,7 +23,8 @@ RUN yum install -y  gcc gcc-gfortran gcc-c++ \
 	python-gobject-base \
 	swig \
 	python-devel \
-	numpy
+	numpy \
+	python36
 
 # build xraylib from master
 WORKDIR /root

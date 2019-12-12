@@ -50,7 +50,6 @@ enum {
 	PROP_JOB_OPTIONS,
 	PROP_JOB_SPE_CONV,
 	PROP_JOB_CSV_CONV,
-	PROP_JOB_SVG_CONV,
 	PROP_JOB_HTML_CONV,
 	PROP_JOB_EXTRA_OPTIONS,
 	N_JOB_PROPERTIES
@@ -96,7 +95,6 @@ struct _XmiMsimJob {
 	xmi_main_options *options;
 	gchar *spe_conv;
 	gchar *csv_conv;
-	gchar *svg_conv;
 	gchar *html_conv;
 	gchar **extra_options;
 	gchar *xmso_file;
@@ -327,7 +325,6 @@ static void xmi_msim_job_finalize(GObject *gobject) {
 	xmi_main_options_free(job->options);
 	g_free(job->spe_conv);
 	g_free(job->csv_conv);
-	g_free(job->svg_conv);
 	g_free(job->html_conv);
 	g_strfreev(job->extra_options);
 
@@ -380,10 +377,6 @@ static void xmi_msim_job_set_property(GObject *object, guint prop_id, const GVal
 			g_free(job->csv_conv);
  			job->csv_conv = g_value_dup_string(value);
 			break;
-		case PROP_JOB_SVG_CONV:
-			g_free(job->svg_conv);
- 			job->svg_conv = g_value_dup_string(value);
-			break;
 		case PROP_JOB_HTML_CONV:
 			g_free(job->html_conv);
  			job->html_conv = g_value_dup_string(value);
@@ -419,9 +412,6 @@ static void xmi_msim_job_get_property(GObject *object, guint prop_id, GValue *va
 			break;
 		case PROP_JOB_CSV_CONV:
 			g_value_set_string(value, job->csv_conv);
-			break;
-		case PROP_JOB_SVG_CONV:
-			g_value_set_string(value, job->svg_conv);
 			break;
 		case PROP_JOB_HTML_CONV:
 			g_value_set_string(value, job->html_conv);
@@ -589,14 +579,6 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
     		G_PARAM_READWRITE
 	);
 
-	job_props[PROP_JOB_SVG_CONV] = g_param_spec_string(
-		"svg-conv",
-		"SVG outputfile",
-		"SVG outputfile",
-		NULL,
-    		G_PARAM_READWRITE
-	);
-
 	job_props[PROP_JOB_HTML_CONV] = g_param_spec_string(
 		"html-conv",
 		"HTML outputfile",
@@ -629,7 +611,6 @@ static void xmi_msim_job_init(XmiMsimJob *self) {
  * @options: (not nullable): an #XmiMsimMainOptions boxed struct containing the options for the job
  * @spe_conv: (nullable): prefix to the SPE files
  * @csv_conv: (nullable): full path to a CSV file
- * @svg_conv: (nullable): full path to an SVG file
  * @html_conv: (nullable): full path to an HTML file
  * @extra_options: (nullable) (array zero-terminated=1) (element-type utf8): %NULL terminated array of additional options to pass to the executable
  *
@@ -643,7 +624,6 @@ XmiMsimJob* xmi_msim_job_new(
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
-	const gchar *svg_conv,
 	const gchar *html_conv,
 	gchar **extra_options
 	) {
@@ -658,7 +638,6 @@ XmiMsimJob* xmi_msim_job_new(
 		"options", options,
 		"spe-conv", spe_conv,
 		"csv-conv", csv_conv,
-		"svg-conv", svg_conv,
 		"html-conv", html_conv,
 		"extra-options", extra_options,
 		NULL
@@ -832,7 +811,7 @@ static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, X
 	gboolean rv = TRUE;
 
 	if (condition & (G_IO_IN|G_IO_PRI)) {
-		pipe_status = g_io_channel_read_line (source, &pipe_string, NULL, NULL, &pipe_error);
+		pipe_status = g_io_channel_read_line(source, &pipe_string, NULL, NULL, &pipe_error);
 		if (pipe_status == G_IO_STATUS_ERROR) {
 			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", xmi_msim_executable, pid, pipe_error->message);
 			g_error_free(pipe_error);
@@ -1015,12 +994,6 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	}
 	g_free(temp);
 
-	temp = g_strdup(job->svg_conv);
-	if (temp && strlen(g_strstrip(temp))) {
-		g_ptr_array_add(job->argv, g_strdup_printf("--svg-file=%s", temp));
-	}
-	g_free(temp);
-
 	temp = g_strdup(job->html_conv);
 	if (temp && strlen(g_strstrip(temp))) {
 		g_ptr_array_add(job->argv, g_strdup_printf("--htm-file=%s", temp));
@@ -1107,16 +1080,13 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 
 	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_HIGH_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
 
-	const gchar *encoding = NULL;
-	g_get_charset(&encoding);
-
-	g_io_channel_set_encoding(job->stdout_channel, encoding, NULL);
+	g_io_channel_set_encoding(job->stdout_channel, "UTF-8", NULL);
 	g_io_channel_set_close_on_unref(job->stdout_channel, TRUE);
 	job->stdout_watch_id = g_io_add_watch_full(job->stdout_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stdout_channel);
 
-	g_io_channel_set_encoding(job->stderr_channel, encoding, NULL);
-	g_io_channel_set_close_on_unref(job->stderr_channel,TRUE);
+	g_io_channel_set_encoding(job->stderr_channel, "UTF-8", NULL);
+	g_io_channel_set_close_on_unref(job->stderr_channel, TRUE);
 	job->stderr_watch_id = g_io_add_watch_full(job->stderr_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
 	g_io_channel_unref(job->stderr_channel);
 

@@ -32,21 +32,33 @@ AM_TESTS_ENVIRONMENT = XMIMSIM_USE_SYSTEM_CA_FILE='1' ABS_TOP_SRCDIR='$(abs_top_
 if OS_WINDOWS
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim.exe' ; export XMIMSIM_EXEC ;
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/.libs/xmimsim-bad.exe' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/.libs/xmso2csv.exe' ; export XMSO2CSV_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/.libs/xmso2spe.exe' ; export XMSO2SPE_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSA2XMSO_EXEC='$(abs_top_builddir)/bin/.libs/xmsa2xmso.exe' ; export XMSA2XMSO_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2HTM_EXEC='$(abs_top_builddir)/bin/.libs/xmso2htm.exe' ; export XMSO2HTM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2XMSI_EXEC='$(abs_top_builddir)/bin/.libs/xmso2xmsi.exe' ; export XMSO2XMSI_EXEC ;
 else
 AM_TESTS_ENVIRONMENT += XMIMSIM_EXEC='$(abs_top_builddir)/bin/xmimsim' ; export XMIMSIM_EXEC ;
 AM_TESTS_ENVIRONMENT += XMIMSIM_NON_EXISTENT_EXEC='$(abs_top_builddir)/bin/xmimsim-bad' ; export XMIMSIM_NON_EXISTENT_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2CSV_EXEC='$(abs_top_builddir)/bin/xmso2csv' ; export XMSO2CSV_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2SPE_EXEC='$(abs_top_builddir)/bin/xmso2spe' ; export XMSO2SPE_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSA2XMSO_EXEC='$(abs_top_builddir)/bin/xmsa2xmso' ; export XMSA2XMSO_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2HTM_EXEC='$(abs_top_builddir)/bin/xmso2htm' ; export XMSO2HTM_EXEC ;
+AM_TESTS_ENVIRONMENT += XMSO2XMSI_EXEC='$(abs_top_builddir)/bin/xmso2xmsi' ; export XMSO2XMSI_EXEC ;
 endif
 
+dist_check_SCRIPTS = $(NULL)
 
+if !OS_WINDOWS
 if HAVE_INTROSPECTION
 if HAVE_PYTHON
-dist_check_SCRIPTS = \
+dist_check_SCRIPTS += \
      test-gi-xmimsim.py
 endif
-endif     
+endif
+endif
 
 if ENABLE_GUI
-  check_PROGRAMS += test-xmso2svg
   check_PROGRAMS += test-gui-utils-get-solid-angle-from-slits
 endif
 
@@ -71,7 +83,7 @@ if ENABLE_CUSTOM_DETECTOR
 endif
 
 TESTS = $(dist_check_SCRIPTS) $(check_PROGRAMS)
-#TESTS = test-gi-xmimsim.py
+#TESTS = test-read-xmsa
 
 libxmimsim_test_la_SOURCES = \
 	libxmimsim-test.h \
@@ -125,6 +137,7 @@ test_xmso2csv_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@libsoup_CFLAGS@
 test_xmso2csv_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2csv_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_xmso2xmsi_SOURCES = test-xmso2xmsi.c
 test_xmso2xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
@@ -132,6 +145,7 @@ test_xmso2xmsi_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@libsoup_CFLAGS@
 test_xmso2xmsi_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2xmsi_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_xmsa2xmso_SOURCES = test-xmsa2xmso.c
 test_xmsa2xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
@@ -139,12 +153,7 @@ test_xmsa2xmso_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			@xraylib_CFLAGS@ \
 			@libsoup_CFLAGS@
 test_xmsa2xmso_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
-
-test_xmso2svg_SOURCES = test-xmso2svg.c
-test_xmso2svg_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
-			-I${top_srcdir}/include @xml2_CFLAGS@ \
-			@xraylib_CFLAGS@ @gtkmm3_CFLAGS@
-test_xmso2svg_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @gtkmm3_LIBS@ @glib2_LIBS@ 
+test_xmsa2xmso_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_gui_utils_get_solid_angle_from_slits_SOURCES = test-gui-utils-get-solid-angle-from-slits.c
 test_gui_utils_get_solid_angle_from_slits_CPPFLAGS = -I${srcdir} -I${top_srcdir}/bin \
@@ -156,11 +165,13 @@ test_xmso2htm_SOURCES = test-xmso2htm.c
 test_xmso2htm_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2htm_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2htm_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_xmso2spe_SOURCES = test-xmso2spe.c
 test_xmso2spe_CPPFLAGS = -I${srcdir} -I${top_srcdir}/include @glib2_CFLAGS@ \
 			-I${top_srcdir}/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_xmso2spe_LDADD = @xml2_LIBS@ @xslt_LIBS@ libxmimsim-test.la @glib2_LIBS@ 
+test_xmso2spe_CFLAGS = -std=c99 $(AM_CFLAGS)
 
 test_poly_solve_quadratic_SOURCES = test-poly-solve-quadratic.F90
 test_poly_solve_quadratic_FCFLAGS = -I$(top_builddir)/src @fgsl_CFLAGS@
@@ -215,6 +226,7 @@ test_google_analytics_tracker_CPPFLAGS = -I${top_srcdir}/include @gobject_CFLAGS
 test_google_analytics_tracker_LDADD = ../src/libxmimsim.la @gobject_LIBS@
 
 test_job_SOURCES = test-job.c
+test_job_CFLAGS = -std=c99 $(AM_CFLAGS)
 test_job_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@
 test_job_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
@@ -223,6 +235,7 @@ test_custom_detector_response_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/includ
 test_custom_detector_response_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 
 test_batch_SOURCES = test-batch.c
+test_batch_CFLAGS = -std=c99 $(AM_CFLAGS)
 test_batch_CPPFLAGS = @gobject_CFLAGS@ -I$(top_srcdir)/include @xml2_CFLAGS@ @xraylib_CFLAGS@ -DHDF5_DATA_DIR="\"$(abs_top_builddir)/tests\""
 test_batch_LDADD = ../src/libxmimsim.la libxmimsim-test.la @gobject_LIBS@
 

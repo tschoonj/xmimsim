@@ -30,10 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #include "xmi_google_analytics.h"
 #endif
 
-#ifdef MAC_INTEGRATION
-  #include "xmi_resources_mac.h"
-#endif
-
 enum {
 	FINISHED_EVENT,
 	LAST_SIGNAL
@@ -110,14 +106,6 @@ static void select_extra_output_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	if (button == self->spe_convB) {
 		title = g_strdup("Select the prefix of the SPE files");
 		entry = self->spe_convW;
-	}
-	else if (button == self->svg_convB) {
-		filter = gtk_file_filter_new();
-		gtk_file_filter_add_pattern(filter, "*.svg");
-		gtk_file_filter_set_name(filter, "Scalable Vector Graphics");
-		title = g_strdup("Select the name of the SVG file");
-		entry = self->svg_convW;
-		extension = g_strdup(".svg");
 	}
 	else if (button == self->csv_convB) {
 		filter = gtk_file_filter_new();
@@ -273,11 +261,9 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 	gtk_widget_set_sensitive(self->options_boxW, TRUE);
 	gtk_widget_set_sensitive(self->spe_convW, TRUE);
 	gtk_widget_set_sensitive(self->csv_convW, TRUE);
-	gtk_widget_set_sensitive(self->svg_convW,TRUE);
 	gtk_widget_set_sensitive(self->html_convW,TRUE);
 	gtk_widget_set_sensitive(self->spe_convB,TRUE);
 	gtk_widget_set_sensitive(self->csv_convB,TRUE);
-	gtk_widget_set_sensitive(self->svg_convB,TRUE);
 	gtk_widget_set_sensitive(self->html_convB,TRUE);
 	if (self->nthreadsW != NULL)
 		gtk_widget_set_sensitive(self->nthreadsW,TRUE);
@@ -307,11 +293,8 @@ static void job_finished_cb(XmiMsimJob *job, gboolean result, const gchar *strin
 				g_free(information);
 			}
 		}
-		// has to be a fileicon...
-		//GIcon *icon = G_ICON(gdk_pixbuf_new_from_resource("/com/github/tschoonj/xmimsim/gui/icons/Logo_xmi_msim.png", NULL));
-		//g_notification_set_icon(notification, icon);
-		//g_object_unref(icon);
 		if (notification) {
+			g_notification_set_default_action (notification, "app.focus-window");
 			g_application_send_notification(g_application_get_default(), NULL, notification);
 			g_object_unref(notification);
 		}
@@ -531,11 +514,9 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	gtk_widget_set_sensitive(self->options_boxW, FALSE);
 	gtk_widget_set_sensitive(self->spe_convW, FALSE);
 	gtk_widget_set_sensitive(self->csv_convW, FALSE);
-	gtk_widget_set_sensitive(self->svg_convW, FALSE);
 	gtk_widget_set_sensitive(self->html_convW, FALSE);
 	gtk_widget_set_sensitive(self->spe_convB, FALSE);
 	gtk_widget_set_sensitive(self->csv_convB, FALSE);
-	gtk_widget_set_sensitive(self->svg_convB, FALSE);
 	gtk_widget_set_sensitive(self->html_convB, FALSE);
 	if (self->nthreadsW != NULL)
 		gtk_widget_set_sensitive(self->nthreadsW, FALSE);
@@ -563,7 +544,6 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 		options,
 		gtk_entry_get_text(GTK_ENTRY(self->spe_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->csv_convW)),
-		gtk_entry_get_text(GTK_ENTRY(self->svg_convW)),
 		gtk_entry_get_text(GTK_ENTRY(self->html_convW)),
 		NULL
 		);
@@ -825,24 +805,6 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	gtk_grid_attach(GTK_GRID(table_notebook), self->spe_convW, 1, 0, 1, 1);
 	gtk_grid_attach(GTK_GRID(table_notebook), self->spe_convB, 2, 0, 1, 1);
 
-	//SVG files
-	label = gtk_label_new("Scalable Vector Graphics (SVG) file");
-	gtk_widget_set_halign(label, GTK_ALIGN_END);
-	const gchar svg_tooltip[] = "Export the spectra as Scalable Vector Graphics.";
-	gtk_widget_set_tooltip_text(GTK_WIDGET(label), svg_tooltip);
-	button = gtk_button_new_with_label("Save");
-	gtk_widget_set_tooltip_text(GTK_WIDGET(button), svg_tooltip);
-	self->svg_convB = button;
-	self->svg_convW = gtk_entry_new();
-	gtk_widget_set_tooltip_text(GTK_WIDGET(self->svg_convW), svg_tooltip);
-	g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(select_extra_output_cb), self);
-	gtk_editable_set_editable(GTK_EDITABLE(self->svg_convW), TRUE);
-	gtk_widget_set_hexpand(self->svg_convW, TRUE);
-	gtk_widget_set_halign(self->svg_convW, GTK_ALIGN_FILL);
-	gtk_grid_attach(GTK_GRID(table_notebook), label, 0, 1, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->svg_convW, 1, 1, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->svg_convB, 2, 1, 1, 1);
-
 	//CSV files
 	label = gtk_label_new("Comma Separated Values (CSV) file");
 	gtk_widget_set_halign(label, GTK_ALIGN_END);
@@ -857,9 +819,9 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	gtk_editable_set_editable(GTK_EDITABLE(self->csv_convW), TRUE);
 	gtk_widget_set_hexpand(self->csv_convW, TRUE);
 	gtk_widget_set_halign(self->csv_convW, GTK_ALIGN_FILL);
-	gtk_grid_attach(GTK_GRID(table_notebook), label, 0, 2, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->csv_convW, 1, 2, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->csv_convB, 2, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), label, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), self->csv_convW, 1, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), self->csv_convB, 2, 1, 1, 1);
 
 	//html files
 	label = gtk_label_new("Report HTML file");
@@ -875,9 +837,9 @@ static void xmi_msim_gui_controls_scrolled_window_init(XmiMsimGuiControlsScrolle
 	gtk_editable_set_editable(GTK_EDITABLE(self->html_convW), TRUE);
 	gtk_widget_set_hexpand(self->html_convW, TRUE);
 	gtk_widget_set_halign(self->html_convW, GTK_ALIGN_FILL);
-	gtk_grid_attach(GTK_GRID(table_notebook), label, 0, 3, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->html_convW, 1, 3, 1, 1);
-	gtk_grid_attach(GTK_GRID(table_notebook), self->html_convB, 2, 3, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), label, 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), self->html_convW, 1, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(table_notebook), self->html_convB, 2, 2, 1, 1);
 
 	gtk_container_add(GTK_CONTAINER(frame), table_notebook);
 	gtk_box_pack_start(GTK_BOX(superframe),frame, FALSE, FALSE, 2);

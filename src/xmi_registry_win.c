@@ -26,18 +26,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <glib.h>
 
-#define TOTALBYTES    8192
-#define BYTEINCREMENT 4096
-
 int xmi_registry_win_query(int kind, char **regcontents) {
 
 	LONG RegRV;
 	DWORD QueryRV;
 	LPTSTR subKey;
 	HKEY key;
-    	DWORD BufferSize = TOTALBYTES;
-        DWORD cbdata;
-	PPERF_DATA_BLOCK PerfData;
 	GString *stringkey;
 
 
@@ -62,37 +56,39 @@ int xmi_registry_win_query(int kind, char **regcontents) {
 
 
 	//Windows mode: query registry
-	RegRV = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT(stringkey->str), 0, KEY_READ,&key);
+	gunichar2 *tmp_unichar2 = g_utf8_to_utf16(stringkey->str, -1, NULL, NULL, NULL);
+	RegRV = RegOpenKeyExW(HKEY_LOCAL_MACHINE, tmp_unichar2, 0, KEY_READ, &key);
+	g_free(tmp_unichar2);
 	if (RegRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error opening key %s in registry\n",stringkey->str);
+		fprintf(stderr, "Error opening key %s in registry\n", stringkey->str);
+		g_string_free(stringkey, TRUE);
 		return 0;
 	}
-	PerfData = (PPERF_DATA_BLOCK) g_malloc(BufferSize);
-	cbdata = BufferSize;
 
-
-	QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
-	while( QueryRV == ERROR_MORE_DATA ) {
-	        // Get a buffer that is big enough.
-		BufferSize += BYTEINCREMENT;
-		PerfData = (PPERF_DATA_BLOCK) g_realloc( PerfData, BufferSize );
-		cbdata = BufferSize;
-		QueryRV = RegQueryValueExA(key,TEXT(""), NULL, NULL, (LPBYTE) PerfData,&cbdata);
+	DWORD data_size = 0;
+	QueryRV = RegQueryValueExW(key, NULL, NULL, NULL, NULL, &data_size);
+	if (data_size <= 0 || QueryRV != ERROR_SUCCESS) {
+		fprintf(stderr, "Could not determine value size for key %s in registry\n", stringkey->str);
+		RegCloseKey(key);
+		g_string_free(stringkey, TRUE);
+		return 0;
 	}
+
+	tmp_unichar2 = g_malloc(data_size);
+	QueryRV = RegQueryValueExW(key, NULL, NULL, NULL, (LPBYTE) tmp_unichar2, &data_size);
 	if (QueryRV != ERROR_SUCCESS) {
-		fprintf(stderr,"Error querying key %s in registry\n",stringkey->str);
+		fprintf(stderr, "Error querying key %s in registry\n", stringkey->str);
+		RegCloseKey(key);
+		g_string_free(stringkey, TRUE);
+		g_free(tmp_unichar2);
 		return 0;
 	}
-
-
-#if DEBUG == 1
-		fprintf(stdout,"KeyValue: %s, bytes %i cbdata %i\n",(char *) PerfData,strlen((char *) PerfData), (int) cbdata);
-#endif
 
 
 	g_string_free(stringkey, TRUE);
 	RegCloseKey(key);
 
-	*regcontents = (char *) PerfData;
+	*regcontents = g_utf16_to_utf8(tmp_unichar2, -1, NULL, NULL, NULL);
+	g_free(tmp_unichar2);
 	return 1;
 }

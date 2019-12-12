@@ -29,35 +29,39 @@ jobs:
         easyrng_gui_noupdater_noocl_noga:
           EXTRA: --enable-gui --disable-updater --disable-opencl --disable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas
         easyrng_gui_updater_noocl_noga:
           EXTRA: --enable-gui --enable-updater --disable-opencl --disable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas json-glib
         easyrng_gui_noupdater_ocl_noga:
           EXTRA: --enable-gui --disable-updater --enable-opencl --disable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas
         easyrng_gui_updater_ocl_noga:
           EXTRA: --enable-gui --enable-updater --enable-opencl --disable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas json-glib
         easyrng_gui_noupdater_noocl_ga:
           EXTRA: --enable-gui --disable-updater --disable-opencl --enable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas
         easyrng_gui_updater_noocl_ga:
           EXTRA: --enable-gui --enable-updater --disable-opencl --enable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas json-glib
         easyrng_gui_noupdater_ocl_ga:
           EXTRA: --enable-gui --disable-updater --enable-opencl --enable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas
         easyrng_gui_updater_ocl_ga:
           EXTRA: --enable-gui --enable-updater --enable-opencl --enable-google-analytics
           USE_EASYRNG: True
-          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot libpeas json-glib
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas json-glib
+        easyrng_gui_updater_ocl_ga_app:
+          EXTRA: --enable-gui --enable-updater --enable-opencl --enable-google-analytics --enable-mac-integration
+          USE_EASYRNG: True
+          HOMEBREW_EXTRA: tschoonj/tap/gtkmm-plplot --HEAD libpeas json-glib
       
       
     steps:

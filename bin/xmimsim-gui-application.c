@@ -70,6 +70,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 struct _XmiMsimGuiApplication {
 	GtkApplication parent_instance;
 	XmiMsimGuiPluginsEngine *engine;
+#ifdef __APPLE__
+	XmiMsimGuiOSXApplicationDelegate *delegate;
+#endif
 };
 
 struct _XmiMsimGuiApplicationClass {
@@ -80,6 +83,10 @@ G_DEFINE_TYPE(XmiMsimGuiApplication, xmi_msim_gui_application, GTK_TYPE_APPLICAT
 
 static void xmi_msim_gui_application_finalize(GObject *gobject) {
 	XmiMsimGuiApplication *self = XMI_MSIM_GUI_APPLICATION(gobject);
+
+#ifdef __APPLE__
+	xmi_msim_gui_osx_app_delegate_free(self->delegate);
+#endif
 
 	G_OBJECT_CLASS(xmi_msim_gui_application_parent_class)->finalize(gobject);
 }
@@ -148,7 +155,7 @@ static void about_activated(GSimpleAction *action, GVariant *parameter, gpointer
 		NULL
 	};
 
-	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2018 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
+	static const gchar copyright[] = "Copyright \xc2\xa9 2010-2019 Tom Schoonjans, Philip Brondeel and Laszlo Vincze";
 
 	static const gchar comments[] = "A tool for predicing the spectral response of ED-XRF spectrometers using Monte Carlo simulations\n\n\nPlease read carefully the License section and the links therein.";
 
@@ -271,6 +278,10 @@ static void help_email_activated(GSimpleAction *action, GVariant *parameter, gpo
 	xmi_msim_gui_utils_open_email(g_variant_get_string(parameter, NULL));
 }
 
+static void focus_window_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    gtk_window_deiconify(gtk_application_get_active_window(GTK_APPLICATION(user_data)));
+}
+
 static GActionEntry app_entries[] = {
 	{"new", new_activated, NULL, NULL, NULL},
 	{"open", open_activated, NULL, NULL, NULL},
@@ -285,8 +296,8 @@ static GActionEntry app_entries[] = {
 	{"xmso2csv", xmso2csv_activated, NULL, NULL, NULL},
 	{"xmso2spe", xmso2spe_activated, NULL, NULL, NULL},
 	{"xmso2html", xmso2html_activated, NULL, NULL, NULL},
-	{"xmso2svg", xmso2svg_activated, NULL, NULL, NULL},
 	{"xmsa2xmso", xmsa2xmso_activated, NULL, NULL, NULL},
+	{"focus-window", focus_window_activated, NULL, NULL, NULL},
 	{"quit", quit_activated, NULL, NULL, NULL},
 	{"help-url", help_url_activated, "s", NULL, NULL},
 	{"help-email", help_email_activated, "s", NULL, NULL},
@@ -356,7 +367,8 @@ static void check_for_updates_callback(XmiMsimGuiApplication *app, GAsyncResult 
 
 	if (rv == 1) {
 		//exit XMI-MSIM
-		g_application_quit(G_APPLICATION(app));
+		GAction *quit_action = g_action_map_lookup_action(G_ACTION_MAP(app), "quit");
+		g_action_activate(quit_action, NULL);
 	}
 }
 
@@ -368,7 +380,8 @@ static gboolean check_for_updates_on_init_cb(XmiMsimGuiApplication *app) {
 		GtkWidget *dialog = gtk_message_dialog_new(active_window, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR , GTK_BUTTONS_CLOSE, "A serious error occurred while checking\nthe preferences file.\nThe program will abort.");
 		gtk_dialog_run(GTK_DIALOG(dialog));
 	        gtk_widget_destroy(dialog);
-		g_application_quit(G_APPLICATION(app));
+		GAction *action = g_action_map_lookup_action(G_ACTION_MAP(app), "quit");
+		g_action_activate(action, NULL);
 	}
 	if (g_value_get_boolean(&prefs) == FALSE) {
 		g_value_unset(&prefs);
@@ -472,14 +485,6 @@ static void app_startup(GApplication *app) {
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
-#ifdef MAC_INTEGRATION
-	char *resource_path = xmi_application_get_resource_path();
-	char *gtls_system_ca_file = g_strdup_printf("%s/share/curl/curl-ca-bundle.crt", resource_path);
-	g_setenv("GTLS_SYSTEM_CA_FILE", gtls_system_ca_file, TRUE);
-	g_free(resource_path);
-	g_free(gtls_system_ca_file);
-#endif
-
 	setbuf(stdout, NULL);
 
 	// populate action map
@@ -521,6 +526,9 @@ static void app_startup(GApplication *app) {
 		g_warning("Could not load XML catalog: %s\n", error->message);
 		g_clear_error(&error);
 	}
+#ifdef __APPLE__
+	self->delegate = xmi_msim_gui_osx_app_delegate_new();
+#endif
 }
 
 static void app_activate(GApplication *app) {

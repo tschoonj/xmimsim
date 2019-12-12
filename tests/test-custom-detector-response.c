@@ -3,6 +3,7 @@
 #include "xmi_msim.h"
 #include "libxmimsim-test.h"
 #include <unistd.h>
+#include <glib/gstdio.h>
 
 #define COMPOUND "C6H12O6" // sweet, sweet sugar
 
@@ -91,7 +92,7 @@ static void test_custom_detector_response_non_existent_plugin(SetupData *data, g
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -121,7 +122,7 @@ static void test_custom_detector_response_non_existent_plugin(SetupData *data, g
 
 	g_object_unref(job);
 
-	g_assert(unlink(COMPOUND "-test.xmsi") == 0);
+	g_assert(g_unlink(COMPOUND "-test.xmsi") == 0);
 	//g_assert(unlink(COMPOUND "-test.xmso") == 0);
 }
 
@@ -135,7 +136,7 @@ static void test_custom_detector_response_plugin1(SetupData *data, gconstpointer
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -167,8 +168,8 @@ static void test_custom_detector_response_plugin1(SetupData *data, gconstpointer
 
 	g_object_unref(job);
 
-	g_assert(unlink(COMPOUND "-test.xmsi") == 0);
-	g_assert(unlink(COMPOUND "-test.xmso") == 0);
+	g_assert(g_unlink(COMPOUND "-test.xmsi") == 0);
+	g_assert(g_unlink(COMPOUND "-test.xmso") == 0);
 }
 
 static void test_custom_detector_response_plugin2(SetupData *data, gconstpointer user_data) {
@@ -181,7 +182,7 @@ static void test_custom_detector_response_plugin2(SetupData *data, gconstpointer
 		g_getenv("XMIMSIM_EXEC"),
 		COMPOUND "-test.xmsi",
 		data->options,
-		NULL, NULL, NULL, NULL,
+		NULL, NULL, NULL,
 		extra_options
 		);
 	g_assert_nonnull(job);
@@ -267,7 +268,7 @@ int main(int argc, char *argv[]) {
 
 	// cleanup
 	FreeCompoundData(cd);
-	unlink(data_file);
+	g_unlink(data_file);
 
 	return rv;
 }

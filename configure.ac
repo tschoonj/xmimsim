@@ -122,6 +122,7 @@ PKG_CHECK_MODULES([easyRNG],[easyRNG >= 1.1],
 	WITH_FORTRAN=`$PKG_CONFIG --variable=with_fortran easyRNG`
 	if test x$WITH_FORTRAN = xyes ; then
 		AC_DEFINE([HAVE_EASYRNG], [], [building with easyRNG support])
+		AC_DEFINE([XMI_MSIM_HAVE_EASYRNG], [], [building with easyRNG support])
 		AC_SUBST([fortran_rng], "easyRNG >= 1.1")
 		AC_SUBST([RNG], "easyRNG")
 		EASYRNG_VERSION=`$PKG_CONFIG --modversion easyRNG`
@@ -140,6 +141,7 @@ if test x$EASYRNG_FOUND = xno ; then
 	PKG_CHECK_MODULES([fgsl],[fgsl >= 1.1.0],
 		[
 		AC_DEFINE([HAVE_FGSL11],[],[building with support for FGSL 1.1.0])
+		AC_DEFINE([XMI_MSIM_HAVE_FGSL11],[],[building with support for FGSL 1.1.0])
 		FGSL_VERSION=`$PKG_CONFIG --modversion fgsl`
 		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
 		AC_SUBST([fortran_rng], "fgsl >= 1.1.0")
@@ -153,6 +155,7 @@ if test x$EASYRNG_FOUND = xno ; then
 		PKG_CHECK_MODULES([fgsl],[fgsl >= 1.0.0],
 		[
 		AC_DEFINE([HAVE_FGSL10],[],[building with support for FGSL 1.0.0])
+		AC_DEFINE([XMI_MSIM_HAVE_FGSL10],[],[building with support for FGSL 1.0.0])
 		FGSL_VERSION=`$PKG_CONFIG --modversion fgsl`
 		AC_DEFINE_UNQUOTED([FGSL_VERSION], $FGSL_VERSION, [FGSL version])
 		AC_SUBST([fortran_rng], "fgsl = 1.0.0")
@@ -181,11 +184,12 @@ PKG_CHECK_MODULES([libsoup], libsoup-2.4 >= 2.42.0,
 [
  LIBSOUP_FOUND=yes
  AC_DEFINE([HAVE_LIBSOUP],[],[libsoup present])
+ AC_DEFINE([XMI_MSIM_HAVE_LIBSOUP],[],[libsoup present])
 ],[LIBSOUP_FOUND=no])
 
 GTK_FOUND=no
 if test "x$enable_gui" != xno ; then
-	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.3 libpeas-1.0 >= 1.22.0],
+	PKG_CHECK_MODULES([gtkmm3], [gtkmm-plplot-2.0 >= 2.4 libpeas-1.0 >= 1.22.0],
 		[
 			GTK_FOUND=yes
 		],[
@@ -197,6 +201,7 @@ if test "x$enable_gui" != xno ; then
 		AC_MSG_WARN([no gtkmm-plplot and/or libpeas found on the system. The GUI will not be built.])
 	else
 		AC_MSG_NOTICE([Building with GUI])
+		AC_DEFINE([XMI_MSIM_HAVE_GUI],[],[building with GUI])
 		AC_DEFINE([HAVE_GUI],[],[building with GUI])
 	fi
 fi
@@ -208,6 +213,7 @@ JSONGLIB_FOUND=no
 AC_ARG_ENABLE([updater],[AS_HELP_STRING([--disable-updater],[build without updater])],[enable_updater=$enableval],[enable_updater=check])
 if test "x$GTK_FOUND" = xyes && test "x$enable_updater" != xno ; then
 	PKG_CHECK_MODULES([JsonGlib],json-glib-1.0 >= 0.8,
+	AC_DEFINE([XMI_MSIM_HAVE_JSONGLIB],[],[Json-Glib present])
 	AC_DEFINE([HAVE_JSONGLIB],[],[Json-Glib present])
 	[JSONGLIB_FOUND=yes],[JSONGLIB_FOUND=no])
 
@@ -223,7 +229,7 @@ fi
 
 AM_CONDITIONAL(ENABLE_UPDATER,[test "x$JSONGLIB_FOUND" = xyes && test "x$LIBSOUP_FOUND" = xyes])
 
-AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--disable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=check])
+AC_ARG_ENABLE([mac-integration],[AS_HELP_STRING([--enable-mac-integration],[build without mac-integration])],[enable_mac_integration=$enableval],[enable_mac_integration=no])
 
 GTK_MAC_INTEGRATION_FOUND=no
 if test "x$GTK_FOUND" = xyes ; then
@@ -236,11 +242,10 @@ if test "x$GTK_FOUND" = xyes ; then
 		;;
 	esac
 
-	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" != xno ; then
-	   	PKG_CHECK_MODULES(GTK_MAC, gtk-mac-integration-gtk3 >= 2.0.8,[
-			GTK_MAC_INTEGRATION_FOUND=yes
-			AC_SUBST(GTK_MAC_INTEGRATION_PC, "gtk-mac-integration-gtk3 >= 2.0.8")
-			],[GTK_MAC_INTEGRATION_FOUND=no])
+	if test "x$_gdk_tgt" = xquartz && test "x$enable_mac_integration" = xyes ; then
+		AC_DEFINE([MAC_INTEGRATION], [], [Building as macOS App])
+		AC_DEFINE([XMI_MSIM_MAC_INTEGRATION], [], [Building as macOS App])
+		GTK_MAC_INTEGRATION_FOUND=yes
 	fi
 fi
 AM_CONDITIONAL([ENABLE_MAC_APP],[test "x$GTK_MAC_INTEGRATION_FOUND" = xyes])
@@ -254,6 +259,7 @@ if test "x$enable_google_analytics" != xno ; then
 		GOOGLE_ANALYTICS_FOUND=yes
 		AC_SUBST(GOOGLE_ANALYTICS_PC, "libsoup-2.4 >= 2.42.0 gobject-2.0 >= 2.52.0")
 		AC_DEFINE([HAVE_GOOGLE_ANALYTICS], [], [Google Analytics support present])
+		AC_DEFINE([XMI_MSIM_HAVE_GOOGLE_ANALYTICS], [], [Google Analytics support present])
 		AC_MSG_NOTICE([Building with support for Google Analytics Event tracking])
 		],
 		[
@@ -261,7 +267,6 @@ if test "x$enable_google_analytics" != xno ; then
 			AC_MSG_ERROR([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
 		fi
 		AC_MSG_WARN([no libsoup and/or no gobject-2.0 >= 2.52.0 were found on the system, which are required to support Google Analytics Event tracking])
-		GTK_MAC_INTEGRATION_FOUND=no
 		])
 fi
 AM_CONDITIONAL([ENABLE_GOOGLE_ANALYTICS],[test "x$GOOGLE_ANALYTICS_FOUND" = xyes])
@@ -488,6 +493,7 @@ fi
 if test x$MPICC != xfail && test x$enable_mpi = "xyes" ; then
 	if test x$MPICC = xmpicc || test x$MPICC = xopenmpicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[open-mpi support detected])
+		AC_DEFINE(XMI_MSIM_HAVE_OPENMPI,1,[open-mpi support detected])
 		#OPENMPI_CFLAGS=$($MPICC -showme:compile)
 		#OPENMPI_LINK=$($MPICC -showme:link)
 		#for i in $OPENMPI_LINK
@@ -500,6 +506,7 @@ if test x$MPICC != xfail && test x$enable_mpi = "xyes" ; then
 		#done
 	elif test x$MPICC = xmpiicc ; then
 		AC_DEFINE(HAVE_OPENMPI,1,[Intel MPI support detected])
+		AC_DEFINE(XMI_MSIM_HAVE_OPENMPI,1,[Intel MPI support detected])
 	fi
 	OPENMPI_SHOW=$($MPICC -show)
 	counter=0
@@ -548,6 +555,7 @@ if test "x$enable_opencl" != xno ; then
 		AC_MSG_NOTICE([OpenCL implementation found])
 		AC_SUBST(CPPFLAGS_CL)
 		AC_SUBST(LIBS_CL)
+		AC_DEFINE([XMI_MSIM_HAVE_OPENCL], [], [Building with OpenCL support])
 	fi
 fi
 
@@ -561,6 +569,7 @@ AC_ARG_ENABLE([metal],[AS_HELP_STRING([--disable-metal],[build without Metal sup
 if test "x$enable_metal" != xno ; then
 	AX_CHECK_FRAMEWORK([Metal], [
 		AC_DEFINE([HAVE_METAL], [], [Building with Metal support])
+		AC_DEFINE([XMI_MSIM_HAVE_METAL], [], [Building with Metal support])
 		AC_MSG_NOTICE([Metal implementation found])
 		LIBS_METAL="-framework Metal"
 		AC_SUBST(LIBS_METAL)
@@ -628,7 +637,7 @@ if test "x$GTK_FOUND" = xyes ; then
 	])
 fi
 
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config.h include/xmi_config.h])
 
 if test x$OS_WINDOWS = "x1" ; then
 	abs_top_builddir_win=`pwd -W`

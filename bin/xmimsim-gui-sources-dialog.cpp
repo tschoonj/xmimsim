@@ -116,7 +116,8 @@ static void xmi_msim_gui_sources_dialog_constructed(GObject *obj) {
 
 	update_plot(dialog, XMI_MSIM_GUI_SOURCE_ABSTRACT(gtk_notebook_get_nth_page(GTK_NOTEBOOK(dialog->notebookW), 0)));
 	g_signal_connect(G_OBJECT(dialog->notebookW), "switch-page", G_CALLBACK(switch_page_cb), dialog);
-
+	
+	 G_OBJECT_CLASS (xmi_msim_gui_sources_dialog_parent_class)->constructed (obj);
 }
 
 enum {
@@ -538,7 +539,11 @@ GtkWidget *xmi_msim_gui_sources_dialog_new(GtkWindow *parent, xmi_input *current
 
 	g_return_val_if_fail(parent == NULL || GTK_IS_WINDOW(parent), NULL);
 
-	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(XMI_MSIM_GUI_TYPE_SOURCES_DIALOG, "xmi-input-current", current, NULL));
+	widget = XMI_MSIM_GUI_SOURCES_DIALOG(g_object_new(
+		XMI_MSIM_GUI_TYPE_SOURCES_DIALOG,
+		"xmi-input-current", current,
+		"use-header-bar", TRUE,
+		NULL));
 
 	gtk_window_set_transient_for(GTK_WINDOW(widget), GTK_WINDOW(parent));
 	gtk_window_set_destroy_with_parent(GTK_WINDOW(widget), TRUE);

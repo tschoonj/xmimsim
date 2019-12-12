@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,211 +15,48 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#define GDK_DISABLE_DEPRECATED
-//#define GTK_DISABLE_DEPRECATED
 #ifndef XMI_MSIM_GUI_H
 #define XMI_MSIM_GUI_H
 
-#include <gtk/gtk.h>
+#include "xmi_msim.h"
 
-G_BEGIN_DECLS
+#include "xmimsim-gui-prefs.h"
+#include "xmimsim-gui-source-abstract.h"
+#include "xmimsim-gui-compound-dialog.h"
+#include "xmimsim-gui-catalog-dialog.h"
+#include "xmimsim-gui-layer-dialog.h"
+#include "xmimsim-gui-type-builtins.h"
+#include "xmimsim-gui-utils.h"
+#include "xmimsim-gui-utils-pp.h"
+#include "xmimsim-gui-tools.h"
+#include "xmimsim-gui-sources-dialog.h"
+#include "xmimsim-gui-discrete-energy-dialog.h"
+#include "xmimsim-gui-continuous-energy-dialog.h"
+#include "xmimsim-gui-compat.h"
+#include "xmimsim-gui-colors.h"
+#include "xmimsim-gui-xmsi-selection-scrolled-window.h"
+#include "xmimsim-gui-options-box.h"
+#include "xmimsim-gui-xmsa-viewer-window.h"
+#include "xmimsim-gui-xmso-results-scrolled-window.h"
+#include "xmimsim-gui-undo-manager.h"
+#include "xmimsim-gui-energies-box.h"
+#include "xmimsim-gui-layer-box.h"
+#include "xmimsim-gui-clipboard-manager.h"
+#include "xmimsim-gui-long-task-window.h"
+#include "xmimsim-gui-controls-scrolled-window.h"
+#include "xmimsim-gui-xmsi-config-scrolled-window.h"
+#include "xmimsim-gui-application.h"
+#include "xmimsim-gui-application-window.h"
+#include "xmimsim-gui-xmso-results-application-window.h"
+#include "xmimsim-gui-batch-assistant.h"
+#include "xmimsim-gui-gobject.h"
+#include "xmimsim-gui-batch-archive-settings-box.h"
+#include "xmimsim-gui-plugins-engine.h"
+#include "xmimsim-gui-batch-controls-box.h"
+#include "xmimsim-gui-batch-multi-selection-type-grid.h"
 
-#include "xmi_data_structs.h"
-#include "xmimsim-gui-controls.h"
-
-#ifdef MAC_INTEGRATION
-#include <gtkosxapplication.h>
+#if defined(XMI_MSIM_HAVE_JSONGLIB) && defined(XMI_MSIM_HAVE_LIBSOUP)
+#include "xmimsim-gui-updater.h"
 #endif
 
-
-struct undo_single {
-	xmi_input *xi;
-	gchar *message;
-	int kind;
-	void *widget;
-	char *filename;
-	int *check;
-};
-
-/*
- *
- * Gdk colors
- *
- */
-
-extern GdkColor white;
-extern GdkColor red;
-
-extern struct undo_single *current;
-extern struct undo_single *last_saved;
-
-/*
- *
- * enums
- *
- */
-
-enum {
-	OUTPUTFILE,
-	N_PHOTONS_INTERVAL,
-	N_PHOTONS_LINE,
-	N_INTERACTIONS_TRAJECTORY,
-	COMMENTS,
-	COMPOSITION,
-	COMPOSITION_ORDER,
-	COMPOSITION_REFERENCE,
-	COMPOSITION_DELETE,
-	COMPOSITION_ADD,
-	COMPOSITION_EDIT,
-	COMPOSITION_CUT,
-	COMPOSITION_PASTE,
-	OPEN_FILE,
-	D_SAMPLE_SOURCE,
-	N_SAMPLE_ORIENTATION_X,
-	N_SAMPLE_ORIENTATION_Y,
-	N_SAMPLE_ORIENTATION_Z,
-	P_DETECTOR_WINDOW_X,
-	P_DETECTOR_WINDOW_Y,
-	P_DETECTOR_WINDOW_Z,
-	N_DETECTOR_ORIENTATION_X,
-	N_DETECTOR_ORIENTATION_Y,
-	N_DETECTOR_ORIENTATION_Z,
-	AREA_DETECTOR,
-	ACCEPTANCE_DETECTOR,
-	COLLIMATOR_HEIGHT,
-	COLLIMATOR_DIAMETER,
-	D_SOURCE_SLIT,
-	SLIT_SIZE_X,
-	SLIT_SIZE_Y,
-	DISCRETE_ENERGY_ADD,
-	DISCRETE_ENERGY_EDIT,
-	DISCRETE_ENERGY_DELETE,
-	DISCRETE_ENERGY_CLEAR,
-	DISCRETE_ENERGY_IMPORT_ADD,
-	DISCRETE_ENERGY_IMPORT_REPLACE,
-	DISCRETE_ENERGY_SCALE,
-	CONTINUOUS_ENERGY_ADD,
-	CONTINUOUS_ENERGY_EDIT,
-	CONTINUOUS_ENERGY_DELETE,
-	CONTINUOUS_ENERGY_CLEAR,
-	CONTINUOUS_ENERGY_IMPORT_ADD,
-	CONTINUOUS_ENERGY_IMPORT_REPLACE,
-	CONTINUOUS_ENERGY_SCALE,
-	SOURCE_SPECTRUM_REPLACE,
-	SOURCE_SPECTRUM_ADD,
-	EXC_COMPOSITION,
-	EXC_COMPOSITION_ORDER,
-	EXC_COMPOSITION_DELETE,
-	EXC_COMPOSITION_ADD,
-	EXC_COMPOSITION_EDIT,
-	EXC_COMPOSITION_CUT,
-	EXC_COMPOSITION_PASTE,
-	DET_COMPOSITION,
-	DET_COMPOSITION_ORDER,
-	DET_COMPOSITION_DELETE,
-	DET_COMPOSITION_ADD,
-	DET_COMPOSITION_EDIT,
-	DET_COMPOSITION_CUT,
-	DET_COMPOSITION_PASTE,
-	CRYSTAL_COMPOSITION,
-	CRYSTAL_COMPOSITION_ORDER,
-	CRYSTAL_COMPOSITION_DELETE,
-	CRYSTAL_COMPOSITION_ADD,
-	CRYSTAL_COMPOSITION_EDIT,
-	CRYSTAL_COMPOSITION_CUT,
-	CRYSTAL_COMPOSITION_PASTE,
-	DETECTOR_TYPE,
-	DETECTOR_GAIN,
-	DETECTOR_PULSE_WIDTH,
-	DETECTOR_LIVE_TIME,
-	DETECTOR_ZERO,
-	DETECTOR_NCHANNELS,
-	DETECTOR_FANO,
-	DETECTOR_NOISE,
-	IMPORT_FROM_FILE,
-};
-
-void update_undo_buffer(int kind, void *data);
-void update_undo_buffer_with_error(int kind, void *data, int *check);
-
-int check_changeables(void);
-
-extern GtkWidget *saveW;
-extern GtkWidget *save_asW;
-extern GtkToolItem *saveasT;
-extern GtkToolItem *saveT;
-extern GtkWidget *commentsW;
-
-extern GtkWidget *resultsPageW;
-
-//notebookpages
-extern GtkWidget *notebook;
-extern gint input_page;
-extern gint control_page;
-extern gint results_page;
-extern gint current_page;
-
-struct undo_single *check_changes_saved(int *status);
-
-
-enum {
-	CHECK_CHANGES_JUST_SAVED,
-	CHECK_CHANGES_SAVED_BEFORE,
-	CHECK_CHANGES_NEVER_SAVED,
-	CHECK_CHANGES_NEW,
-};
-
-enum {
-	GTK_RESPONSE_SAVEAS,
-	GTK_RESPONSE_SAVE,
-	GTK_RESPONSE_NOSAVE
-};
-
-enum {
-	IMPORT_SELECT_COMPOSITION = 1,
-	IMPORT_SELECT_GEOMETRY = 2,
-	IMPORT_SELECT_EXCITATION = 4,
-	IMPORT_SELECT_BEAMABSORBERS = 8,
-	IMPORT_SELECT_DETECTIONABSORBERS = 16,
-	IMPORT_SELECT_DETECTORSETTINGS = 32,
-};
-
-#ifdef MAC_INTEGRATION
-  #define XMIMSIM_TITLE_PREFIX ""
-#else
-  #define XMIMSIM_TITLE_PREFIX "XMI-MSIM: "
-#endif
-
-
-void update_xmimsim_title_xmsi(const char *new_title, GtkWidget *my_window, const char *filename);
-void update_xmimsim_title_xmso(const char *new_title, GtkWidget *my_window, const char *filename);
-
-void adjust_save_buttons(void);
-
-#define XMI_STOCK_RADIATION_WARNING "Radiation_warning_symbol"
-#define XMI_STOCK_LOGO "Logo_xmi_msim"
-#define XMI_STOCK_LOGO_RED "Logo_xmi_msim_red"
-#define XMI_STOCK_LOGO_ARCHIVE "Logo_xmi_msim_archive"
-
-
-#ifdef MAC_INTEGRATION
-void quit_program_cb(GtkosxApplication *app, gpointer data);
-#else
-void quit_program_cb(GtkWidget *widget, gpointer data);
-#endif
-
-int kill_current_job(void);
-
-/*#define malloc(x) trrrrmalloc(x)
-#define realloc(x, y) trrrrrealloc(x, y)
-#define free(x) trrrrfree(x)
-#define sprintf(x, y, ...) trrrrsprintf(x, y, ...)
-#define strcat(x, y) lslslslslsllsstrcat(x, y)
-#define strdup(x) lslslslslsllsstrdup(x)
-#define strndup(x, y) lslslslslsllsstrndup(x, y)
-#define g_sprintf(x, y, ...) lslslslslsllsg_sprintf(x, y, ...)
-#define strcpy(x, y) lslslslslsllsstrcpy(x, y)
-#define strcasecmp(x, y) lslslslslsllsstrcasecmp(x, y)
-*/
-G_END_DECLS
 #endif

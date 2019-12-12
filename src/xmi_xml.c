@@ -126,6 +126,8 @@ gboolean xmi_xmlLoadCatalog(GError **error) {
 	rv = xmi_xmlCatalogAdd(share, error);
 	g_free(share);
 
+#elif defined(QUICKLOOK)
+// this function is not required for the quicklook plugin
 #elif defined(MAC_INTEGRATION)
 
 	gchar *resource_path = xmi_application_get_resource_path();
@@ -142,8 +144,6 @@ gboolean xmi_xmlLoadCatalog(GError **error) {
 
 	g_string_free(resource_path_string, TRUE);
 
-#elif defined(QUICKLOOK)
-// this function is not required for the quicklook plugin
 #else
 	char catalog[] = XMI_CATALOG;
 
@@ -2179,7 +2179,7 @@ gboolean xmi_read_output_xml_body(xmlDocPtr doc, xmlNodePtr root, xmi_output *op
 		while (attr != NULL) {
 			if (xmlStrncmp(attr->name, BAD_CAST "step", 4) == 0) {
 				int stepnr = -1;
-				if (sscanf(attr->name, "step%d", &stepnr) != 1) {
+				if (sscanf((const char *) attr->name, "step%d", &stepnr) != 1) {
 					g_set_error_literal(error, XMI_MSIM_ERROR, XMI_MSIM_ERROR_XML, "error parsing step attribute of xml file");
 					return 0;
 				}
@@ -2602,7 +2602,7 @@ static xmlNodePtr xmi_new_child_with_index_printf(xmlNodePtr nodePtr, const xmlC
 		va_start(args, message_format);
 		msg = g_strdup_vprintf(message_format, args);
 		va_end(args);
-		rv = xmlNewChild(nodePtr, NULL, node_name_full, BAD_CAST msg);
+		rv = xmlNewChild(nodePtr, NULL, BAD_CAST node_name_full, BAD_CAST msg);
 		g_free(msg);
 	}
 	g_free(node_name_full);
@@ -2631,7 +2631,7 @@ static void xmi_new_prop_with_index_printf(xmlNodePtr nodePtr, const xmlChar *pr
 		va_start(args, message_format);
 		msg = g_strdup_vprintf(message_format, args);
 		va_end(args);
-		xmlNewProp(nodePtr, prop_name_full, BAD_CAST msg);
+		xmlNewProp(nodePtr, BAD_CAST prop_name_full, BAD_CAST msg);
 		g_free(msg);
 	}
 	g_free(prop_name_full);
@@ -2662,6 +2662,13 @@ int xmi_cmp_struct_xmi_energy_continuous(const void *a, const void *b) {
 	return 0;
 }
 
+/**
+ * xmi_row_major_array_get_indices:
+ * @dims: (array) (element-type int): The dimensions of the array for which the indices are needed
+ * @offset: The offset of the element of interest, assumming a row-major ordering
+ *
+ * Returns: (transfer full) (array) (element-type int): the array containing the indices corresponding to offset
+ */
 GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
 	g_return_val_if_fail(dims != NULL && offset >= 0, NULL);
 	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, NULL);
@@ -2692,6 +2699,13 @@ GArray* xmi_row_major_array_get_indices(GArray *dims, int offset) {
 	return rv;
 }
 
+/**
+ * xmi_row_major_array_get_offset:
+ * @dims: (array) (element-type int): The dimensions of the array for which the indices are needed
+ * @indices: (array) (element-type int): The indices of the requested element in the array, along the dimensions
+ *
+ * Returns: the offset
+ */
 gint xmi_row_major_array_get_offset(GArray *dims, GArray *indices) {
 	g_return_val_if_fail(dims != NULL && indices != NULL, -1);
 	g_return_val_if_fail(dims->len > 0 &&  dims->len <= 8, -1);

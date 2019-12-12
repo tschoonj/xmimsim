@@ -182,7 +182,7 @@ static void setup_data_input(SetupDataInput *data, gconstpointer user_data) {
 }
 
 static void setup_data_archive(SetupDataArchive *data, gconstpointer user_data) {
-	g_assert_nonnull(data->archive = xmi_archive_read_from_xml_file(TEST_XMSA_1, NULL));
+	g_assert_nonnull(data->archive = xmi_archive_read_from_xml_file(TEST_XMSA_1_OLD, NULL));
 }
 
 static void setup_data_main_options(SetupDataMainOptions *data, gconstpointer user_data) {
@@ -402,12 +402,12 @@ static void test_main_options(SetupDataMainOptions *data, gconstpointer user_dat
 
 int main(int argc, char *argv[]) {
 	//init test
-	g_assert(test_init() == 1);
+	g_assert_cmpint(test_init(), ==, 1);
 	g_test_init(&argc, &argv, NULL);
 
 	//download files
-	g_assert(test_download_file(TEST_XMSI_URL) == 1);
-	g_assert(test_download_file(TEST_XMSA_URL_1) == 1);
+	g_assert_cmpint(test_download_file(TEST_XMSI_URL), ==, 1);
+	g_assert_cmpint(test_download_file(TEST_XMSA_URL_1_OLD), ==, 1);
 
 	g_test_add("/gobject/composition-static",
 			SetupDataComposition,

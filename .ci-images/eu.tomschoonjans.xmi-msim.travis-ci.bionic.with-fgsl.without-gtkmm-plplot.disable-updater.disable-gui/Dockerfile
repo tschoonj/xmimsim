@@ -3,6 +3,7 @@ FROM ubuntu:bionic
 RUN apt-get update && apt-get upgrade -y && apt-get install -y curl gnupg2
 RUN curl -sSL "http://xmi-apt.tomschoonjans.eu/xmi.packages.key" | apt-key add -
 RUN echo "deb [arch=amd64] http://xmi-apt.tomschoonjans.eu/ubuntu bionic stable" | tee -a /etc/apt/sources.list > /dev/null
+RUN echo "deb-src http://xmi-apt.tomschoonjans.eu/ubuntu bionic stable" | tee -a /etc/apt/sources.list > /dev/null
 RUN apt-get update
 RUN apt-get install -y build-essential \
 	git \
@@ -22,7 +23,8 @@ RUN apt-get install -y build-essential \
 	libgirepository1.0-dev \
 	swig \
 	python-dev \
-	python-numpy
+	python-numpy \
+	python3
 
 RUN apt-get install -y libgsl0-dev libfgsl1 libfgsl1-dev
 

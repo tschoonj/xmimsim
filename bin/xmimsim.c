@@ -55,14 +55,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #endif
 #endif
 
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
-
 //#include <fenv.h>
 
-XMI_MAIN
+int main(int argc, char **argv) {
 
 	//openmpi variables
 #ifdef HAVE_OPENMPI
@@ -99,8 +94,6 @@ XMI_MAIN
 	gchar *spe_file_conv=NULL;
 	gchar *csv_file_noconv=NULL;
 	gchar *csv_file_conv=NULL;
-	gchar *svg_file_noconv=NULL;
-	gchar *svg_file_conv=NULL;
 	gchar *htm_file_noconv=NULL;
 	gchar *htm_file_conv=NULL;
 	double zero_sum;
@@ -109,10 +102,8 @@ XMI_MAIN
 	char *xmi_input_string;
 	char *xmimsim_hdf5_solid_angles = NULL;
 	char *xmimsim_hdf5_escape_ratios = NULL;
-	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
-	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
-	gchar *hdf5_file_utf8 = NULL;
 	int version = 0;
+	gchar **filenames = NULL;
 
 	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 30);
 #define ADD_OPTION(long_name, short_name, flags, arg, arg_data, description, arg_description) \
@@ -135,8 +126,6 @@ XMI_MAIN
 	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
 	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
 	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
-	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
-	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
 	ADD_OPTION("htm-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&htm_file_noconv,"Write detector unconvoluted spectra to HTML file",NULL);
 	ADD_OPTION("htm-file",0,0,G_OPTION_ARG_FILENAME,&htm_file_conv,"Write detector convoluted spectra to HTML file",NULL);
 	ADD_OPTION("enable-pile-up", 0, 0, G_OPTION_ARG_NONE, &options->use_sum_peaks, "Enable pile-up", NULL );
@@ -158,7 +147,7 @@ XMI_MAIN
 	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
 	ADD_OPTION("very-verbose", 'V', 0, G_OPTION_ARG_NONE, &options->extra_verbose, "Even more verbose mode", NULL );
 	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
-
+	ADD_OPTION(G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "xmsi-file", NULL);
 
 
 	xmi_init_hdf5();
@@ -190,25 +179,6 @@ XMI_MAIN
 	g_setenv("LANG","en_US",TRUE);
 #endif
 
-#ifdef G_OS_WIN32
-	gchar *equalsignchar;
-	for (i = 0 ; i < argc ; i++) {
-		if (strncmp(argv[i], "--with-solid-angles-data=", strlen("--with-solid-angles-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			xmimsim_hdf5_solid_angles_utf8 = g_strdup(equalsignchar+1);
-		}
-		else if (strncmp(argv[i], "--with-escape-ratios-data=", strlen("--with-escape-ratios-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			xmimsim_hdf5_escape_ratios_utf8 = g_strdup(equalsignchar+1);
-		}
-		else if (strncmp(argv[i], "--with-hdf5-data=", strlen("--with-hdf5-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			hdf5_file_utf8 = g_strdup(equalsignchar+1);
-		}
-	}
-#endif
-
-
 	//parse options
 	context = g_option_context_new("inputfile");
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
@@ -217,25 +187,25 @@ XMI_MAIN
 	// unfortunately MPI_Init does not strip its options from argv...
 	g_option_context_set_ignore_unknown_options(context, TRUE);
 #endif
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+
+#ifdef G_OS_WIN32
+	argv = g_win32_get_command_line();
+#else
+	argv = g_strdupv(argv);
+#endif
+
+	if (!g_option_context_parse_strv(context, &argv, &error)) {
 		g_fprintf(stderr, "option parsing failed: %s\n", error->message);
 		return 1;
 	}
-
-	if (hdf5_file_utf8)
-		hdf5_file = hdf5_file_utf8;
-	if (xmimsim_hdf5_solid_angles_utf8)
-		xmimsim_hdf5_solid_angles = xmimsim_hdf5_solid_angles_utf8;
-	if (xmimsim_hdf5_escape_ratios_utf8)
-		xmimsim_hdf5_escape_ratios = xmimsim_hdf5_escape_ratios_utf8;
 
 	if (version) {
 		g_fprintf(stdout,"%s",xmi_version_string());
 		return 0;
 	}
 
-	if (argc != 2) {
-		fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+	if (filenames == NULL || g_strv_length(filenames) != 1) {
+		g_fprintf(stderr, "%s\n", g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
@@ -289,14 +259,14 @@ XMI_MAIN
 
 
 	//read in the inputfile
-	input = xmi_input_read_from_xml_file(argv[1], &error);
+	input = xmi_input_read_from_xml_file(filenames[0], &error);
 
 	if (input == NULL) {
-		g_fprintf(stderr, "Could not read %s: %s\n", argv[1], error->message);
+		g_fprintf(stderr, "Could not read %s: %s\n", filenames[0], error->message);
 		return 1;
 	}
 	else if (options->verbose)
-		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
+		g_fprintf(stdout,"Inputfile %s successfully parsed\n", filenames[0]);
 
 	if (options->extra_verbose)
 		xmi_input_print(input, stdout);
@@ -564,7 +534,7 @@ XMI_MAIN
 		csv_convPtr = csv_noconvPtr = NULL;
 
 		if (csv_file_noconv != NULL) {
-			if ((csv_noconvPtr = fopen(csv_file_noconv,"w")) == NULL) {
+			if ((csv_noconvPtr = g_fopen(csv_file_noconv,"w")) == NULL) {
 				g_fprintf(stderr,"Could not write to %s\n",csv_file_noconv);
 				return 1;
 			}
@@ -572,7 +542,7 @@ XMI_MAIN
 				g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 		}
 		if (csv_file_conv != NULL) {
-			if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
+			if ((csv_convPtr = g_fopen(csv_file_conv,"w")) == NULL) {
 				g_fprintf(stderr,"Could not write to %s\n",csv_file_conv);
 				return 1;
 			}
@@ -585,52 +555,52 @@ XMI_MAIN
 
 			//write it to outputfile... spe style
 			if (spe_file_noconv != NULL) {
-				filename = g_strdup_printf("%s_%i.spe",spe_file_noconv,i);
-				if ((outPtr=fopen(filename,"w")) == NULL ) {
-					g_fprintf(stderr,"Could not write to %s\n",filename);
+				filename = g_strdup_printf("%s_%d.spe", spe_file_noconv, i);
+				if ((outPtr = g_fopen(filename, "w")) == NULL ) {
+					g_fprintf(stderr, "Could not write to %s\n", filename);
 					exit(1);
 				}
 				else if (options->verbose)
-					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
+					g_fprintf(stdout, "Writing to SPE file %s\n", filename);
 				g_free(filename);
-				fprintf(outPtr,"$SPEC_ID:\n\n");
-				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
-				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n",input->detector->nchannels-1);
+				g_fprintf(outPtr, "$SPEC_ID:\n\n");
+				g_fprintf(outPtr, "$MCA_CAL:\n2\n");
+				g_fprintf(outPtr, "%g %g\n\n", input->detector->zero, input->detector->gain);
+				g_fprintf(outPtr, "$DATA:\n");
+				g_fprintf(outPtr, "0\t%i\n", input->detector->nchannels-1);
 				for (j=0 ; j < input->detector->nchannels ; j++) {
-					fprintf(outPtr,"%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1,input->detector->nchannels));
+					g_fprintf(outPtr, "%g", ARRAY2D_FORTRAN(channelsdef, i, j, input->general->n_interactions_trajectory+1, input->detector->nchannels));
 					if ((j+1) % 8 == 0) {
-						fprintf(outPtr,"\n");
+						g_fprintf(outPtr, "\n");
 					}
 					else {
-						fprintf(outPtr,"     ");
+						g_fprintf(outPtr, "     ");
 					}
 				}
 				fclose(outPtr);
 			}
 			//convoluted spectrum
 			if (spe_file_conv != NULL) {
-				filename = g_strdup_printf("%s_%i.spe",spe_file_conv,i);
-				if ((outPtr=fopen(filename,"w")) == NULL ) {
-					g_fprintf(stderr,"Could not write to %s\n",filename);
+				filename = g_strdup_printf("%s_%d.spe", spe_file_conv, i);
+				if ((outPtr = g_fopen(filename, "w")) == NULL ) {
+					g_fprintf(stderr, "Could not write to %s\n", filename);
 					exit(1);
 				}
 				else if (options->verbose)
 					g_fprintf(stdout,"Writing to SPE file %s\n",filename);
 				g_free(filename);
-				fprintf(outPtr,"$SPEC_ID:\n\n");
-				fprintf(outPtr,"$MCA_CAL:\n2\n");
-				fprintf(outPtr,"%g %g\n\n", input->detector->zero, input->detector->gain);
-				fprintf(outPtr,"$DATA:\n");
-				fprintf(outPtr,"0\t%i\n", input->detector->nchannels-1);
+				g_fprintf(outPtr, "$SPEC_ID:\n\n");
+				g_fprintf(outPtr, "$MCA_CAL:\n2\n");
+				g_fprintf(outPtr, "%g %g\n\n", input->detector->zero, input->detector->gain);
+				g_fprintf(outPtr, "$DATA:\n");
+				g_fprintf(outPtr, "0\t%i\n", input->detector->nchannels-1);
 				for (j=0 ; j < input->detector->nchannels ; j++) {
-					fprintf(outPtr,"%g",channels_conv[i][j]);
+					g_fprintf(outPtr, "%g", channels_conv[i][j]);
 					if ((j+1) % 8 == 0) {
-						fprintf(outPtr,"\n");
+						g_fprintf(outPtr, "\n");
 					}
 					else {
-						fprintf(outPtr,"     ");
+						g_fprintf(outPtr,"     ");
 					}
 				}
 				fclose(outPtr);
@@ -641,12 +611,12 @@ XMI_MAIN
 		//csv file unconvoluted
 		if (csv_noconvPtr != NULL) {
 			for (j=0 ; j < input->detector->nchannels ; j++) {
-				fprintf(csv_noconvPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);
+				g_fprintf(csv_noconvPtr, "%i,%g", j, j * input->detector->gain+input->detector->zero);
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_noconvPtr,",%g",ARRAY2D_FORTRAN(channelsdef,i,j,input->general->n_interactions_trajectory+1, input->detector->nchannels));
+					g_fprintf(csv_noconvPtr, ",%g", ARRAY2D_FORTRAN(channelsdef, i, j, input->general->n_interactions_trajectory+1, input->detector->nchannels));
 				}
-				fprintf(csv_noconvPtr,"\n");
+				g_fprintf(csv_noconvPtr, "\n");
 			}
 			fclose(csv_noconvPtr);
 		}
@@ -654,26 +624,22 @@ XMI_MAIN
 		//csv file convoluted
 		if (csv_convPtr != NULL) {
 			for (j=0 ; j < input->detector->nchannels ; j++) {
-				fprintf(csv_convPtr,"%i,%g",j,(j)*input->detector->gain+input->detector->zero);
+				g_fprintf(csv_convPtr, "%i,%g", j, j * input->detector->gain+input->detector->zero);
 				for (i =(zero_sum > 0.0 ? 0 : 1) ; i <= input->general->n_interactions_trajectory ; i++) {
 					//channel number, energy, counts...
-					fprintf(csv_convPtr,",%g",channels_conv[i][j]);
+					g_fprintf(csv_convPtr, ",%g", channels_conv[i][j]);
 				}
-				fprintf(csv_convPtr,"\n");
+				g_fprintf(csv_convPtr, "\n");
 			}
 			fclose(csv_convPtr);
 		}
-
-
-
-
 
 #if DEBUG == 1
 		fprintf(stdout,"Writing outputfile\n");
 #endif
 
 		//write to xml outputfile
-		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, argv[1], zero_sum > 0.0 ? 1 : 0);
+		xmi_output *output = xmi_output_raw2struct(input, brute_historydef, options->use_variance_reduction == 1 ? var_red_historydef : NULL, channels_conv, channelsdef, filenames[0], zero_sum > 0.0 ? 1 : 0);
 		if (!xmi_output_write_to_xml_file(output, input->general->outputfile, &error)) {
 			g_fprintf(stderr, "Could not write input to XML file %s: %s\n", input->general->outputfile, error->message);
 
@@ -683,24 +649,6 @@ XMI_MAIN
 			g_fprintf(stdout,"Output written to XMSO file %s\n",input->general->outputfile);
 
 		xmi_output_free(output);
-		if (svg_file_conv != NULL) {
-			// 1 = convoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_conv, 1) == 0) {
-				return 1;
-			}
-			else if (options->verbose)
-				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
-		}
-
-		if (svg_file_noconv != NULL) {
-                        // 0 = unconvoluted
-			if (xmi_xmso_to_svg_xslt(input->general->outputfile, svg_file_noconv, 0) == 0) {
-				return 1;
-			}
-			else if (options->verbose)
-				g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
-		}
-
 
 		if (htm_file_conv != NULL) {
 			// 1 = convoluted

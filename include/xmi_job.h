@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2017 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -40,7 +40,6 @@ XmiMsimJob* xmi_msim_job_new(
 	xmi_main_options *options,
 	const gchar *spe_conv,
 	const gchar *csv_conv,
-	const gchar *svg_conv,
 	const gchar *html_conv,
 	gchar **extra_options
 	);

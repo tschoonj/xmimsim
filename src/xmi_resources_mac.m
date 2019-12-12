@@ -15,16 +15,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #if !defined(MAC_INTEGRATION)
 #error xmi_resources_mac.c should not be compiled without defining MAC_INTEGRATION
 #endif
 
-#include "config.h"
 #include "xmi_resources_mac.h"
 #include <Foundation/Foundation.h>
 #include <glib.h>
 
-char* xmi_application_get_resource_path() {
+char* xmi_application_get_resource_path(void) {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	char *str = NULL;
 	NSString *path = [[NSBundle mainBundle] resourcePath];
@@ -55,6 +56,12 @@ int xmi_resources_mac_query(int kind, char **resource_file) {
 		case XMI_RESOURCES_MAC_OPENCL_LIB:
 			temp = g_strdup_printf("%s/", resource_path);
 			break;
+		case XMI_RESOURCES_MAC_METAL_LIB:
+			temp = g_strdup_printf("%s/", resource_path);
+			break;
+		case XMI_RESOURCES_MAC_METAL_KERNEL:
+			temp = g_strdup_printf("%s/xmi_kernels.metallib", resource_path);
+			break;
 		case XMI_RESOURCES_MAC_SOURCES:
 			temp = g_strdup_printf("%s/sources", resource_path);
 			break;
@@ -74,7 +81,7 @@ G_LOCK_DEFINE_STATIC(global);
 static char *global_user_data_dir = NULL;
 static char *global_user_downloads_dir = NULL;
 
-const char *xmi_resources_mac_get_user_data_dir() {
+const char *xmi_resources_mac_get_user_data_dir(void) {
 
 	G_LOCK(global);
 
@@ -92,7 +99,7 @@ const char *xmi_resources_mac_get_user_data_dir() {
 	return global_user_data_dir;
 }
 
-const char* xmi_resources_mac_get_user_downloads_dir() {
+const char* xmi_resources_mac_get_user_downloads_dir(void) {
 
 	G_LOCK(global);
 

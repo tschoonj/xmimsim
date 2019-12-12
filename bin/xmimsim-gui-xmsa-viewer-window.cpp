@@ -978,7 +978,7 @@ static void viewer_cb(XmiMsimGuiXmsaViewerWindow *viewer, gpointer data) {
 	gtk_window_set_title(GTK_WINDOW(viewer), xmimsim_title_xmsa);
 	g_free(xmimsim_title_xmsa);
 #ifdef __APPLE__
-	xmi_msim_gui_osx_nswindow_set_file(GTK_WIDGET(viewer), viewer->filename);
+	xmi_msim_gui_osx_window_set_file(GTK_WIDGET(viewer), viewer->filename);
 #endif
 }
 

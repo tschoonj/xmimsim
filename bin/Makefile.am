@@ -31,6 +31,8 @@ if ENABLE_GUI
 libxmimsim_gui_includedir = ${includedir}/xmimsim-gui
 
 libxmimsim_gui_include_HEADERS = \
+	xmimsim-gui.h \
+	xmimsim-gui-pp.h \
 	xmimsim-gui-prefs.h \
 	xmimsim-gui-source-abstract.h \
 	xmimsim-gui-compound-dialog.h \
@@ -117,7 +119,6 @@ nodist_libxmimsim_gui_la_SOURCES = \
 libxmimsim_gui_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
 	@xraylib_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	@libsoup_CFLAGS@ \
@@ -131,7 +132,6 @@ libxmimsim_gui_la_LDFLAGS = \
 	$(NULL)
 libxmimsim_gui_la_LIBADD = \
 	@gtkmm3_LIBS@ \
-	@GTK_MAC_LIBS@ \
 	@xraylib_LIBS@ \
 	@xml2_LIBS@ \
 	../src/libxmimsim.la \
@@ -209,7 +209,6 @@ endif
 bin_PROGRAMS =  xmimsim \
 		xmimsim-db \
 		xmimsim-pymca \
-		xmso2svg \
 		xmso2xmsi \
 		xmso2spe \
 		xmso2csv \
@@ -221,50 +220,23 @@ bin_PROGRAMS =  xmimsim \
 		$(NULL)
 
 noinst_PROGRAMS = $(NULL)
-if ENABLE_GUI
-noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
-#noinst_PROGRAMS += xmimsim-gui-layer-box-test xmimsim-gui-controls-scrolled-window-test xmimsim-gui-xmsi-config-scrolled-window-test
-endif
-#xmimsim_gui_layer_box_test_SOURCES = xmimsim-gui-layer-box-test.c
-#xmimsim_gui_layer_box_test_CPPFLAGS = \
+#if ENABLE_GUI
+#noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
+#endif
+
+#xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
+#xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
 #	@xml2_CFLAGS@ \
 #	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
+#	@xraylib_CFLAGS@ \
 #	$(AM_CPPFLAGS) \
 #	$(NULL)
-#xmimsim_gui_layer_box_test_LDADD = \
+#xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
 #	libxmimsim-gui.la \
 #	../src/libxmimsim.la \
 #	@gtkmm3_LIBS@ \
 #	@xml2_LIBS@ \
 #	$(NULL)
-
-#xmimsim_gui_controls_scrolled_window_test_SOURCES = xmimsim-gui-controls-scrolled-window-test.c
-#xmimsim_gui_controls_scrolled_window_test_CPPFLAGS = \
-#	@xml2_CFLAGS@ \
-#	@gtkmm3_CFLAGS@ \
-#	-DSRM1155_XMSI=\"${top_srcdir}/examples/srm1155.xmsi\" \
-#	$(AM_CPPFLAGS) \
-#	$(NULL)
-#xmimsim_gui_controls_scrolled_window_test_LDADD = \
-#	libxmimsim-gui.la \
-#	../src/libxmimsim.la \
-#	@gtkmm3_LIBS@ \
-#	@xml2_LIBS@ \
-#	$(NULL)
-
-xmimsim_gui_xmsi_selection_scrolled_window_test_SOURCES = xmimsim-gui-xmsi-selection-scrolled-window-test.c
-xmimsim_gui_xmsi_selection_scrolled_window_test_CPPFLAGS = \
-	@xml2_CFLAGS@ \
-	@gtkmm3_CFLAGS@ \
-	$(AM_CPPFLAGS) \
-	$(NULL)
-xmimsim_gui_xmsi_selection_scrolled_window_test_LDADD = \
-	libxmimsim-gui.la \
-	../src/libxmimsim.la \
-	@gtkmm3_LIBS@ \
-	@xml2_LIBS@ \
-	$(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
@@ -301,7 +273,6 @@ xmimsim_gui_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	@gtkmm3_CFLAGS@ \
 	@xraylib_CFLAGS@ \
-	@GTK_MAC_CFLAGS@ \
 	@xml2_CFLAGS@ \
 	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
 	$(NULL)
@@ -322,7 +293,6 @@ endif
 
 xmimsim_gui_LDADD = libxmimsim-gui.la \
 		    @gtkmm3_LIBS@ \
-		    @GTK_MAC_LIBS@ \
 		    @xraylib_LIBS@ \
 		    @xml2_LIBS@ \
 		    ../src/libxmimsim.la
@@ -343,24 +313,17 @@ endif
 endif
 
 if OS_WINDOWS
-#xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
+xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
 endif
-
-#xmimsim_test_SOURCES = xmimsim-test.c
-#xmimsim_test_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_xml_SOURCES = xmimsim-test-xml.c
-#xmimsim_test_xml_LDADD = ../src/libxmimsim.la
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 		 @xml2_CFLAGS@ \
 		 @glib2_CFLAGS@ \
 		 @xraylib_CFLAGS@ \
-		 @GTK_MAC_CFLAGS@ \
 		 @OPENMP_CFLAGS@ \
 		 @gmodule_CFLAGS@ \
 		 @libsoup_CFLAGS@ \
@@ -369,7 +332,6 @@ xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
 xmimsim_LDADD = ../src/libxmimsim.la \
 		@OPENMPI_LIBADD@ \
 		@glib2_LIBS@ \
-		@GTK_MAC_LIBS@ \
 		@gmodule_LIBS@ \
 		@xraylib_LIBS@
 xmimsim_LDFLAGS = $(AM_LDFLAGS)
@@ -391,12 +353,10 @@ xmimsim_conv_LDADD = $(xmimsim_LDADD)
 
 xmimsim_pymca_SOURCES = xmimsim-pymca.c
 xmimsim_pymca_LDADD = ../src/libxmimsim.la \
-		      @GTK_MAC_LIBS@ \
 		      @xraylib_LIBS@ \
 		      @glib2_LIBS@
 xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 		       @xraylib_CFLAGS@ \
-		       @GTK_MAC_CFLAGS@ \
 		       @xml2_CFLAGS@ \
 		       @libsoup_CFLAGS@ \
 		       @OPENMP_CFLAGS@ \
@@ -405,7 +365,6 @@ xmimsim_pymca_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmsi2xrmc_SOURCES = xmsi2xrmc.c
 xmsi2xrmc_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
@@ -416,7 +375,6 @@ xmsi2xrmc_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2xmsi_SOURCES = xmso2xmsi.c
 xmso2xmsi_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
@@ -424,19 +382,8 @@ xmso2xmsi_CPPFLAGS = @glib2_CFLAGS@ \
 		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
 
-xmso2svg_SOURCES = xmso2svg.c
-xmso2svg_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
-		 @glib2_LIBS@
-xmso2svg_CPPFLAGS = @glib2_CFLAGS@ \
-		  @xml2_CFLAGS@ \
-		  @xraylib_CFLAGS@ \
-		  @libsoup_CFLAGS@ \
-		  $(AM_CPPFLAGS)
-
 xmso2spe_SOURCES = xmso2spe.c
 xmso2spe_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -446,7 +393,6 @@ xmso2spe_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2csv_SOURCES = xmso2csv.c
 xmso2csv_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -456,7 +402,6 @@ xmso2csv_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmso2htm_SOURCES = xmso2htm.c
 xmso2htm_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 		  @xml2_CFLAGS@ \
@@ -466,7 +411,6 @@ xmso2htm_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmimsim_db_SOURCES = xmimsim-db.c
 xmimsim_db_LDADD = ../src/libxmimsim.la \
-		 @GTK_MAC_LIBS@ \
 		 @glib2_LIBS@
 xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 		    @xml2_CFLAGS@ \
@@ -476,22 +420,12 @@ xmimsim_db_CPPFLAGS = @glib2_CFLAGS@ \
 
 xmsa2xmso_SOURCES = xmsa2xmso.c
 xmsa2xmso_LDADD = ../src/libxmimsim.la \
-		  @GTK_MAC_LIBS@ \
 		  @glib2_LIBS@
 xmsa2xmso_CPPFLAGS = @glib2_CFLAGS@ \
 		   @xml2_CFLAGS@ \
 		   @xraylib_CFLAGS@ \
 		   @libsoup_CFLAGS@ \
 		   $(AM_CPPFLAGS)
-
-#xmimsim_test_ebel_SOURCES = xmimsim-test-ebel.c
-#xmimsim_test_ebel_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_boone1_SOURCES = xmimsim-test-boone1.c
-#xmimsim_test_boone1_LDADD = ../src/libxmimsim.la
-
-#xmimsim_test_boone2_SOURCES = xmimsim-test-boone2.c
-#xmimsim_test_boone2_LDADD = ../src/libxmimsim.la
 
 
 -include $(INTROSPECTION_MAKEFILE)

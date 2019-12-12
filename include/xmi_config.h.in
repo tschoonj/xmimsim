@@ -15,24 +15,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef XMI_RANDOM_H
-#define XMI_RANDOM_H
+#ifndef XMI_MSIM_CONFIG_H
+#define XMI_MSIM_CONFIG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#undef XMI_MSIM_HAVE_EASYRNG
+#undef XMI_MSIM_HAVE_FGSL10
+#undef XMI_MSIM_HAVE_FGSL11
 
+#undef XMI_MSIM_HAVE_LIBSOUP
 
-//all functions return 1 on success, 0 on error
+#undef XMI_MSIM_HAVE_GUI
 
-int xmi_start_random_acquisition(void);
+#undef XMI_MSIM_HAVE_JSONGLIB
 
-int xmi_end_random_acquisition(void);
+#undef XMI_MSIM_MAC_INTEGRATION
 
-int xmi_get_random_numbers(unsigned long int *numbers,long int n);
+#undef XMI_MSIM_HAVE_GOOGLE_ANALYTICS
 
-#ifdef __cplusplus
-}
-#endif
+#undef XMI_MSIM_HAVE_OPENMPI
+
+#undef XMI_MSIM_HAVE_METAL
+
+#undef XMI_MSIM_HAVE_OPENCL
 
 #endif

@@ -29,7 +29,6 @@ clean-local:
 	rm -rf xmimsim_cat.xml
 
 EXTRA_DIST = xmso2xmsi.xml \
-	     xmso2svg.xml \
 	     xmso2spe.xml \
 	     xmso2csv.xml \
 	     xmso2htm.xml \

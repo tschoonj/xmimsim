@@ -49,10 +49,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   #endif
 #endif
 
-#ifdef MAC_INTEGRATION
-#include "xmi_resources_mac.h"
-#endif
-
 static double calculate_detector_absorption(xmi_input *input, int Z, int line) {
 	double energy = LineEnergy(Z, line, NULL);
 	int i, j;
@@ -73,8 +69,8 @@ static double calculate_detector_absorption(xmi_input *input, int Z, int line) {
 	return rv;
 }
 
-XMI_MAIN
-	char *xmimsim_hdf5_solid_angles=NULL;
+int main(int argc, char **argv) {
+	char *xmimsim_hdf5_solid_angles = NULL;
 	xmi_input *xi = NULL;
 	xmi_pymca *xp = NULL ;
 	xmi_layer *matrix;
@@ -91,8 +87,6 @@ XMI_MAIN
 	gchar *spe_file_conv=NULL;
 	gchar *csv_file_noconv=NULL;
 	gchar *csv_file_conv=NULL;
-	gchar *svg_file_noconv=NULL;
-	gchar *svg_file_conv=NULL;
 	gchar *excitation_file = NULL;
 	gchar *geometry_file = NULL;
 	gchar *detector_file = NULL;
@@ -109,9 +103,7 @@ XMI_MAIN
 	char *xmimsim_hdf5_escape_ratios = NULL;
 	double sum_roi;
 	static int version = 0;
-	gchar *xmimsim_hdf5_solid_angles_utf8 = NULL;
-	gchar *xmimsim_hdf5_escape_ratios_utf8 = NULL;
-	gchar *hdf5_file_utf8 = NULL;
+	gchar **filenames = NULL;
 
 
 	GArray *entries = g_array_sized_new(TRUE, FALSE, sizeof(GOptionEntry), 30);
@@ -126,8 +118,6 @@ XMI_MAIN
 	ADD_OPTION("spe-file",0,0,G_OPTION_ARG_FILENAME,&spe_file_conv,"Write detector convoluted spectra to file",NULL);
 	ADD_OPTION("csv-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&csv_file_noconv,"Write detector unconvoluted spectra to CSV file",NULL);
 	ADD_OPTION("csv-file",0,0,G_OPTION_ARG_FILENAME,&csv_file_conv,"Write detector convoluted spectra to CSV file",NULL);
-	ADD_OPTION("svg-file-unconvoluted",0,0,G_OPTION_ARG_FILENAME,&svg_file_noconv,"Write detector unconvoluted spectra to SVG file",NULL);
-	ADD_OPTION("svg-file",0,0,G_OPTION_ARG_FILENAME,&svg_file_conv,"Write detector convoluted spectra to SVG file",NULL);
 	ADD_OPTION("with-hdf5-data",0,0,G_OPTION_ARG_FILENAME,&hdf5_file,"Select a HDF5 data file (advanced usage)",NULL);
 	ADD_OPTION("enable-scatter-normalization", 0, 0, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Enable Rayleigh peak based intensity normalization",NULL);
 	ADD_OPTION("disable-scatter-normalization", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE,&use_rayleigh_normalization,"Disable Rayleigh peak based intensity normalization (default)",NULL);
@@ -153,7 +143,9 @@ XMI_MAIN
 	ADD_OPTION("override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL);
 	ADD_OPTION("set-threads",0,0,G_OPTION_ARG_INT, &options->omp_num_threads, "Sets the number of threads to NTHREADS (default=max)", "NTHREADS");
 	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
+	ADD_OPTION("very-verbose", 'V', 0, G_OPTION_ARG_NONE, &options->extra_verbose, "Even more verbose mode", NULL );
 	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
+	ADD_OPTION(G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "xmsi-file", NULL);
 
 	double *channels;
 	double **channels_conv;
@@ -171,43 +163,48 @@ XMI_MAIN
 	//locale...
 	//setlocale(LC_ALL,"C");
 #if defined(G_OS_WIN32)
-	setlocale(LC_ALL,"English_United States");
+	setlocale(LC_ALL, "English_United States");
 #else
-	g_setenv("LANG","en_US",TRUE);
+	g_setenv("LANG", "en_US", TRUE);
 #endif
 
 #ifdef G_OS_WIN32
-	gchar *equalsignchar;
-	for (i = 0 ; i < argc ; i++) {
-		if (strncmp(argv[i], "--with-solid-angles-data=", strlen("--with-solid-angles-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			xmimsim_hdf5_solid_angles_utf8 = g_strdup(equalsignchar+1);
-		}
-		else if (strncmp(argv[i], "--with-escape-ratios-data=", strlen("--with-escape-ratios-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			xmimsim_hdf5_escape_ratios_utf8 = g_strdup(equalsignchar+1);
-		}
-		else if (strncmp(argv[i], "--with-hdf5-data=", strlen("--with-hdf5-data=")) == 0) {
-			equalsignchar = strchr(argv[i], '=');
-			hdf5_file_utf8 = g_strdup(equalsignchar+1);
-		}
-	}
+	argv = g_win32_get_command_line();
+#else
+	argv = g_strdupv(argv);
 #endif
 
 	//parse options
 	context = g_option_context_new ("inputfile outputfile");
 	g_option_context_add_main_entries(context, (const GOptionEntry *) entries->data, NULL);
 	g_option_context_set_summary(context, "xmimsim-pymca: a program for the quantification of X-ray fluorescence spectra using inverse Monte-Carlo simulations. Inputfiles should be prepared using PyMCA\n");
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+	if (!g_option_context_parse_strv(context, &argv, &error)) {
 		g_fprintf(stderr, "option parsing failed: %s\n", error->message);
 		return 1;
 	}
+	g_strfreev(argv);
 
 	if (version) {
-		g_fprintf(stdout,"%s",xmi_version_string());
+		g_fprintf(stdout, "%s", xmi_version_string());
 		return 0;
 	}
 
+	if (options->extra_verbose) {
+		options->verbose = 1;
+		//print all selected options
+		g_fprintf(stdout,"Option M-lines: %i\n", options->use_M_lines);
+		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options->use_cascade_auger);
+		g_fprintf(stdout,"Option radiative cascade: %i\n", options->use_cascade_radiative);
+		g_fprintf(stdout,"Option variance reduction: %i\n", options->use_variance_reduction);
+		g_fprintf(stdout,"Option pile-up: %i\n", options->use_sum_peaks);
+		g_fprintf(stdout,"Option Poisson noise: %i\n", options->use_poisson);
+		g_fprintf(stdout,"Option escape peaks: %i\n", options->use_escape_peaks);
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+		g_fprintf(stdout,"Option GPU: %i\n", options->use_gpu);
+#endif
+		g_fprintf(stdout,"Option number of threads: %i\n", options->omp_num_threads);
+	}
+	
 	//check for conflicting options
 	if (use_rayleigh_normalization + use_roi_normalization + use_matrix_override + use_single_run > 1) {
 		g_fprintf(stderr,"Options conflict: Use either --enable-rayleigh-normalization or --enable-roi-normalization or --enable-matrix-override or --enable-single-run. No combinations of these are allowed\n");
@@ -227,15 +224,13 @@ XMI_MAIN
 	else if (options->verbose)
 		g_fprintf(stdout,"XML catalog loaded\n");
 
-
-
 	if (xmi_get_hdf5_data_file(&hdf5_file) == 0) {
 		return 1;
 	}
 
 
-	if (argc != 3) {
-		g_fprintf(stderr,"%s\n",g_option_context_get_help(context, TRUE, NULL));
+	if (filenames == NULL || g_strv_length(filenames) != 2) {
+		g_fprintf(stderr, "%s\n", g_option_context_get_help(context, TRUE, NULL));
 		return 1;
 	}
 
@@ -248,10 +243,10 @@ XMI_MAIN
 		return 1;
 	}
 
-	if(xmi_read_input_pymca(argv[1], &xi, &xp, use_matrix_override, use_roi_normalization, use_single_run) == 0)
+	if(xmi_read_input_pymca(filenames[0], &xi, &xp, use_matrix_override, use_roi_normalization, use_single_run) == 0)
 		return 1;
 	else if (options->verbose)
-		g_fprintf(stdout,"Inputfile %s successfully parsed\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-2]);
+		g_fprintf(stdout,"Inputfile %s successfully parsed\n", filenames[0]);
 
 	//override if necessary
 	xmi_input *override = NULL;
@@ -638,7 +633,7 @@ XMI_MAIN
 		}
 		//write to xml outputfile
 		sprintf(tempFile, "xmimsim-pymca_debug_%i.xmso",i);
-		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xi->detector->nchannels, argv[1], zero_sum > 0.0 ? 1 : 0, NULL) == 0) {
+		if (xmi_write_output_xml(tempFile, xi, brute_history, options.use_variance_reduction == 1 ? var_red_history : NULL, channels_conv_temp, channels, xi->detector->nchannels, filenames[0], zero_sum > 0.0 ? 1 : 0, NULL) == 0) {
 			return 1;
 		}
 
@@ -853,20 +848,21 @@ single_run:
 	}
 
 	//write to xml outputfile
-	xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, argv[1], 1);
-	if (xmi_output_write_to_xml_file(output, argv[2], &error) == 0) {
-		g_fprintf(stderr, "Could not write to %s: %s\n", argv[2], error->message);
+	xi->general->outputfile = g_strdup(filenames[1]);
+	xmi_output *output = xmi_output_raw2struct(xi, brute_history, var_red_history, channels_conv, channels, filenames[0], 1);
+	if (xmi_output_write_to_xml_file(output, filenames[1], &error) == 0) {
+		g_fprintf(stderr, "Could not write to %s: %s\n", filenames[1], error->message);
 		return 1;
 	}
 	else if (options->verbose)
-		g_fprintf(stdout,"Output written to XMSO file %s\n",XMI_ARGV_ORIG[XMI_ARGC_ORIG-1]);
+		g_fprintf(stdout,"Output written to XMSO file %s\n", filenames[1]);
 	xmi_output_free(output);
 
 	//write to CSV and SPE if necessary...
 	csv_convPtr = csv_noconvPtr = NULL;
 
 	if (csv_file_noconv != NULL) {
-		if ((csv_noconvPtr = fopen(csv_file_noconv,"w")) == NULL) {
+		if ((csv_noconvPtr = g_fopen(csv_file_noconv,"w")) == NULL) {
 			fprintf(stdout,"Could not write to %s\n",csv_file_noconv);
 			return 1;
 		}
@@ -874,7 +870,7 @@ single_run:
 			g_fprintf(stdout,"Writing to CSV file %s\n",csv_file_noconv);
 	}
 	if (csv_file_conv != NULL) {
-		if ((csv_convPtr = fopen(csv_file_conv,"w")) == NULL) {
+		if ((csv_convPtr = g_fopen(csv_file_conv,"w")) == NULL) {
 			fprintf(stdout,"Could not write to %s\n",csv_file_conv);
 			return 1;
 		}
@@ -887,9 +883,9 @@ single_run:
 
 		//write it to outputfile... spe style
 		if (spe_file_noconv != NULL) {
-			filename = g_strdup_printf("%s_%i.spe",spe_file_noconv,i);
-			if ((outPtr=fopen(filename,"w")) == NULL ) {
-				fprintf(stdout,"Could not write to %s\n",filename);
+			filename = g_strdup_printf("%s_%i.spe", spe_file_noconv,i);
+			if ((outPtr = g_fopen(filename,"w")) == NULL ) {
+				g_fprintf(stdout,"Could not write to %s\n", filename);
 				exit(1);
 			}
 			else if (options->verbose)
@@ -915,7 +911,7 @@ single_run:
 		//convoluted spectrum
 		if (spe_file_conv != NULL) {
 			filename = g_strdup_printf("%s_%i.spe",spe_file_conv,i);
-			if ((outPtr=fopen(filename,"w")) == NULL ) {
+			if ((outPtr = g_fopen(filename,"w")) == NULL ) {
 				fprintf(stdout,"Could not write to %s\n",filename);
 				exit(1);
 			}
@@ -965,30 +961,6 @@ single_run:
 			fprintf(csv_convPtr,"\n");
 		}
 		fclose(csv_convPtr);
-	}
-
-
-
-
-
-
-	//svg files
-	if (svg_file_conv != NULL) {
-		// 0 = convoluted
-		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_conv, 1) == 0) {
-			return 1;
-		}
-		else if (options->verbose)
-			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_conv);
-	}
-
-	if (svg_file_noconv != NULL) {
-       		// 1 = unconvoluted
-		if (xmi_xmso_to_svg_xslt(argv[2], svg_file_noconv, 0) == 0) {
-			return 1;
-		}
-		else if (options->verbose)
-			g_fprintf(stdout,"Output written to SVG file %s\n",svg_file_noconv);
 	}
 
 	return 0;

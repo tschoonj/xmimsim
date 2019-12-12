@@ -13,16 +13,23 @@
 #define TEST_XMSO "test.xmso"
 #define TEST_XMSO_COPY "test-copy.xmso"
 
-#define TEST_XMSA_URL_1 "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_1D.xmsa"
-#define TEST_XMSA_1 "CaSO4_28keV_pol_1D.xmsa"
-#define TEST_XMSA_COPY_1 "CaSO4_28keV_pol_1D_copy.xmsa"
+#define TEST_XMSA_URL_1_OLD "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_1D_old.xmsa"
+#define TEST_XMSA_1_OLD "CaSO4_28keV_pol_1D_old.xmsa"
+#define TEST_XMSA_COPY_1_OLD "CaSO4_28keV_pol_1D_old_copy.xmsa"
 
-#define TEST_XMSA_URL_2 "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_2D.xmsa"
-#define TEST_XMSA_2 "CaSO4_28keV_pol_2D.xmsa"
-#define TEST_XMSA_COPY_2 "CaSO4_28keV_pol_2D_copy.xmsa"
+#define TEST_XMSA_URL_2_OLD "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_2D_old.xmsa"
+#define TEST_XMSA_2_OLD "CaSO4_28keV_pol_2D_old.xmsa"
+#define TEST_XMSA_COPY_2_OLD "CaSO4_28keV_pol_2D_old_copy.xmsa"
+
+#define TEST_XMSA_URL_1_NEW "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_1D_new.xmsa"
+#define TEST_XMSA_1_NEW "CaSO4_28keV_pol_1D_new.xmsa"
+#define TEST_XMSA_COPY_1_NEW "CaSO4_28keV_pol_1D_new_copy.xmsa"
+
+#define TEST_XMSA_URL_2_NEW "https://github.com/tschoonj/xmimsim/wiki/CaSO4_28keV_pol_2D_new.xmsa"
+#define TEST_XMSA_2_NEW "CaSO4_28keV_pol_2D_new.xmsa"
+#define TEST_XMSA_COPY_2_NEW "CaSO4_28keV_pol_2D_new_copy.xmsa"
 
 #define TEST_CSV "test.csv"
-#define TEST_SVG "test.svg"
 #define TEST_HTM "test.htm"
 #define TEST_SPE "test.spe"
 
@@ -56,6 +63,9 @@ int remove_xml_tags(const char *filename_old, const char *filename_new, const ch
 
 gboolean test_log_fatal_false(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
 
+void test_compare_channels_and_csv(int nchannels, double **channels, const gchar *csv_file);
+
+void test_compare_channels_and_spe(int nchannels, double *channels, const gchar *spe_file);
 G_END_DECLS
 
 #endif

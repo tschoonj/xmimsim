@@ -23,8 +23,8 @@
 
 #define MyAppPublisher "Tom Schoonjans"
 #define MyAppURL "http://github.com/tschoonj/xmimsim"
-#define XRAYLIB_VERSION '3.3.0'
-#define XRAYLIB_VERSION_MIN '3.3.0'
+#define XRAYLIB_VERSION '4.0.0'
+#define XRAYLIB_VERSION_MIN '4.0.0'
 
 #define MyInstCreationDateTime GetDateTimeString ('yyyymmdd-hhnnss', '', '');
 
@@ -86,7 +86,7 @@ Source: "{#MY_HOME}\install\bin\libxrl-11.dll" ; DestDir: "{app}\Lib" ; Componen
 #endif
 Source: "{#MY_HOME}\install\bin\libcsirocsa.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libeasyRNG-0.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-2.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_HOME}\install\bin\libgtkmm-plplot-2.0-3.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplot.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libplplotcxx.dll" ; DestDir: "{app}\Lib" ; Components: core
 Source: "{#MY_HOME}\install\bin\libqsastime.dll" ; DestDir: "{app}\Lib" ; Components: core
@@ -101,7 +101,6 @@ Source: "{#builddir}\bin\.libs\xmimsim-conv.exe" ; DestDir: "{app}\Bin" ; Compon
 Source: "{#builddir}\bin\.libs\xmimsim-gui.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmimsim-pymca.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2xmsi.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#builddir}\bin\.libs\xmso2svg.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2spe.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2csv.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#builddir}\bin\.libs\xmso2htm.exe" ; DestDir: "{app}\Bin" ; Components: core

@@ -22,12 +22,12 @@ else
 	fi
 fi
 
-if test -z ${GOOGLE_ANALYTICS+x} ; then
-	export HDF5_CFLAGS="-I/mingw64/include"
-	export HDF5_LIBS="-L/mingw64/lib -lhdf5"
-else
+if test -n "${GOOGLE_ANALYTICS}" ; then
 	CONFIGURE_OPTIONS+="--enable-google-analytics "
 fi
+
+export HDF5_CFLAGS="-I$HOME/install/include"
+export HDF5_LIBS="-L$HOME/install/lib -lhdf5"
 
 if test -z ${DEPLOY+x} ; then
 	:

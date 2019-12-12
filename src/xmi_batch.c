@@ -655,6 +655,11 @@ void xmi_msim_batch_abstract_set_extra_options(XmiMsimBatchAbstract *batch, gcha
 	g_object_set(batch, "extra-options", extra_options, NULL);
 }
 
+/**
+ * xmi_msim_batch_abstract_get_active_job:
+ * @batch: an instance of XmiMsim.BatchAbstract
+ * Returns: (transfer full): the currently active job, or %NULL
+ */
 XmiMsimJob* xmi_msim_batch_abstract_get_active_job(XmiMsimBatchAbstract *batch) {
 	g_return_val_if_fail(XMI_MSIM_IS_BATCH_ABSTRACT(batch), NULL);
 
@@ -800,7 +805,7 @@ static XmiMsimJob* xmi_msim_batch_multi_real_get_job(XmiMsimBatchAbstract *batch
 	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : g_value_dup_string(g_param_spec_get_default_value(abstract_props[PROP_ABSTRACT_EXECUTABLE]));
 	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
 
-	XmiMsimJob *job = xmi_msim_job_new(executable, xmsi_file, options, NULL, NULL, NULL, NULL, extra_options);
+	XmiMsimJob *job = xmi_msim_job_new(executable, xmsi_file, options, NULL, NULL, NULL, extra_options);
 	g_free(executable);
 	g_strfreev(extra_options);
 	
@@ -929,7 +934,7 @@ static void single_active_job_finished_event_handler_cb(XmiMsimBatchSingle *batc
 	g_debug("Adding %s to archive", xmso_file);
 
 	// cleanup
-	unlink(xmso_file);
+	g_unlink(xmso_file);
 	g_free(xmso_file);
 	unlink(xmsi_file);
 	g_free(xmsi_file);
@@ -1080,6 +1085,16 @@ static void xmi_msim_batch_single_finalize(GObject *object) {
 	if (batch->archive)
 		xmi_archive_unref(batch->archive);
 
+	GDir *dir = g_dir_open(batch->tmpdir, 0, NULL);
+	const gchar *file = NULL;
+
+	while ((file = g_dir_read_name(dir)) != NULL) {
+		gchar *full_file = g_build_filename(batch->tmpdir, file, NULL);
+		g_remove(full_file);
+		g_free(full_file);
+	}
+	g_dir_close(dir);
+
 	g_rmdir(batch->tmpdir);
 	g_free(batch->tmpdir);
 
@@ -1166,7 +1181,7 @@ static XmiMsimJob* xmi_msim_batch_single_real_get_job(XmiMsimBatchAbstract *batc
 	gchar *executable = batch->priv->executable != NULL ? g_strdup(batch->priv->executable) : xmi_get_xmimsim_path();
 	gchar **extra_options = batch->priv->extra_options != NULL ? g_strdupv(batch->priv->extra_options) : NULL;
 
-	XmiMsimJob *job = xmi_msim_job_new(executable, filename_xmsi_full, self->options, NULL, NULL, NULL, NULL, extra_options);
+	XmiMsimJob *job = xmi_msim_job_new(executable, filename_xmsi_full, self->options, NULL, NULL, NULL, extra_options);
 	g_free(executable);
 	g_strfreev(extra_options);
 	g_free(filename_xmsi_full);

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2018-2019 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -105,8 +105,6 @@ struct _XmiMsimGuiControlsScrolledWindow {
 	GtkWidget *spe_convB;
 	GtkWidget *csv_convW;
 	GtkWidget *csv_convB;
-	GtkWidget *svg_convW;
-	GtkWidget *svg_convB;
 	GtkWidget *html_convW;
 	GtkWidget *html_convB;
 

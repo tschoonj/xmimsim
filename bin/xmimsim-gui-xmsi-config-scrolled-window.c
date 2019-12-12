@@ -963,15 +963,15 @@ static void xmi_msim_gui_xmsi_config_scrolled_window_init(XmiMsimGuiXmsiConfigSc
 	gtk_box_pack_start(GTK_BOX(superframe), frame, FALSE, FALSE, 5);
 
 	self->table = g_hash_table_new(g_direct_hash, g_direct_equal);
-	g_assert_true(g_hash_table_insert(self->table, d_sample_source_ebW, sample_source_distance_coords));
-	g_assert_true(g_hash_table_insert(self->table, n_sample_orientation_ebW, sample_orientation_coords));
-	g_assert_true(g_hash_table_insert(self->table, p_detector_window_ebW, detector_window_position_coords));
-	g_assert_true(g_hash_table_insert(self->table, n_detector_orientation_ebW, detector_window_normal_coords));
-	g_assert_true(g_hash_table_insert(self->table, area_detector_ebW, active_detector_area_coords));
-	g_assert_true(g_hash_table_insert(self->table, collimator_height_ebW, collimator_height_coords));
-	g_assert_true(g_hash_table_insert(self->table, collimator_diameter_ebW, collimator_diameter_coords));
-	g_assert_true(g_hash_table_insert(self->table, d_source_slit_ebW, source_slit_distance_coords));
-	g_assert_true(g_hash_table_insert(self->table, slit_size_ebW, slits_size_coords));
+	g_assert(g_hash_table_insert(self->table, d_sample_source_ebW, sample_source_distance_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, n_sample_orientation_ebW, sample_orientation_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, p_detector_window_ebW, detector_window_position_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, n_detector_orientation_ebW, detector_window_normal_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, area_detector_ebW, active_detector_area_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, collimator_height_ebW, collimator_height_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, collimator_diameter_ebW, collimator_diameter_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, d_source_slit_ebW, source_slit_distance_coords) == TRUE);
+	g_assert(g_hash_table_insert(self->table, slit_size_ebW, slits_size_coords) == TRUE);
 
 	//energies
 

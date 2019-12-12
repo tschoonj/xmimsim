@@ -129,7 +129,7 @@ static void save_as_activated(GSimpleAction *action, GVariant *parameter, gpoint
 			gtk_window_set_title(GTK_WINDOW(user_data), xmimsim_title_xmsi);
 			g_free(xmimsim_title_xmsi);
 #ifdef __APPLE__
-			xmi_msim_gui_osx_nswindow_set_file(user_data, filename);
+			xmi_msim_gui_osx_window_set_file(user_data, filename);
 #endif
 			g_free(filename);
 		}
@@ -585,7 +585,7 @@ static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, gu
 	if (page == 2) { // results page
 		const gchar *filename = xmi_msim_gui_xmso_results_scrolled_window_get_filename(XMI_MSIM_GUI_XMSO_RESULTS_SCROLLED_WINDOW(window->results_page));
 #ifdef __APPLE__
-		xmi_msim_gui_osx_nswindow_set_file(GTK_WIDGET(window), filename);
+		xmi_msim_gui_osx_window_set_file(GTK_WIDGET(window), filename);
 #endif
 		if (filename == NULL) {
 			gtk_window_set_title(GTK_WINDOW(window), "No simulation data available");
@@ -600,7 +600,7 @@ static void notebook_page_changed_cb(GtkNotebook *notebook, gpointer pageptr, gu
 	else {
 		const gchar *filename = xmi_msim_gui_undo_manager_get_filename(XMI_MSIM_GUI_XMSI_CONFIG_SCROLLED_WINDOW(window->input_page)->undo_manager);
 #ifdef __APPLE__
-		xmi_msim_gui_osx_nswindow_set_file(GTK_WIDGET(window), filename);
+		xmi_msim_gui_osx_window_set_file(GTK_WIDGET(window), filename);
 #endif
 		if (filename == NULL) {
 			gtk_window_set_title(GTK_WINDOW(window), "New file");
@@ -750,6 +750,9 @@ static void xmi_msim_gui_application_window_init(XmiMsimGuiApplicationWindow *se
 	g_signal_connect(G_OBJECT(self->undo_manager), "finished-loading", G_CALLBACK(file_finished_loading_cb), self);
 	g_signal_connect(G_OBJECT(self->results_page), "finished-loading", G_CALLBACK(file_finished_loading_cb), self);
 	gtk_window_set_title(GTK_WINDOW(self), "New file");
+#ifdef MAC_INTEGRATION
+	g_signal_connect(self, "realize", G_CALLBACK(xmi_msim_gui_osx_window_enable_full_screen), NULL);
+#endif
 }
 
 GtkWidget* xmi_msim_gui_application_window_new(XmiMsimGuiApplication *app) {

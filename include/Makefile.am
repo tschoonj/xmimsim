@@ -17,6 +17,8 @@ xmimsimincludedir = ${includedir}/xmimsim
 
 NULL =
 
+nodist_xmimsiminclude_HEADERS = xmi_config.h
+
 xmimsiminclude_HEADERS = xmi_random.h \
 			 xmi_data_structs.h \
 			 xmi_xml.h \

@@ -328,10 +328,10 @@ RESULT(rv)
         INTEGER :: max_threads, thread_num
         TYPE (xmi_rng_type) :: rng_type
         TYPE (xmi_rng) :: rng
-        INTEGER (C_INT) :: grid_done
         INTEGER (C_LONG), ALLOCATABLE, TARGET, DIMENSION(:) :: seeds
         INTEGER (C_INT) :: xmlstringlength
-        INTEGER (OMP_LOCK_KIND) :: omp_lock
+        INTEGER (C_INT) :: progress_percentage , grid_r_counter, percentage
+
 #if DEBUG == 1
         LOGICAL, DIMENSION(3) :: flag_value
 
@@ -365,13 +365,12 @@ RESULT(rv)
         IF (xmi_get_random_numbers(C_LOC(seeds), INT(max_threads,KIND=C_LONG)) == 0) RETURN
 
         rng_type = xmi_rng_mt19937
+        grid_r_counter = 0
+        progress_percentage = 1
 
         !WRITE (6,'(A)') 'before single solid angle calc'
 
-        grid_done=0
-        CALL omp_init_lock(omp_lock)
-
-!$omp parallel default(shared) private(j,rng, thread_num)&
+!$omp parallel default(shared) private(j,rng, thread_num, percentage)&
 !$omp num_threads(max_threads)
         thread_num = omp_get_thread_num()
 
@@ -385,20 +384,22 @@ RESULT(rv)
                 grid_dims_r_vals(i), grid_dims_theta_vals(j), rng)
            ENDDO
 
-          CALL omp_set_lock(omp_lock)
-          grid_done = grid_done+1
 
-          IF (grid_done*100/grid_dims_r_n&
-          == REAL(grid_done*100)/REAL(grid_dims_r_n) .AND.&
-          options%verbose == 1_C_INT)&
+!$omp critical 
+           grid_r_counter = grid_r_counter + 1
+           percentage = INT(REAL(grid_r_counter, C_DOUBLE) * 100 / grid_dims_r_n, C_INT)
+           IF (percentage .GE. progress_percentage .AND.&
+                options%verbose == 1_C_INT) THEN
+                progress_percentage = progress_percentage + 1
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 6
                 CALL xmi_print_progress('Solid angle calculation at'&
-                //C_NULL_CHAR,INT(grid_done*100/grid_dims_r_n,KIND=C_INT))
+                //C_NULL_CHAR, percentage)
 #else
                 WRITE (output_unit,'(A,I3,A)')&
-                'Solid angle calculation at ',grid_done*100/grid_dims_r_n,' %'
+                'Solid angle calculation at ',percentage,' %'
 #endif
-          CALL omp_unset_lock(omp_lock)
+           ENDIF
+!$omp end critical
         ENDDO
 
 
@@ -406,8 +407,6 @@ RESULT(rv)
 !$omp end do
         CALL xmi_rng_free(rng)
 !$omp end parallel
-
-        CALL omp_destroy_lock(omp_lock)
 
 #if DEBUG == 1
         WRITE (6,'(A,5F13.5)') 'grid_dims_r_vals:',grid_dims_r_vals(1:5)

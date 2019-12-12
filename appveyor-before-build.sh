@@ -5,7 +5,7 @@ set -x
 
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
-#export GTKMM_PLPLOT_BRANCH=master
+export GTKMM_PLPLOT_BRANCH=master
 export XRAYLIB_BRANCH=master
 
 # install xraylib
@@ -62,7 +62,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	#cd plplot
 	# fix pango.pc
 	#echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
-	curl -L -s -O https://downloads.sourceforge.net/project/plplot/plplot/5.15.0%20Source/plplot-5.15.0.tar.gz
+	curl -L -s -O https://www.dropbox.com/s/uuh5no2qcyzxwi4/plplot-5.15.0.tar.gz
 	tar xfz plplot-5.15.0.tar.gz
 	cd plplot-5.15.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
@@ -88,38 +88,36 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	fi
 fi
 
-if test -z ${GOOGLE_ANALYTICS+x} ; then
-	# install MSYS2 HDF5
-	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-hdf5
-else
-	# install hdf5
-	curl -L -s -O https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.12/src/hdf5-1.8.12.tar.gz
-	tar xfz hdf5-1.8.12.tar.gz
-	cd hdf5-1.8.12
-	# add support for UTF-8 filenames
-	curl -L -s -O https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5-1.8.12.diff
-	patch -p1 < hdf5-1.8.12.diff
-	autoreconf -i
-	./configure --disable-fortran --disable-cxx --disable-hl --prefix=$HOME/install --disable-static CPPFLAGS=-D_GNU_SOURCE=1
-	# patch hdf5 -> https://tschoonj.github.io/blog/2014/01/29/building-a-64-bit-version-of-hdf5-with-mingw-w64/
-	echo "#ifndef H5_HAVE_WIN32_API" >> src/H5pubconf.h
-	echo "#ifdef WIN32 /* defined for all windows systems */" >> src/H5pubconf.h
-	echo "#define H5_HAVE_WIN32_API 1" >> src/H5pubconf.h
-	echo "#endif" >> src/H5pubconf.h
-	echo "#endif" >> src/H5pubconf.h
-	echo "#ifndef H5_HAVE_MINGW" >> src/H5pubconf.h
-	echo "#ifdef __MINGW32__ /*defined for all MinGW compilers */" >> src/H5pubconf.h
-	echo "#define H5_HAVE_MINGW 1" >> src/H5pubconf.h
-	echo "#define H5_HAVE_WINDOWS 1" >> src/H5pubconf.h
-	echo "#endif" >> src/H5pubconf.h
-	echo "#endif" >> src/H5pubconf.h
-	echo "#define H5_BUILT_AS_DYNAMIC_LIB 1" >> src/H5pubconf.h
-	make -j2
-	make install
-	cd ..
-
+if test -n "${GOOGLE_ANALYTICS}" ; then
 	pushd /usr/local
 	curl -L -s -O https://www.dropbox.com/s/l6pw1dupx81ulzv/opencl-win64-devel.tar.gz
 	tar xfz opencl-win64-devel.tar.gz
 	popd
 fi
+
+# install hdf5
+curl -L -s -O https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-1.8.12/src/hdf5-1.8.12.tar.gz
+tar xfz hdf5-1.8.12.tar.gz
+cd hdf5-1.8.12
+# add support for UTF-8 filenames
+curl -H 'Cache-Control: no-cache' -L -s -O https://www.dropbox.com/s/gowzeo6vdhjpxnw/hdf5_1.8.12.diff
+patch -p1 < hdf5_1.8.12.diff
+autoreconf -i
+./configure --disable-fortran --disable-cxx --disable-hl --prefix=$HOME/install --disable-static CPPFLAGS=-D_GNU_SOURCE=1
+# patch hdf5 -> https://tschoonj.github.io/blog/2014/01/29/building-a-64-bit-version-of-hdf5-with-mingw-w64/
+echo "#ifndef H5_HAVE_WIN32_API" >> src/H5pubconf.h
+echo "#ifdef WIN32 /* defined for all windows systems */" >> src/H5pubconf.h
+echo "#define H5_HAVE_WIN32_API 1" >> src/H5pubconf.h
+echo "#endif" >> src/H5pubconf.h
+echo "#endif" >> src/H5pubconf.h
+echo "#ifndef H5_HAVE_MINGW" >> src/H5pubconf.h
+echo "#ifdef __MINGW32__ /*defined for all MinGW compilers */" >> src/H5pubconf.h
+echo "#define H5_HAVE_MINGW 1" >> src/H5pubconf.h
+echo "#define H5_HAVE_WINDOWS 1" >> src/H5pubconf.h
+echo "#endif" >> src/H5pubconf.h
+echo "#endif" >> src/H5pubconf.h
+echo "#define H5_BUILT_AS_DYNAMIC_LIB 1" >> src/H5pubconf.h
+make -j2
+make install
+cd ..
+

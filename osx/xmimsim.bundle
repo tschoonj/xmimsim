@@ -3,11 +3,11 @@
 
 <name>XMI-MSIM</name>
 <meta>
-	<prefix name='default'>/opt/local</prefix>	
+	<prefix name='default'>/usr/local</prefix>	
 	<prefix name='source'>/Users/schoon/github/xmimsim</prefix>	
 	<prefix name='build'>/Users/schoon/github/xmimsim/build</prefix>	
 	<prefix name='install'>/usr/local</prefix>	
-	<prefix name='macports'>/opt/local</prefix>	
+	<prefix name='homebrew'>/usr/local</prefix>	
 	<destination overwrite="yes">${env:PWD}</destination>
 	<launcher-script>${prefix:source}/osx/launcher.sh</launcher-script>
 	<run-install-name-tool/>
@@ -34,40 +34,39 @@
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/*.xml</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/xml/xmimsim-1.0.dtd</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.png</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/bin/coordinate_system.png</data>
 <data dest="${bundle}/Contents/Resources">${prefix:source}/icons/Logo_xmi_msim.bmp</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/array.h</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/compilerfeatures.h</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/openclfeatures.h</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/sse.h</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/threefry.h</data>
-<data dest="${bundle}/Contents/Resources">${prefix:source}/src/xmi_kernels.cl</data>
 <binary dest="${bundle}/Contents/Resources">${prefix:install}/lib/xmimsim/xmimsim-cl.so</binary>
-<binary dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-radionuclide.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-radionuclide.so</binary>
-<binary dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-tube-ebel.so">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-tube-ebel.so</binary>
+<binary dest="${bundle}/Contents/Resources">${prefix:install}/lib/xmimsim/xmimsim-metal.so</binary>
+<data dest="${bundle}/Contents/Resources">${prefix:install}/share/xmimsim/xmi_kernels.metallib</data>
+<binary dest="${bundle}/Contents/Resources/sources/libxmimsim-gui-source-radionuclide.so">${prefix:install}/lib/xmimsim-gui/sources/libxmimsim-gui-source-radionuclide.so</binary>
+<binary dest="${bundle}/Contents/Resources/sources/libxmimsim-gui-source-tube-ebel.so">${prefix:install}/lib/xmimsim-gui/sources/libxmimsim-gui-source-tube-ebel.so</binary>
+<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-radionuclide.plugin">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-radionuclide.plugin</data>
+<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-tube-ebel.plugin">${prefix:install}/lib/xmimsim-gui/sources/xmimsim-gui-source-tube-ebel.plugin</data>
 <data dest="${bundle}/Contents/Resources/include/xmimsim">${prefix:install}/include/xmimsim</data>
 <data dest="${bundle}/Contents/Resources/include/xmimsim-gui">${prefix:install}/include/xmimsim-gui</data>
 
-<!--
-<binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/engines/*.so</binary>
-<binary>${prefix:macports}/lib/gtk-2.0/modules/*.so</binary>
-<binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/printbackends/*.so</binary>
-<binary>${prefix:macports}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/immodules/*.so</binary>-->
-<binary>${prefix:macports}/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.so</binary>
-<binary>${prefix:macports}/lib/gio/modules/libgiognutls.so</binary>
+<gir>${prefix:install}/share/gir-1.0/*.gir</gir>
 
-<data>${prefix:macports}/share/curl/curl-ca-bundle.crt</data>
-<data>${prefix:macports}/share/themes</data>
+<!--
+<binary>${prefix:homebrew}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/engines/*.so</binary>
+<binary>${prefix:homebrew}/lib/gtk-2.0/modules/*.so</binary>
+<binary>${prefix:homebrew}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/printbackends/*.so</binary>
+<binary>${prefix:homebrew}/lib/gtk-2.0/${pkg:gtk+-2.0:gtk_binary_version}/immodules/*.so</binary>-->
+<binary>${prefix:homebrew}/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.so</binary>
+<binary>${prefix:homebrew}/lib/gio/modules/libgiognutls.so</binary>
+
+<data>${prefix:homebrew}/etc/openssl/cert.pem</data>
+<data>${prefix:homebrew}/share/themes</data>
 <data>${prefix:install}/share/icons</data>
-<data>${prefix:macports}/share/plplot5.12.0/</data>
-<data>${prefix:macports}/share/glib-2.0/schemas/</data>
-<data>${prefix:macports}/share/mime/packages/freedesktop.org.xml</data>
+<data>${prefix:homebrew}/share/plplot5.15.0/</data>
+<data>${prefix:homebrew}/share/glib-2.0/schemas/</data>
+<data>${prefix:homebrew}/share/mime/packages/freedesktop.org.xml</data>
 <data dest="${bundle}/Contents/Resources/share/mime/packages/applications-x-xmimsim.xml">${prefix:source}/icons/applications-x-xmimsim.xml</data>
 
 <data dest='${bundle}/Contents/Resources/etc/gtk-2.0/gtkrc'>${prefix:source}/osx/gtkrc</data>
 
-<!--<data dest="${bundle}/Contents/Resources">${prefix:macports}/share/strings</data>-->
-<translations name="gtk30">${prefix:macports}/share/local</translations>
+<!--<data dest="${bundle}/Contents/Resources">${prefix:homebrew}/share/strings</data>-->
+<translations name="gtk30">${prefix:homebrew}/share/local</translations>
 
 <icon-theme icons='all'>hicolor</icon-theme>
 <icon-theme icons='all'>Adwaita</icon-theme>
