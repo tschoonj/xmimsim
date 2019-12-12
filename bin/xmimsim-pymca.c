@@ -143,6 +143,7 @@ int main(int argc, char **argv) {
 	ADD_OPTION("override-geometry",0,0,G_OPTION_ARG_FILENAME,&geometry_file, "Override geometry from XMSI file",NULL);
 	ADD_OPTION("set-threads",0,0,G_OPTION_ARG_INT, &options->omp_num_threads, "Sets the number of threads to NTHREADS (default=max)", "NTHREADS");
 	ADD_OPTION("verbose", 'v', 0, G_OPTION_ARG_NONE, &options->verbose, "Verbose mode", NULL );
+	ADD_OPTION("very-verbose", 'V', 0, G_OPTION_ARG_NONE, &options->extra_verbose, "Even more verbose mode", NULL );
 	ADD_OPTION("version", 0, 0, G_OPTION_ARG_NONE, &version, "Display version information", NULL );
 	ADD_OPTION(G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames, "xmsi-file", NULL);
 
@@ -188,6 +189,22 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
+	if (options->extra_verbose) {
+		options->verbose = 1;
+		//print all selected options
+		g_fprintf(stdout,"Option M-lines: %i\n", options->use_M_lines);
+		g_fprintf(stdout,"Option non-radiative cascade: %i\n", options->use_cascade_auger);
+		g_fprintf(stdout,"Option radiative cascade: %i\n", options->use_cascade_radiative);
+		g_fprintf(stdout,"Option variance reduction: %i\n", options->use_variance_reduction);
+		g_fprintf(stdout,"Option pile-up: %i\n", options->use_sum_peaks);
+		g_fprintf(stdout,"Option Poisson noise: %i\n", options->use_poisson);
+		g_fprintf(stdout,"Option escape peaks: %i\n", options->use_escape_peaks);
+#if defined(HAVE_OPENCL_CL_H) || defined(HAVE_CL_CL_H) || defined(HAVE_METAL)
+		g_fprintf(stdout,"Option GPU: %i\n", options->use_gpu);
+#endif
+		g_fprintf(stdout,"Option number of threads: %i\n", options->omp_num_threads);
+	}
+	
 	//check for conflicting options
 	if (use_rayleigh_normalization + use_roi_normalization + use_matrix_override + use_single_run > 1) {
 		g_fprintf(stderr,"Options conflict: Use either --enable-rayleigh-normalization or --enable-roi-normalization or --enable-matrix-override or --enable-single-run. No combinations of these are allowed\n");

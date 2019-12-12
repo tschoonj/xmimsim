@@ -1388,7 +1388,7 @@ int xmi_read_input_pymca(char *pymca_file, xmi_input **input, xmi_pymca **pymca_
 
 	//general
 	general = (xmi_general *) g_malloc(sizeof(xmi_general));
-	general->outputfile = g_strdup("");
+	general->outputfile = g_strdup("temp.xmso");
 	general->comments = g_strdup("");
 	general->n_photons_interval = 100000;
 	general->n_photons_line = 100000;
