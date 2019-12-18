@@ -119,6 +119,14 @@ Source: "{#builddir}\src\XmiMsim-1.0.typelib" ; DestDir: "{app}\Lib\girepository
 Source: "{#builddir}\bin\XmiMsimGui-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
 
 
+; Python3!
+; The libpython3loader.dll goes into the GTK runtime!
+;Source: "{#MY_MINGW}\lib\libpeas-1.0\loaders\libpython3loader.dll" ; DestDir: "{app}\Lib\libpeas-1.0\loaders" ; Components: core
+Source: "{#MY_MINGW}\bin\libpython3.8.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\lib\python3.8\*" ; Excludes: "test\*"; DestDir: "{app}\Lib\python3.8" ; Components: core ; Flags: recursesubdirs
+; for numpy
+Source: "{#MY_MINGW}\bin\libopenblas.dll" ; DestDir: "{app}\Lib" ; Components: core
+
 Source: "{#builddir}\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 
 Source: "{#srcdir}\examples\srm1155.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
