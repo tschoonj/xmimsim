@@ -127,14 +127,11 @@ static void xmi_msim_gui_plugins_engine_init(XmiMsimGuiPluginsEngine *engine) {
 	peas_engine_add_search_path(PEAS_ENGINE(engine), sources_dir, NULL);
 	g_free(sources_dir);
 
-#ifdef MAC_INTEGRATION
-        const gchar *config_dir = xmi_resources_mac_get_user_data_dir();
-#else
-        const gchar *config_dir = g_get_user_config_dir();
-#endif
+        const gchar *docs_dir = g_get_user_special_dir(G_USER_DIRECTORY_DOCUMENTS);
 
-	sources_dir = g_strdup_printf("%s" G_DIR_SEPARATOR_S "XMI-MSIM" G_DIR_SEPARATOR_S "sources", config_dir);
+	sources_dir = g_build_filename(docs_dir, "XMI-MSIM", "sources", NULL);
 	peas_engine_add_search_path(PEAS_ENGINE(engine), sources_dir, NULL);
+	g_free(sources_dir);
 
 	const GList* plugin_list = peas_engine_get_plugin_list(PEAS_ENGINE(engine));
 
