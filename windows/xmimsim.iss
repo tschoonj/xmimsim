@@ -38,7 +38,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={commonpf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile={#srcdir}\License.rtf
@@ -159,7 +159,7 @@ Source: "{#srcdir}\windows\7za.exe"; DestDir: "{tmp}" ; Components: core
 
 [Icons]
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"
-Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\Bin\xmimsim-gui.exe"; Components: core; Tasks: desktopicon 
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\Bin\xmimsim-gui.exe"; Components: core; Tasks: desktopicon
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Tasks]

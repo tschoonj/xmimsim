@@ -6,7 +6,9 @@ set -x
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
 export GTKMM_PLPLOT_BRANCH=master
+export GTKMM_PLPLOT_STABLE=2.3
 export XRAYLIB_BRANCH=master
+export XRAYLIB_STABLE=3.3.0
 
 # install xraylib
 if [ -n "$XRAYLIB_BRANCH" ] ; then
@@ -14,11 +16,11 @@ if [ -n "$XRAYLIB_BRANCH" ] ; then
 	cd xraylib
 	autoreconf -i
 else
-	curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-3.3.0.tar.gz
-	tar xfz xraylib-3.3.0.tar.gz
-	cd xraylib-3.3.0
+	curl -L -s -O https://xraylib.tomschoonjans.eu/xraylib-${XRAYLIB_STABLE}.tar.gz
+	tar xfz xraylib-${XRAYLIB_STABLE}.tar.gz
+	cd xraylib-${XRAYLIB_STABLE}
 fi
-./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration
+./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration --enable-python-numpy
 make -j2
 make install
 cd ..
@@ -75,9 +77,9 @@ elif test $PLOT = "gtkmm-plplot" ; then
           cd gtkmm-plplot
           autoreconf -i
         else
-	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-2.3/gtkmm-plplot-2.3.tar.gz
-	  tar xfz gtkmm-plplot-2.3.tar.gz
-	  cd gtkmm-plplot-2.3
+	  curl -L -s -O https://github.com/tschoonj/gtkmm-plplot/releases/download/gtkmm-plplot-${GTKMM_PLPLOT_STABLE}/gtkmm-plplot-${GTKMM_PLPLOT_STABLE}.tar.gz
+	  tar xfz gtkmm-plplot-${GTKMM_PLPLOT_STABLE}.tar.gz
+	  cd gtkmm-plplot-${GTKMM_PLPLOT_STABLE}
         fi
 	./configure --prefix=$HOME/install --disable-static
 	make -j2

@@ -50,6 +50,7 @@ else
 	export DO_NOT_USE_DATA=1
 	export USE_LOCAL_XRAYLIB=1
 	cd windows
+	export PATH="/C/Program Files (x86)/Inno Setup 6:$HOME/install/bin:$PATH"
 	make iss
 	mv XMI-MSIM*exe ..
 	cd ..
