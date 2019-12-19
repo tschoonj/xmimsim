@@ -72,7 +72,7 @@ int xmi_init_input_escape_ratios(xmi_inputFPtr *inputFPtr);
 
 int xmi_check_detector_convolute_plugin(char *dlm);
 
-#define XMI_ESCAPE_RATIOS_MIN_VERSION 5.3
+#define XMI_ESCAPE_RATIOS_MIN_VERSION 7.2
 
 #ifdef __cplusplus
 }

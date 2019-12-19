@@ -49,7 +49,7 @@ int xmi_find_solid_angle_match(char *hdf5_file, xmi_input *A, xmi_solid_angle **
 
 void xmi_free_solid_angle(xmi_solid_angle *solid_angle);
 
-#define XMI_SOLID_ANGLES_MIN_VERSION 3.1
+#define XMI_SOLID_ANGLES_MIN_VERSION 7.2
 
 #ifdef __cplusplus
 }
