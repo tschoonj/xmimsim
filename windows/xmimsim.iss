@@ -59,6 +59,7 @@ SetupIconFile="{#srcdir}\icons\Logo_xmi_msim_Win7.ico"
 MinVersion=6.0
 VersionInfoVersion={#MyAppVersion}
 DisableWelcomePage=no
+WizardStyle=modern
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
