@@ -38,7 +38,7 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={pf}\{#MyAppName}
+DefaultDirName={commonpf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile={#srcdir}\License.rtf
@@ -59,6 +59,7 @@ SetupIconFile="{#srcdir}\icons\Logo_xmi_msim_Win7.ico"
 MinVersion=6.0
 VersionInfoVersion={#MyAppVersion}
 DisableWelcomePage=no
+WizardStyle=modern
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -119,6 +120,14 @@ Source: "{#builddir}\src\XmiMsim-1.0.typelib" ; DestDir: "{app}\Lib\girepository
 Source: "{#builddir}\bin\XmiMsimGui-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
 
 
+; Python3!
+; The libpython3loader.dll goes into the GTK runtime!
+;Source: "{#MY_MINGW}\lib\libpeas-1.0\loaders\libpython3loader.dll" ; DestDir: "{app}\Lib\libpeas-1.0\loaders" ; Components: core
+Source: "{#MY_MINGW}\bin\libpython3.8.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\lib\python3.8\*" ; Excludes: "test\*"; DestDir: "{app}\Lib\python3.8" ; Components: core ; Flags: recursesubdirs
+; for numpy
+Source: "{#MY_MINGW}\bin\libopenblas.dll" ; DestDir: "{app}\Lib" ; Components: core
+
 Source: "{#builddir}\xmimsim-{#MyAppVersion}.tar.gz" ; DestDir: "{app}\Sources" ; Components: source
 
 Source: "{#srcdir}\examples\srm1155.xmsi" ; DestDir: "{app}\Examples" ; Components: examples
@@ -151,7 +160,7 @@ Source: "{#srcdir}\windows\7za.exe"; DestDir: "{tmp}" ; Components: core
 
 [Icons]
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"
-Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\Bin\xmimsim-gui.exe"; Components: core; Tasks: desktopicon 
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\Bin\xmimsim-gui.exe"; Components: core; Tasks: desktopicon
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Tasks]

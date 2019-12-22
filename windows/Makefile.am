@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2019-11-07
-GTK3_RUNTIME_VERSION = 3.24.12
+GTK3_RUNTIME_TAG = 2019-12-19
+GTK3_RUNTIME_VERSION = 3.24.13
 GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
 common:
@@ -79,11 +79,10 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-multi-selection-type-grid.h xmimsim-gui-batch-multi-selection-type-grid.h
 
 
-gtk3_runtime_file_stamp:
+$(GTK3_RUNTIME_FILE):
 	wget -q https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/download/$(GTK3_RUNTIME_TAG)/$(GTK3_RUNTIME_FILE)
-	touch gtk3_runtime_file_stamp
 
-iss: gtk3_runtime_file_stamp
+iss: $(GTK3_RUNTIME_FILE)
 	$(MAKE) common
 	lib /machine:X64 /def:libxmimsim-0.def
 	lib /machine:X64 /def:libxmimsim-gui-0.def
@@ -91,4 +90,4 @@ iss: gtk3_runtime_file_stamp
 
 EXTRA_DIST = xmimsim.iss GPLv3.rtf
 clean-local:
-	rm -f gtk3_runtime_file_stamp $(GTK3_RUNTIME_FILE) dwinshs.iss
+	rm -f $(GTK3_RUNTIME_FILE) dwinshs.iss

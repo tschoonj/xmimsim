@@ -199,7 +199,7 @@ jobs:
       displayName: Update MSYS2
     - script: |
         set PATH=C:\msys64\usr\bin;%PATH%
-        pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python3-gobject,pygobject-devel,gobject-introspection,python3-numpy,python3-certifi} automake autoconf make wget tar git swig patch
+        pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python3-gobject,pygobject-devel,gobject-introspection,python3-numpy,python3-certifi,swig,python3-scipy,cython} automake autoconf make wget tar git patch
       displayName: Install MSYS2 packages
     - script: |
         set PATH=C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
