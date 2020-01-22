@@ -142,10 +142,6 @@ endif
 
 endif
 
-if OS_WINDOWS
-libxmimsim_la_FCFLAGS += -DXMI_WINDOWS
-endif
-
 if ENABLE_MAC_APP
 libxmimsim_la_LDFLAGS += -Wl,-headerpad_max_install_names
 
