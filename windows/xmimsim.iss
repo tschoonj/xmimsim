@@ -1,4 +1,4 @@
-;Copyright (C) 2010-2017 Tom Schoonjans and Laszlo Vincze
+;Copyright (C) 2010-2020 Tom Schoonjans and Laszlo Vincze
 
 ;This program is free software: you can redistribute it and/or modify
 ;it under the terms of the GNU General Public License as published by
@@ -161,6 +161,7 @@ Source: "{#srcdir}\windows\7za.exe"; DestDir: "{tmp}" ; Components: core
 Name: "{group}\{cm:LaunchProgram,{#MyAppName}}"; Filename: "{app}\Bin\xmimsim-gui.exe"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\Bin\xmimsim-gui.exe"; Components: core; Tasks: desktopicon
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+Name: "{group}\{cm:LaunchProgram,{#MyAppName} Prompt}"; Filename: "{cmd}" ; Parameters: "/k ""{app}\Bin\set_xmi_msim_path.bat"""
 
 [Tasks]
 Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"; Components: core
@@ -416,7 +417,11 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
     if (CurStep=ssPostInstall) then
     begin
-	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('set PATH={app}\Bin;{app}\Lib;{app}\GTK;%PATH%'), False);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('@set PATH={app}\Bin;{app}\Lib;{app}\GTK;%PATH%') + #13#10, False);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo.' + #13#10, True);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo   Welcome to the XMI-MSIM shell!' + #13#10, True);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo.' + #13#10, True);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@cd %HOMEDRIVE%%HOMEPATH%' + #13#10, True);
     end;
 end;
 
