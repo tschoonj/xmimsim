@@ -198,7 +198,7 @@ char *xmi_version_string() {
 
 	g_string_append(string, "\n\n");
 	g_string_append(string,
-"Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2020 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"
