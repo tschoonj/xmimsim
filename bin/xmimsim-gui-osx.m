@@ -69,7 +69,7 @@ void xmi_msim_gui_osx_window_set_file(GtkWidget *window, const gchar *filename) 
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(dwindow);
-	if (filename != NULL) {
+	if (filename != NULL && g_path_is_absolute(filename)) {
 		gchar *uri = g_filename_to_uri(filename, NULL, NULL);
 		NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
 		[qwindow setRepresentedURL:nsurl];

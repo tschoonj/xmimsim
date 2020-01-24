@@ -560,7 +560,7 @@ static void read_xmsa_callback(GtkWidget *task_window, GAsyncResult *result, Gtk
 		g_application_release(g_application_get_default());
 		return ;
 	}
-	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), g_task_get_task_data(task), archive);
+	GtkWidget *viewer = xmi_msim_gui_xmsa_viewer_window_new(archive, XMI_MSIM_GUI_APPLICATION(g_application_get_default()), g_task_get_task_data(task));
 	xmi_archive_unref(archive);
 	gtk_widget_show(viewer);
 	g_application_release(g_application_get_default());

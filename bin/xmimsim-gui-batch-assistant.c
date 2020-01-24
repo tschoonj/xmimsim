@@ -451,7 +451,7 @@ static void save_archive_callback(GtkWidget *task_window, GAsyncResult *result, 
 	gchar *archive_name = xmi_msim_gui_batch_archive_settings_box_get_archive_name(XMI_MSIM_GUI_BATCH_ARCHIVE_SETTINGS_BOX(self->archive_settings_page));
 	xmi_archive *archive = NULL;
 	g_object_get(self->batch_data, "archive", &archive, NULL);
-	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive_name, archive);
+	GtkWidget *xmsa_window = xmi_msim_gui_xmsa_viewer_window_new(archive, XMI_MSIM_GUI_APPLICATION(g_application_get_default()), archive_name);
 	xmi_archive_unref(archive);
 	g_free(archive_name);
 	gtk_window_set_transient_for(GTK_WINDOW(xmsa_window), GTK_WINDOW(window));
