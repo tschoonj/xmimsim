@@ -24,5 +24,6 @@ dist_xmimsim_example_DATA = In.xmsi \
 			    srm1412.xmsi \
 			    srm1412.xmso \
 			    test-source.py \
-			    test-source.plugin
+			    test-source.plugin \
+				mendeljev.py
 

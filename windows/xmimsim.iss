@@ -137,6 +137,7 @@ Source: "{#srcdir}\examples\srm1155.xmso" ; DestDir: "{app}\Examples" ; Componen
 Source: "{#srcdir}\examples\srm1132.xmso" ; DestDir: "{app}\Examples" ; Components: examples
 Source: "{#srcdir}\examples\srm1412.xmso" ; DestDir: "{app}\Examples" ; Components: examples
 Source: "{#srcdir}\examples\In.xmso" ; DestDir: "{app}\Examples" ; Components: examples
+Source: "{#builddir}\windows\mendeljev.py" ; DestDir: "{app}\Examples" ; Components: examples
 
 Source: "{#builddir}\windows\xmi*.h" ; DestDir: "{app}\SDK\Include" ; Components: sdk
 Source: "{#builddir}\src\xmimsim*mod" ; DestDir: "{app}\SDK\Include" ; Components: sdk

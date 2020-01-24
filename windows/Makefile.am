@@ -77,6 +77,7 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-plugins-engine.h xmimsim-gui-plugins-engine.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-controls-box.h xmimsim-gui-batch-controls-box.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-multi-selection-type-grid.h xmimsim-gui-batch-multi-selection-type-grid.h
+	unix2dos -n $(top_srcdir)/examples/mendeljev.py mendeljev.py
 
 
 $(GTK3_RUNTIME_FILE):
