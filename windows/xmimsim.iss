@@ -419,6 +419,7 @@ begin
     if (CurStep=ssPostInstall) then
     begin
 	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('@set PATH={app}\Bin;{app}\Lib;{app}\GTK;%PATH%') + #13#10, False);
+	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), ExpandConstant('@set GI_TYPELIB_PATH={app}\Lib\girepository-1.0') + #13#10, True);
 	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo.' + #13#10, True);
 	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo   Welcome to the XMI-MSIM shell!' + #13#10, True);
 	SaveStringToFile(ExpandConstant('{app}\Bin\set_xmi_msim_path.bat'), '@echo.' + #13#10, True);
