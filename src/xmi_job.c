@@ -1078,7 +1078,7 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	job->stdout_channel = g_io_channel_unix_new(out_fh);
 #endif
 
-	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_HIGH_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
+	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_DEFAULT_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
 
 	g_io_channel_set_encoding(job->stdout_channel, "UTF-8", NULL);
 	g_io_channel_set_close_on_unref(job->stdout_channel, TRUE);
