@@ -36,7 +36,7 @@ before_build:
     - bash -lc "pacman -R --noconfirm --ask 20 mingw-w64-x86_64-gcc-ada mingw-w64-x86_64-gcc-objc" # remove gcc packages that no longer exist in the repo
     - bash -lc "for i in {1..3}; do pacman -Syyuu --noconfirm --ask 20 && break || sleep 15; done"
     - bash -lc "for i in {1..3}; do pacman -Suu --noconfirm --ask 20 && break || sleep 15; done"
-    - bash -lc "for i in {1..3}; do pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python3-gobject,pygobject-devel,gobject-introspection,python3-numpy,python3-scipy,swig,cython} automake autoconf make wget tar patch && break || sleep 15; done"
+    - bash -lc "for i in {1..3}; do pacman --noconfirm --ask 20 -Su mingw-w64-%MSYS2_ARCH%-{gcc,libtool,curl,gcc-fortran,libxslt,glib2,libsoup,python-gobject,pygobject-devel,gobject-introspection,python-numpy,python-scipy,swig,cython,python-pip,python-matplotlib} automake autoconf make wget tar patch && break || sleep 15; done"
     - bash -lc "cd \"$APPVEYOR_BUILD_FOLDER\" && exec ./appveyor-before-build.sh"
 
 build_script:
