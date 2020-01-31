@@ -37,6 +37,8 @@ XmiMsimGuiOSXApplicationDelegate* xmi_msim_gui_osx_app_delegate_new(void);
 
 void xmi_msim_gui_osx_app_delegate_free(XmiMsimGuiOSXApplicationDelegate *delegate);
 
+void xmi_msim_gui_osx_bundle_init(void);
+
 G_END_DECLS
 
 #endif

@@ -18,7 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <config.h>
 #include "xmimsim-gui-application.h"
 
+#ifdef MAC_INTEGRATION
+#include "xmimsim-gui-osx.h"
+#endif
+
 int main(int argc, char *argv[]) {
+
+#ifdef MAC_INTEGRATION
+	xmi_msim_gui_osx_bundle_init();
+#endif
 
 	gtk_disable_setlocale();
 
