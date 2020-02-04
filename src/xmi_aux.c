@@ -81,10 +81,7 @@ struct compoundData *xmi_layer2compoundData(xmi_layer *xl) {
 		rv->nElements = xl->n_elements;
 		rv->Elements = (int *) xmi_memdup(xl->Z, sizeof(int)*xl->n_elements);
 		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
-		// TODO: remove when bumping minimum xraylib version
-#if XRAYLIB_MAJOR == 3 && XRAYLIB_MINOR > 2
 		rv->nAtoms = (double *) g_malloc(sizeof(int));
-#endif
 	}
 	else {
 		rv->nElements = 0;
