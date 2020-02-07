@@ -37,7 +37,7 @@ static pthread_mutex_t xmi_random_mutex;
 
 static void *xmi_random_thread(void *input) {
 	unsigned long int temp_number;
-	struct timespec sleep_time = {.tv_sec = (time_t) SLEEP_TIME,.tv_nsec = 0};
+	struct timespec sleep_time = {.tv_sec = 0,.tv_nsec = 100000000L};
 	int rv;
 
 #if DEBUG == 2

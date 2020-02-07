@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2017-2019 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017-2020 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@ typedef void XmiMsimGuiOSXApplicationDelegate;
 XmiMsimGuiOSXApplicationDelegate* xmi_msim_gui_osx_app_delegate_new(void);
 
 void xmi_msim_gui_osx_app_delegate_free(XmiMsimGuiOSXApplicationDelegate *delegate);
+
+void xmi_msim_gui_osx_bundle_init(void);
 
 G_END_DECLS
 

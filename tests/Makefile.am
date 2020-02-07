@@ -49,12 +49,10 @@ endif
 
 dist_check_SCRIPTS = $(NULL)
 
-if !OS_WINDOWS
 if HAVE_INTROSPECTION
 if HAVE_PYTHON
 dist_check_SCRIPTS += \
      test-gi-xmimsim.py
-endif
 endif
 endif
 

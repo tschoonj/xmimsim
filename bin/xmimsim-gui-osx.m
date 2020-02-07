@@ -3,6 +3,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <AvailabilityMacros.h>
 #import <gdk/gdkquartz.h>
+#import "xmi_resources_mac.h"
 
 #if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 
@@ -69,7 +70,7 @@ void xmi_msim_gui_osx_window_set_file(GtkWidget *window, const gchar *filename) 
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(dwindow);
-	if (filename != NULL) {
+	if (filename != NULL && g_path_is_absolute(filename)) {
 		gchar *uri = g_filename_to_uri(filename, NULL, NULL);
 		NSURL *nsurl = [NSURL URLWithString:[NSString stringWithUTF8String:uri]];
 		[qwindow setRepresentedURL:nsurl];
@@ -96,4 +97,49 @@ void xmi_msim_gui_osx_window_enable_full_screen(GtkWidget *window) {
 	//only works in Lion and newer
 	NSWindow *qwindow = gdk_quartz_window_get_nswindow(gtk_widget_get_window(window));
 	[qwindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+}
+
+void xmi_msim_gui_osx_bundle_init(void) {
+	gchar *bundle_res = xmi_application_get_resource_path();
+
+	gchar *bundle_lib = g_build_filename(bundle_res, "lib", NULL);
+	gchar *bundle_bin = g_build_filename(bundle_res, "bin", NULL);
+	gchar *bundle_data = g_build_filename(bundle_res, "share", NULL);
+	gchar *bundle_etc = g_build_filename(bundle_res, "etc", NULL);
+
+	{
+		gchar *env_value = g_build_filename(bundle_lib, "gio", "modules", NULL);
+		g_setenv("GIO_MODULE_DIR", env_value, TRUE);
+		g_free(env_value);
+	}
+
+	g_setenv("XDG_CONFIG_DIRS", bundle_etc, TRUE);
+	g_setenv("XDG_DATA_DIRS", bundle_data, TRUE);
+	g_setenv("GTK_DATA_PREFIX", bundle_res, TRUE);
+	g_setenv("GTK_EXE_PREFIX", bundle_res, TRUE);
+	g_setenv("GTK_PATH", bundle_res, TRUE);
+
+	{
+		gchar *env_value = g_build_filename(bundle_data, "plplot5.15.0", NULL);
+		g_setenv("PLPLOT_LIB", env_value, TRUE);
+		g_free(env_value);
+	}
+
+	{
+		gchar *env_value = g_build_filename(bundle_lib, "gdk-pixbuf-2.0", "2.10.0", "loaders.cache", NULL);
+		g_setenv("GDK_PIXBUF_MODULE_FILE", env_value, TRUE);
+		g_free(env_value);
+	}
+
+	{
+		gchar *env_value = g_build_filename(bundle_etc, "gtk-3.0", "gtk.immodules", NULL);
+		g_setenv("GTK_IM_MODULE_FILE", env_value, TRUE);
+		g_free(env_value);
+	}
+
+	g_free(bundle_lib);
+	g_free(bundle_bin);
+	g_free(bundle_data);
+	g_free(bundle_etc);
+	g_free(bundle_res);
 }

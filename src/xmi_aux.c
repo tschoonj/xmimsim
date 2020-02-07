@@ -81,10 +81,7 @@ struct compoundData *xmi_layer2compoundData(xmi_layer *xl) {
 		rv->nElements = xl->n_elements;
 		rv->Elements = (int *) xmi_memdup(xl->Z, sizeof(int)*xl->n_elements);
 		rv->massFractions= (double *) xmi_memdup(xl->weight, sizeof(double)*xl->n_elements);
-		// TODO: remove when bumping minimum xraylib version
-#if XRAYLIB_MAJOR == 3 && XRAYLIB_MINOR > 2
 		rv->nAtoms = (double *) g_malloc(sizeof(int));
-#endif
 	}
 	else {
 		rv->nElements = 0;
@@ -198,7 +195,7 @@ char *xmi_version_string() {
 
 	g_string_append(string, "\n\n");
 	g_string_append(string,
-"Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze\n"
+"Copyright (C) 2010-2020 Tom Schoonjans and Laszlo Vincze\n"
 "\n"
 "This program is free software: you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"

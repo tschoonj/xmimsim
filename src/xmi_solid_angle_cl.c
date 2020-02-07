@@ -322,7 +322,6 @@ G_MODULE_EXPORT int xmi_solid_angle_calculation_cl(xmi_inputFPtr inputFPtr, xmi_
 	gchar *build_options = g_strdup_printf("-DRANGE_DIVIDER=%i", RANGE_DIVIDER);
 	status = clBuildProgram(myprog, 0, NULL, build_options , NULL, NULL);
 	g_free(build_options);
-	OPENCL_ERROR(clBuildProgram)
 
 	if (status == CL_BUILD_PROGRAM_FAILURE) {
 		fprintf(stderr,"build failure\n");

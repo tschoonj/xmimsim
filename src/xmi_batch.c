@@ -1085,18 +1085,20 @@ static void xmi_msim_batch_single_finalize(GObject *object) {
 	if (batch->archive)
 		xmi_archive_unref(batch->archive);
 
-	GDir *dir = g_dir_open(batch->tmpdir, 0, NULL);
-	const gchar *file = NULL;
+	if (batch->tmpdir) {
+		GDir *dir = g_dir_open(batch->tmpdir, 0, NULL);
+		const gchar *file = NULL;
 
-	while ((file = g_dir_read_name(dir)) != NULL) {
-		gchar *full_file = g_build_filename(batch->tmpdir, file, NULL);
-		g_remove(full_file);
-		g_free(full_file);
+		while ((file = g_dir_read_name(dir)) != NULL) {
+			gchar *full_file = g_build_filename(batch->tmpdir, file, NULL);
+			g_remove(full_file);
+			g_free(full_file);
+		}
+		g_dir_close(dir);
+
+		g_rmdir(batch->tmpdir);
+		g_free(batch->tmpdir);
 	}
-	g_dir_close(dir);
-
-	g_rmdir(batch->tmpdir);
-	g_free(batch->tmpdir);
 
 	G_OBJECT_CLASS(xmi_msim_batch_single_parent_class)->finalize(object);
 }

@@ -601,11 +601,11 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 	g_array_remove_index(self->layer_array, selected_index);
 	
 	if (button == self->top_button) {
+		g_array_prepend_val(self->layer_array, temp);
 		indices[0] = selected_index;
 		for (i = 1 ; i < selected_index + 1 ; i++) {
 			indices[i] = i - 1;
 		}
-		g_array_prepend_val(self->layer_array, temp);
 
 		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
@@ -618,11 +618,12 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		}
 	}
 	else if (button == self->bottom_button) {
+		g_array_append_val(self->layer_array, temp);
+
 		indices[self->layer_array->len - 1] = selected_index;
 		for (i = self->layer_array->len - 2 ; i >= selected_index ; i--) {
 			indices[i] = i + 1;
 		}
-		g_array_append_val(self->layer_array, temp);
 
 		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
@@ -635,9 +636,9 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		}
 	}
 	else if (button == self->up_button) {
+		g_array_insert_val(self->layer_array, selected_index - 1, temp);
 		indices[selected_index - 1] = selected_index;
 		indices[selected_index] = selected_index - 1;
-		g_array_insert_val(self->layer_array, selected_index - 1, temp);
 
 		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {
@@ -650,9 +651,9 @@ static void layers_move_button_clicked_cb(GtkWidget *button, XmiMsimGuiLayerBox 
 		}
 	}
 	else if (button == self->down_button) {
+		g_array_insert_val(self->layer_array, selected_index + 1, temp);
 		indices[selected_index + 1] = selected_index;
 		indices[selected_index] = selected_index + 1;
-		g_array_insert_val(self->layer_array, selected_index + 1, temp);
 
 		if (self->type == XMI_MSIM_GUI_LAYER_BOX_TYPE_SAMPLE_COMPOSITION) {
 			if (self->reference_layer == selected_index) {

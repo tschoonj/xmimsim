@@ -7,7 +7,6 @@
 	<prefix name='source'>/Users/schoon/github/xmimsim</prefix>	
 	<prefix name='build'>/Users/schoon/github/xmimsim/build</prefix>	
 	<destination overwrite="yes">${env:PWD}</destination>
-	<launcher-script>${prefix:source}/osx/launcher.sh</launcher-script>
 	<run-install-name-tool/>
 	<gtk>gtk+-3.0</gtk>
 </meta>

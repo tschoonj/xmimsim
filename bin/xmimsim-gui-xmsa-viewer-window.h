@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2017-2019 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2017-2020 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ G_BEGIN_DECLS
 typedef struct _XmiMsimGuiXmsaViewerWindow		XmiMsimGuiXmsaViewerWindow;
 typedef struct _XmiMsimGuiXmsaViewerWindowClass   	XmiMsimGuiXmsaViewerWindowClass;
 
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, gchar *filename, xmi_archive *archive);
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(xmi_archive *archive, XmiMsimGuiApplication *app, gchar *filename);
 
 const gchar* xmi_msim_gui_xmsa_viewer_window_get_filename(XmiMsimGuiXmsaViewerWindow *viewer);
 

@@ -989,12 +989,13 @@ static void xmi_msim_gui_xmsa_viewer_window_init(XmiMsimGuiXmsaViewerWindow *sel
 
 /**
  * xmi_msim_gui_xmsa_viewer_window_new: (constructor)
- * @app: (nullable): an instance of #XmiMsimGuiApplication.
  * @archive: (transfer full): an instance of #XmiMsimArchive
+ * @app: (nullable): an instance of #XmiMsimGuiApplication.
+ * @filename: (nullable): filename of the xmsa-file
  *
  * Returns: a fresly initialized #XmiMsimGuiXmsaViewerWindow
  */
-GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(XmiMsimGuiApplication *app, gchar *filename, xmi_archive *archive) {
+GtkWidget* xmi_msim_gui_xmsa_viewer_window_new(xmi_archive *archive, XmiMsimGuiApplication *app, gchar *filename) {
 	g_return_val_if_fail(archive != NULL, NULL);
 
 	XmiMsimGuiXmsaViewerWindow *rv = XMI_MSIM_GUI_XMSA_VIEWER_WINDOW(

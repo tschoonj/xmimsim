@@ -77,6 +77,7 @@ common:
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-plugins-engine.h xmimsim-gui-plugins-engine.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-controls-box.h xmimsim-gui-batch-controls-box.h
 	unix2dos -n $(top_srcdir)/bin/xmimsim-gui-batch-multi-selection-type-grid.h xmimsim-gui-batch-multi-selection-type-grid.h
+	unix2dos -n $(top_srcdir)/examples/mendeljev.py mendeljev.py
 
 
 $(GTK3_RUNTIME_FILE):
@@ -88,6 +89,7 @@ iss: $(GTK3_RUNTIME_FILE)
 	lib /machine:X64 /def:libxmimsim-gui-0.def
 	iscc.exe "-I$(abs_top_srcdir_win)/windows" "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
 
-EXTRA_DIST = xmimsim.iss GPLv3.rtf
+EXTRA_DIST = xmimsim.iss
+
 clean-local:
 	rm -f $(GTK3_RUNTIME_FILE) dwinshs.iss

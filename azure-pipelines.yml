@@ -1,5 +1,6 @@
 variables:
   LD_LIBRARY_PATH: /usr/local/lib
+  HOMEBREW_CURL_RETRIES: 5
   CI: true
 
 trigger: ['master']

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2010-2019 Tom Schoonjans and Laszlo Vincze
+Copyright (C) 2010-2020 Tom Schoonjans and Laszlo Vincze
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-#define XMI_MSIM_VERSION_MAJOR 7
-#define XMI_MSIM_VERSION_MINOR 2
+#define XMI_MSIM_VERSION_MAJOR 8
+#define XMI_MSIM_VERSION_MINOR 0
 
 #include "xmi_config.h"
 #include "xmi_random.h"

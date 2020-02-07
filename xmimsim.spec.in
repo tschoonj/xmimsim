@@ -140,6 +140,7 @@ fi || :
 %{_datadir}/xmimsim/xmimsim_cat.xml
 %{_datadir}/xmimsim/examples/*xmsi
 %{_datadir}/xmimsim/examples/*xmso
+%{_datadir}/xmimsim/examples/mendeljev.py*
 
 %{_prefix}/share/xmimsim/xmimsimdata.h5
 %{_datadir}/applications/com.github.tschoonj.xmimsim.gui.desktop
@@ -163,6 +164,7 @@ fi || :
 %{_datadir}/gir-1.0/XmiMsim-1.0.gir
 %{_datadir}/gir-1.0/XmiMsimGui-1.0.gir
 %{_datadir}/xmimsim/examples/test-source.p*
+%{_datadir}/xmimsim/examples/mendeljev.py
 %{_libdir}/girepository-1.0/XmiMsim-1.0.typelib
 %{_libdir}/girepository-1.0/XmiMsimGui-1.0.typelib
 
@@ -170,6 +172,8 @@ fi || :
 %{_libdir}/xmimsim/xmimsim-cl.so
 
 %changelog
+* Fri Jan 24 2020 Tom Schoonjans
+- Add mendeljev.py example
 * Fri Dec 13 2019 Tom Schoonjans
 - Add OpenCL ICD build dependency and create opencl subpackage
 * Wed May 1 2019 Tom Schoonjans
