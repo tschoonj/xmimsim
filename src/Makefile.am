@@ -63,7 +63,9 @@ libxmimsim_la_SOURCES += xmi_random.c \
 			 xmi_random_dev.h
 else
 libxmimsim_la_SOURCES += xmi_random_win.c \
-			 xmi_registry_win.c
+			 xmi_registry_win.c \
+			 xmi_win32_inputstream.c \
+			 xmi_win32_inputstream.h
 endif
 
 libxmimsim_la_CFLAGS =  \

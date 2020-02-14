@@ -172,7 +172,11 @@ fi
 
 AM_CONDITIONAL([ENABLE_FGSL],[test "x$FGSL10_FOUND" = xyes || test "x$FGSL11_FOUND" = xyes])
 
-PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.40.0 gio-2.0 >= 2.40.0)
+if test x$OS_WINDOWS = x1 ; then
+PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.40.0 gio-2.0 >= 2.40.0 gio-windows-2.0)
+else
+PKG_CHECK_MODULES([glib2],glib-2.0 >= 2.40.0 gio-2.0 >= 2.40.0 gio-unix-2.0)
+fi
 PKG_CHECK_MODULES([gmodule],gmodule-2.0)
 PKG_CHECK_MODULES([gobject],gobject-2.0)
 
