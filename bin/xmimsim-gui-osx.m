@@ -4,6 +4,9 @@
 #import <AvailabilityMacros.h>
 #import <gdk/gdkquartz.h>
 #import "xmi_resources_mac.h"
+#import <AppKit/AppKit.h>
+
+NSWindow *gdk_quartz_window_get_nswindow(GdkWindow *window);
 
 #if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
 

@@ -184,15 +184,15 @@ CREATE_ENTRY_UNDO_MANAGER_METHODS_LONG(n_photons_interval, input->general->n_pho
 CREATE_ENTRY_UNDO_MANAGER_METHODS_LONG(n_photons_line, input->general->n_photons_line, 1, G_MAXLONG);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_INT(n_interactions_trajectory, input->general->n_interactions_trajectory, 1, 10);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(d_sample_source, input->geometry->d_sample_source, 0.0, FALSE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_sample_orientation_x, input->geometry->n_sample_orientation[0], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_sample_orientation_y, input->geometry->n_sample_orientation[1], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_sample_orientation_x, input->geometry->n_sample_orientation[0], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_sample_orientation_y, input->geometry->n_sample_orientation[1], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_sample_orientation_z, input->geometry->n_sample_orientation[2], 0.0, FALSE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_x, input->geometry->p_detector_window[0], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_y, input->geometry->p_detector_window[1], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_z, input->geometry->p_detector_window[2], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_x, input->geometry->n_detector_orientation[0], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_y, input->geometry->n_detector_orientation[1], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_z, input->geometry->n_detector_orientation[2], G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_x, input->geometry->p_detector_window[0], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_y, input->geometry->p_detector_window[1], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(p_detector_window_z, input->geometry->p_detector_window[2], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_x, input->geometry->n_detector_orientation[0], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_y, input->geometry->n_detector_orientation[1], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(n_detector_orientation_z, input->geometry->n_detector_orientation[2], -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(area_detector, input->geometry->area_detector, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(collimator_height, input->geometry->collimator_height, 0.0, TRUE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(collimator_diameter, input->geometry->collimator_diameter, 0.0, TRUE, G_MAXDOUBLE, TRUE);
@@ -202,7 +202,7 @@ CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(slit_size_y, input->geometry->slit_size
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_gain, input->detector->gain, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_live_time, input->detector->live_time, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_pulse_width, input->detector->pulse_width, 0.0, FALSE, G_MAXDOUBLE, TRUE);
-CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_zero, input->detector->zero, G_MINDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
+CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_zero, input->detector->zero, -G_MAXDOUBLE, TRUE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_fano, input->detector->fano, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 CREATE_ENTRY_UNDO_MANAGER_METHODS_DOUBLE(detector_noise, input->detector->noise, 0.0, FALSE, G_MAXDOUBLE, TRUE);
 
