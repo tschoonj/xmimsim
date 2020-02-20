@@ -13,9 +13,9 @@ RUN yum install -y  gcc gcc-gfortran gcc-c++ \
 	fgsl-devel \
         libxslt-devel \
         hdf5-devel \
-#        xraylib-devel \
-#        xraylib-fortran \
-#        xraylib-python \
+        xraylib-devel \
+        xraylib-fortran \
+        xraylib-python \
         libsoup-devel \
 	gobject-introspection \
 	gobject-introspection-devel \
@@ -27,15 +27,15 @@ RUN yum install -y  gcc gcc-gfortran gcc-c++ \
 	python36
 
 # build xraylib from master
-WORKDIR /root
-RUN git clone --single-branch --depth=1 https://github.com/tschoonj/xraylib.git
-WORKDIR /root/xraylib
-RUN autoreconf -i
-RUN ./configure --disable-static --enable-python --enable-fortran2003
-RUN make -j2
-RUN make check
-RUN make install
-RUN make clean
+#WORKDIR /root
+#RUN git clone --single-branch --depth=1 https://github.com/tschoonj/xraylib.git
+#WORKDIR /root/xraylib
+#RUN autoreconf -i
+#RUN ./configure --disable-static --enable-python --enable-fortran2003
+#RUN make -j2
+#RUN make check
+#RUN make install
+#RUN make clean
 
 WORKDIR /root
 

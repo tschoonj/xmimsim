@@ -19,7 +19,7 @@ AC_CONFIG_SRCDIR([bin/xmimsim.c])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([-Wall -Wno-portability -Werror foreign])
-
+AM_SILENT_RULES([yes])
 
 AC_CANONICAL_HOST
 AC_GNU_SOURCE
