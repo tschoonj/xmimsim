@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2019-12-19
-GTK3_RUNTIME_VERSION = 3.24.13
+GTK3_RUNTIME_TAG = 2020-02-21
+GTK3_RUNTIME_VERSION = 3.24.14
 GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
 common:
