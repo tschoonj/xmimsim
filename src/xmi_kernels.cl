@@ -45,9 +45,9 @@ float3 xmi_intersection_plane_line(xmi_plane plane, xmi_line line) {
 }
 
 
-__kernel void xmi_kernel_test(__global read_only float *grid_dims_r_vals, 
-					  __global read_only float *grid_dims_theta_vals,
-					  __global write_only float *solid_angles,
+__kernel void xmi_kernel_test(__global float *grid_dims_r_vals, 
+					  __global float *grid_dims_theta_vals,
+					  __global float *solid_angles,
 					  int collimator_present,
 					  float detector_radius,
 					  float collimator_radius,
@@ -216,9 +216,9 @@ __kernel void xmi_kernel_test(__global read_only float *grid_dims_r_vals,
 #endif
 
 }
-__kernel void xmi_solid_angle_calculation(__constant read_only float *grid_dims_r_vals, 
-					  __constant read_only float *grid_dims_theta_vals,
-					  __global write_only float *solid_angles,
+__kernel void xmi_solid_angle_calculation(__constant float *grid_dims_r_vals, 
+					  __constant float *grid_dims_theta_vals,
+					  __global float *solid_angles,
 					  int collimator_present,
 					  float detector_radius,
 					  float collimator_radius,
