@@ -22,15 +22,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "xmi_xml.h"
 #include "xmi_gobject.h"
 #include <string.h>
+#include <gio/gio.h>
 
-//#define XMI_OBJECT_REF(obj) \
-//	xmi_object_ref(obj, G_STRLOC)
+#define XMI_OBJECT_REF(obj) \
+	xmi_object_ref(obj, G_STRLOC)
 
-//#define XMI_OBJECT_UNREF(obj) \
-//	xmi_object_unref(obj, G_STRLOC)
+#define XMI_OBJECT_UNREF(obj) \
+	xmi_object_unref(obj, G_STRLOC)
 
-#define XMI_OBJECT_REF(obj) g_object_ref(obj)
-#define XMI_OBJECT_UNREF(obj) g_object_unref(obj)
+//#define XMI_OBJECT_REF(obj) g_object_ref(obj)
+//#define XMI_OBJECT_UNREF(obj) g_object_unref(obj)
 
 enum {
 	STDOUT_EVENT,
@@ -65,13 +66,16 @@ static XmiMsimJob *current_job = NULL;
 #include "xmi_solid_angle.h"
 #include <windows.h>
 #include <winbase.h>
+#include <io.h>
 typedef LONG (NTAPI *pNtSuspendProcess )(IN HANDLE ProcessHandle );
 typedef LONG (NTAPI *pNtResumeProcess )(IN HANDLE ProcessHandle );
 static pNtSuspendProcess NtSuspendProcess = NULL;
 static pNtResumeProcess NtResumeProcess = NULL;
+#include "xmi_win32_inputstream.h"
 #else
 #include <errno.h>
 #include <sys/wait.h>
+#include <gio/gunixinputstream.h>
 #endif
 
 struct _XmiMsimJob {
@@ -85,8 +89,9 @@ struct _XmiMsimJob {
 	gboolean do_not_emit;
 	gboolean killed;
 	gboolean send_all_stdout_events;
-	GIOChannel *stdout_channel;
-	GIOChannel *stderr_channel;
+	GDataInputStream *stdout_input_stream;
+	GDataInputStream *stderr_input_stream;
+	GCancellable *cancellable;
 	guint child_watch_id;
 	guint stdout_watch_id;
 	guint stderr_watch_id;
@@ -109,7 +114,6 @@ G_DEFINE_TYPE(
 	XmiMsimJob,
 	xmi_msim_job,
 	G_TYPE_OBJECT)
-
 
 /**
  * xmi_msim_job_kill:
@@ -316,9 +320,6 @@ static void xmi_msim_job_finalize(GObject *gobject) {
 	
 	xmi_msim_job_kill(job, NULL);
 
-	if (job->gpid)
-		g_spawn_close_pid(job->gpid);
-
 	g_ptr_array_free(job->argv, TRUE);
 	g_free(job->executable);
 	g_free(job->xmsi_file);
@@ -329,6 +330,31 @@ static void xmi_msim_job_finalize(GObject *gobject) {
 	g_strfreev(job->extra_options);
 
 	g_free(job->xmso_file);
+	g_object_unref(job->cancellable);
+
+	if (job->stdout_input_stream) {
+		GInputStream *base_stream = g_object_ref(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(job->stdout_input_stream)));
+		g_debug("stdout base stream ref_count: %d", G_OBJECT(base_stream)->ref_count);
+		g_debug("stdout base stream closed: %d", g_input_stream_is_closed(base_stream));
+		if (!g_input_stream_is_closed(base_stream)) {
+			g_input_stream_close(base_stream, NULL, NULL);
+		}
+		g_debug("stdout stream ref_count: %d", G_OBJECT(job->stdout_input_stream)->ref_count);
+		g_object_unref(job->stdout_input_stream);
+		g_object_unref(base_stream);
+	}
+
+	if (job->stderr_input_stream) {
+		GInputStream *base_stream = g_object_ref(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(job->stderr_input_stream)));
+		g_debug("stderr base stream ref_count: %d", G_OBJECT(base_stream)->ref_count);
+		g_debug("stderr base stream closed: %d", g_input_stream_is_closed(base_stream));
+		if (!g_input_stream_is_closed(base_stream)) {
+			g_input_stream_close(base_stream, NULL, NULL);
+		}
+		g_debug("stderr stream ref_count: %d", G_OBJECT(job->stderr_input_stream)->ref_count);
+		g_object_unref(job->stderr_input_stream);
+		g_object_unref(base_stream);
+	}
 
 	G_OBJECT_CLASS(xmi_msim_job_parent_class)->finalize(gobject);
 }
@@ -602,6 +628,7 @@ static void xmi_msim_job_class_init(XmiMsimJobClass *klass) {
 }
 
 static void xmi_msim_job_init(XmiMsimJob *self) {
+	self->cancellable = g_cancellable_new();
 }
 
 /**
@@ -647,11 +674,14 @@ XmiMsimJob* xmi_msim_job_new(
 static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
 	// called when the child dies, either by natural causes or if it is killed
 	// either way, this function must finish with a signal being emitted
+	g_cancellable_cancel(job->cancellable);
 	job->killed = TRUE; // to ensure that the IO watcher gets deactivated
 	char *buffer;
 	gboolean success;
 	int pid = job->pid;
 	gchar *xmi_msim_executable = g_ptr_array_index(job->argv, 0);
+
+	g_spawn_close_pid(job->gpid);
 
 	// free up current_job
 	//G_LOCK(current_job);
@@ -692,7 +722,6 @@ static void xmimsim_child_watcher_cb(GPid gpid, gint status, XmiMsimJob *job) {
 	}
 #endif
 
-	g_spawn_close_pid(gpid);
 	job->running = FALSE;
 	job->paused = FALSE;
 	job->finished = TRUE;
@@ -796,55 +825,44 @@ static gboolean process_stdout_channel_string(XmiMsimJob *job, gchar *string) {
 	return TRUE;
 }
 
-static gboolean xmimsim_io_watcher(GIOChannel *source, GIOCondition condition, XmiMsimJob *job) {
-	// this trick appears to work well for avoiding segfaults due to text being processed when the job has been killed
-	if (job->killed) {
-		return FALSE;
-	}
-
-	gchar *pipe_string;
-	GError *pipe_error=NULL;
-	GIOStatus pipe_status;
-	gchar *buffer = NULL;
-	int pid = job->pid;
+static void xmimsim_io_stream_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+	GDataInputStream *stream = G_DATA_INPUT_STREAM(source_object);
+	XmiMsimJob *job = XMI_MSIM_JOB(user_data);
+	GError *error = NULL;
 	gchar *xmi_msim_executable = g_ptr_array_index(job->argv, 0);
-	gboolean rv = TRUE;
+	int pid = job->pid;
 
-	if (condition & (G_IO_IN|G_IO_PRI)) {
-		pipe_status = g_io_channel_read_line(source, &pipe_string, NULL, NULL, &pipe_error);
-		if (pipe_status == G_IO_STATUS_ERROR) {
-			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", xmi_msim_executable, pid, pipe_error->message);
-			g_error_free(pipe_error);
+	gchar *buffer = g_data_input_stream_read_line_finish_utf8(stream, res, NULL, &error);
+	if (buffer == NULL) {
+
+		if (error && !g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			buffer = g_strdup_printf("%s with process id %i had an I/O error: %s\n", xmi_msim_executable, pid, error->message);
 			g_signal_emit(job, signals[STDERR_EVENT], 0, buffer);
-			rv = FALSE;
+			g_free(buffer);
 		}
-		else if (pipe_status == G_IO_STATUS_NORMAL) {
-			pipe_string = g_strchomp(pipe_string);
-			if (source == job->stdout_channel) {
-				// if stdout -> parse and send out specific event signal if necessary
-				if (process_stdout_channel_string(job, pipe_string) || job->send_all_stdout_events)
-					g_signal_emit(job, signals[STDOUT_EVENT], 0, pipe_string);
-			}
-			else if (source == job->stderr_channel) {
-				g_signal_emit(job, signals[STDERR_EVENT], 0, pipe_string);
-			}
-			else {
-				g_critical("Unknown source detected!");
-			}
-			g_free(pipe_string);
+
+		GInputStream *base_stream = g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(stream));
+		if (!g_input_stream_is_closed(base_stream)) {
+			g_input_stream_close(base_stream, NULL, NULL);
 		}
-		else
-			rv = FALSE;
-
+		g_object_unref(job);
 	}
-	else if (condition & (G_IO_ERR | G_IO_HUP | G_IO_NVAL)) {
-		//hung up...
-		rv = FALSE;
+	else {
+		g_data_input_stream_read_line_async(stream, G_PRIORITY_DEFAULT, NULL, xmimsim_io_stream_callback, job);
+		if (stream == job->stdout_input_stream) {
+			// if stdout -> parse and send out specific event signal if necessary
+			if (process_stdout_channel_string(job, buffer) || job->send_all_stdout_events) {
+				g_signal_emit(job, signals[STDOUT_EVENT], 0, buffer);
+			}
+		}
+		else if (stream == job->stderr_input_stream) {
+			g_signal_emit(job, signals[STDERR_EVENT], 0, buffer);
+		}
+		else {
+			g_critical("Unknown source detected!");
+		}
+		g_free(buffer);
 	}
-
-	g_free(buffer);
-
-	return rv;
 }
 
 /**
@@ -1071,24 +1089,28 @@ gboolean xmi_msim_job_start(XmiMsimJob *job, GError **error) {
 	g_debug("Starting job with pid %d", job->pid);
 
 #ifdef G_OS_WIN32
-	job->stderr_channel = g_io_channel_win32_new_fd(err_fh);
-	job->stdout_channel = g_io_channel_win32_new_fd(out_fh);
+	GInputStream *stdout_input_base_stream = xmi_msim_win32_input_stream_new_from_fd(out_fh, TRUE);
+	GInputStream *stderr_input_base_stream = xmi_msim_win32_input_stream_new_from_fd(err_fh, TRUE);
 #else
-	job->stderr_channel = g_io_channel_unix_new(err_fh);
-	job->stdout_channel = g_io_channel_unix_new(out_fh);
+	GInputStream *stdout_input_base_stream = g_unix_input_stream_new(out_fh, TRUE);
+	GInputStream *stderr_input_base_stream = g_unix_input_stream_new(err_fh, TRUE);
 #endif
 
 	job->child_watch_id = g_child_watch_add_full(G_PRIORITY_DEFAULT_IDLE, job->gpid, (GChildWatchFunc) xmimsim_child_watcher_cb, g_object_ref(job), g_object_unref);
 
-	g_io_channel_set_encoding(job->stdout_channel, "UTF-8", NULL);
-	g_io_channel_set_close_on_unref(job->stdout_channel, TRUE);
-	job->stdout_watch_id = g_io_add_watch_full(job->stdout_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
-	g_io_channel_unref(job->stdout_channel);
+	job->stderr_input_stream = g_data_input_stream_new(stderr_input_base_stream);
+	g_object_unref(stderr_input_base_stream);
+#ifdef G_OS_WIN32
+	g_data_input_stream_set_newline_type(G_DATA_INPUT_STREAM(job->stderr_input_stream), G_DATA_STREAM_NEWLINE_TYPE_ANY);
+#endif
+	g_data_input_stream_read_line_async(job->stderr_input_stream, G_PRIORITY_DEFAULT, NULL, xmimsim_io_stream_callback, g_object_ref(job));
 
-	g_io_channel_set_encoding(job->stderr_channel, "UTF-8", NULL);
-	g_io_channel_set_close_on_unref(job->stderr_channel, TRUE);
-	job->stderr_watch_id = g_io_add_watch_full(job->stderr_channel, G_PRIORITY_DEFAULT, G_IO_IN|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL, (GIOFunc) xmimsim_io_watcher, g_object_ref(job), g_object_unref);
-	g_io_channel_unref(job->stderr_channel);
+	job->stdout_input_stream = g_data_input_stream_new(stdout_input_base_stream);
+	g_object_unref(stdout_input_base_stream);
+#ifdef G_OS_WIN32
+	g_data_input_stream_set_newline_type(G_DATA_INPUT_STREAM(job->stdout_input_stream), G_DATA_STREAM_NEWLINE_TYPE_ANY);
+#endif
+	g_data_input_stream_read_line_async(job->stdout_input_stream, G_PRIORITY_DEFAULT, NULL, xmimsim_io_stream_callback, g_object_ref(job));
 
 	job->running = TRUE;
 	current_job = job;

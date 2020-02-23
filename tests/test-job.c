@@ -4,6 +4,7 @@
 #include "libxmimsim-test.h"
 #include <unistd.h>
 #include <glib/gstdio.h>
+#include <math.h>
 
 #define COMPOUND "C6H12O6" // sweet, sweet sugar
 
@@ -18,6 +19,7 @@ typedef struct {
 	GMainLoop *main_loop;
 	xmi_input *input;
 	xmi_main_options *options;
+	gint simulation_event_counter;
 } SetupData;
 
 static void setup_data(SetupData *data, gconstpointer user_data) {
@@ -82,6 +84,7 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	g_assert_false(xmi_msim_job_suspend(job, NULL));
 	g_assert_false(xmi_msim_job_resume(job, NULL));
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert_cmpint(g_unlink(COMPOUND "-test1\u03B1.xmsi"), ==, 0);
@@ -107,6 +110,15 @@ static void print_stderr(XmiMsimJob *job, const gchar *string) {
 	g_debug("stderr: %s", string);
 }
 
+static void test_progress_event_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, double progress, SetupData *data) {
+	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SIMULATION && data->simulation_event_counter <= 100) {
+		g_assert_cmpint((int) round(progress * 100.0), ==, data->simulation_event_counter++);
+	}
+	else {
+		g_assert_cmpfloat(progress, ==, 1.0);
+	}
+}
+
 static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	g_test_log_set_fatal_handler(test_log_fatal_false, NULL);
 	GError *error = NULL;
@@ -125,6 +137,7 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(error->domain == XMI_MSIM_ERROR);
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 	g_error_free(error);
 }
@@ -156,6 +169,7 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
 	g_assert_cmpstr(error->message, ==, "invalid reference_layer value detected");
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 	g_error_free(error);
 
@@ -202,6 +216,7 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_signal_connect(G_OBJECT(job), "special-event", G_CALLBACK(test_special_event_cb), data);
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
+	g_signal_connect(G_OBJECT(job), "progress-event", G_CALLBACK(test_progress_event_cb), data);
 
 	g_debug("command: %s", xmi_msim_job_get_command(job));
 	g_assert_true(xmi_msim_job_start(job, &error));
@@ -220,6 +235,8 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
+	g_assert_cmpint(data->simulation_event_counter, == , 101);
 	g_object_unref(job);
 
 	// test output
@@ -302,6 +319,7 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert(g_unlink(COMPOUND "-test5\u03B1.xmsi") == 0);
@@ -343,9 +361,12 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_signal_connect(G_OBJECT(job), "special-event", G_CALLBACK(test_special_event_cb), data);
 	g_signal_connect(G_OBJECT(job), "stdout-event", G_CALLBACK(print_stdout), NULL);
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
+	g_signal_connect(G_OBJECT(job), "progress-event", G_CALLBACK(test_progress_event_cb), data);
 
 	g_debug("command: %s", xmi_msim_job_get_command(job));
-	g_assert_true(xmi_msim_job_start(job, &error));
+	gboolean rv = xmi_msim_job_start(job, &error);
+	g_assert_no_error(error);
+	g_assert_true(rv);
 
 	// hook up timeout that will suspend and resume the job
 	g_timeout_add_seconds(5, (GSourceFunc) suspend_resume_timeout, job);
@@ -364,7 +385,9 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
+	g_assert_cmpint(data->simulation_event_counter, == , 101);
 
 	g_assert(g_unlink(COMPOUND "-test6\u03B1.xmsi") == 0);
 	g_assert(g_unlink(COMPOUND "-test6\u03B1.xmso") == 0);
@@ -408,7 +431,9 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_signal_connect(G_OBJECT(job), "stderr-event", G_CALLBACK(print_stderr), NULL);
 
 	g_debug("command: %s", xmi_msim_job_get_command(job));
-	g_assert_true(xmi_msim_job_start(job, &error));
+	gboolean rv = xmi_msim_job_start(job, &error);
+	g_assert_no_error(error);
+	g_assert_true(rv);
 
 	// hook up timeout that will suspend and stop the job
 	g_timeout_add_seconds(5, (GSourceFunc) suspend_stop_timeout, job);
@@ -427,6 +452,7 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
+	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert(g_unlink(COMPOUND "-test7\u03B1.xmsi") == 0);
@@ -507,9 +533,6 @@ int main(int argc, char *argv[]) {
 			test_good_input_file_suspend_stop,
 			teardown_data
 			);
-
-
-
 
 	int rv = g_test_run();
 

@@ -5,10 +5,10 @@ set -x
 
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
-export GTKMM_PLPLOT_BRANCH=master
-export GTKMM_PLPLOT_STABLE=2.3
-export XRAYLIB_BRANCH=master
-export XRAYLIB_STABLE=3.3.0
+#export GTKMM_PLPLOT_BRANCH=master
+export GTKMM_PLPLOT_STABLE=2.4
+#export XRAYLIB_BRANCH=master
+export XRAYLIB_STABLE=4.0.0
 
 # install xraylib
 if [ -n "$XRAYLIB_BRANCH" ] ; then
@@ -40,9 +40,9 @@ if test $RNG = "fgsl" ; then
 	make install
 	cd ..
 elif test $RNG = "easyRNG" ; then
-	curl -L -s -O https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.1/easyRNG-1.1.tar.gz
-	tar xfz easyRNG-1.1.tar.gz
-	cd easyRNG-1.1
+	curl -L -s -O https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.2/easyRNG-1.2.tar.gz
+	tar xfz easyRNG-1.2.tar.gz
+	cd easyRNG-1.2
 	./configure --prefix=$HOME/install --disable-static
 	make -j2
 	make install

@@ -586,6 +586,7 @@ class TestJob(unittest.TestCase):
         layer = XmiMsim.Layer.new(type(self).cd['Elements'], type(self).cd['massFractions'], 1.0, 1.0)
         composition = XmiMsim.Composition.new([layer], reference_layer=1)
         self.input.set_composition(composition)
+        self.simulation_event_counter = 0
 
     def test_no_executable(self):
         general = self.input.general.copy()
@@ -665,6 +666,13 @@ class TestJob(unittest.TestCase):
         logging.debug("message: {}".format(buffer))
         self.main_loop.quit()
 
+    def _test_progress_event_cb(self, job, event, progress):
+        if event == XmiMsim.JobSpecialEvent.SIMULATION and self.simulation_event_counter <= 100:
+            self.assertEqual(round(progress * 100.0), self.simulation_event_counter)
+            self.simulation_event_counter += 1
+        else:
+            self.assertEqual(progress, 1.0)
+
     def test_good_input_file_simple(self):
         general = self.input.general.copy()
         general.outputfile = type(self).COMPOUND + "-test.xmso"
@@ -685,6 +693,7 @@ class TestJob(unittest.TestCase):
         job.connect('special-event', self._test_special_event_cb)
         job.connect('stdout-event', self._print_stdout)
         job.connect('stderr-event', self._print_stderr)
+        job.connect('progress-event', self._test_progress_event_cb)
 
         logging.debug("command: {}".format(job.get_command()))
         job.start()
@@ -713,6 +722,8 @@ class TestJob(unittest.TestCase):
             self.fail("Starting a job after is has been run already must throw an exception!")
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        self.assertEqual(self.simulation_event_counter, 101)
 
         os.remove(type(self).COMPOUND + "-test.xmsi")
         os.remove(type(self).COMPOUND + "-test.xmso")
@@ -810,6 +821,7 @@ class TestJob(unittest.TestCase):
         job.connect('special-event', self._test_special_event_cb)
         job.connect('stdout-event', self._print_stdout)
         job.connect('stderr-event', self._print_stderr)
+        job.connect('progress-event', self._test_progress_event_cb)
 
         logging.debug("command: {}".format(job.get_command()))
         job.start()
@@ -841,6 +853,8 @@ class TestJob(unittest.TestCase):
             self.fail("Starting a job after is has been run already must throw an exception!")
         except GLib.Error as err:
             self.assertTrue(err.matches(XmiMsim.JobError.quark(), XmiMsim.JobError.UNAVAILABLE))
+
+        self.assertEqual(self.simulation_event_counter, 101)
 
         os.remove(type(self).COMPOUND + "-test.xmsi")
         os.remove(type(self).COMPOUND + "-test.xmso")

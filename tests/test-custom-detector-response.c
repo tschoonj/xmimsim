@@ -74,7 +74,6 @@ static void print_stderr(XmiMsimJob *job, const gchar *string) {
 }
 
 static void test_special_event_cb(XmiMsimJob *job, XmiMsimJobSpecialEvent event, const gchar *buffer, gpointer data) {
-	g_assert_true(xmi_msim_job_is_running(job));
 	// this test is running in brute force mode, so we know exactly what to expect
 	if (event == XMI_MSIM_JOB_SPECIAL_EVENT_SOLID_ANGLE)
 		g_assert(strcmp(buffer, "Solid angle grid redundant") == 0);
