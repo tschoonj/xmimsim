@@ -269,7 +269,10 @@ static void play_button_clicked(GtkButton *button, XmiMsimGuiBatchControlsBox *s
 
 	// before launching set verbosity and number of threads
 	GPtrArray *extra_options = g_ptr_array_new_with_free_func(g_free);
-	g_ptr_array_add(extra_options, g_strdup_printf("--set-threads=%d", (int) gtk_range_get_value(GTK_RANGE(self->nthreadsW))));
+	if (self->nthreadsW)
+		g_ptr_array_add(extra_options, g_strdup_printf("--set-threads=%d", (int) gtk_range_get_value(GTK_RANGE(self->nthreadsW))));
+	else
+		g_ptr_array_add(extra_options, g_strdup("--set-threads=1"));
 
 	if (gtk_combo_box_get_active(GTK_COMBO_BOX(self->verboseW)) == 1) {
 		g_ptr_array_add(extra_options, g_strdup("--very-verbose"));

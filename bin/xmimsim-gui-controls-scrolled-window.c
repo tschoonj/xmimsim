@@ -536,7 +536,10 @@ static void play_button_clicked_cb(GtkWidget *button, XmiMsimGuiControlsScrolled
 	if (self->job)
 		g_clear_object(&self->job);
 
-	options->omp_num_threads = (int) gtk_range_get_value(GTK_RANGE(self->nthreadsW));
+	if (self->nthreadsW)
+		options->omp_num_threads = (int) gtk_range_get_value(GTK_RANGE(self->nthreadsW));
+	else
+		options->omp_num_threads = 1;
 
 	self->job = xmi_msim_job_new(
 		gtk_entry_get_text(GTK_ENTRY(self->executableW)),
