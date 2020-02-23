@@ -84,7 +84,6 @@ static void test_no_executable(SetupData *data, gconstpointer user_data) {
 	g_assert_false(xmi_msim_job_suspend(job, NULL));
 	g_assert_false(xmi_msim_job_resume(job, NULL));
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert_cmpint(g_unlink(COMPOUND "-test1\u03B1.xmsi"), ==, 0);
@@ -137,7 +136,6 @@ static void test_no_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(error->domain == XMI_MSIM_ERROR);
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 	g_error_free(error);
 }
@@ -169,7 +167,6 @@ static void test_bad_input_file(SetupData *data, gconstpointer user_data) {
 	g_assert(error->code == XMI_MSIM_ERROR_XML);
 	g_assert_cmpstr(error->message, ==, "invalid reference_layer value detected");
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 	g_error_free(error);
 
@@ -235,7 +232,6 @@ static void test_good_input_file_simple(SetupData *data, gconstpointer user_data
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_assert_cmpint(data->simulation_event_counter, == , 101);
 	g_object_unref(job);
 
@@ -319,7 +315,6 @@ static void test_good_input_file_stop(SetupData *data, gconstpointer user_data) 
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert(g_unlink(COMPOUND "-test5\u03B1.xmsi") == 0);
@@ -385,7 +380,6 @@ static void test_good_input_file_suspend_resume(SetupData *data, gconstpointer u
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 	g_assert_cmpint(data->simulation_event_counter, == , 101);
 
@@ -452,7 +446,6 @@ static void test_good_input_file_suspend_stop(SetupData *data, gconstpointer use
 	g_assert(error->domain == XMI_MSIM_JOB_ERROR);
 	g_assert(error->code == XMI_MSIM_JOB_ERROR_UNAVAILABLE);
 
-	g_assert_cmpint(G_OBJECT(job)->ref_count, ==, 1);
 	g_object_unref(job);
 
 	g_assert(g_unlink(COMPOUND "-test7\u03B1.xmsi") == 0);
