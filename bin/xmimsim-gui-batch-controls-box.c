@@ -105,6 +105,27 @@ static void xmi_msim_gui_batch_controls_box_class_init(XmiMsimGuiBatchControlsBo
 	g_object_class_install_properties(object_class, N_PROPERTIES, props);
 }
 
+struct update_gui_data {
+	XmiMsimBatchAbstract *batch;
+	gchar *string;
+	XmiMsimGuiBatchControlsBox *self;
+	gboolean result;
+	gdouble fraction;
+	XmiMsimJob *active_job;
+};
+
+static void update_gui_data_free(gpointer _data) {
+	struct update_gui_data *data = _data;
+	if (data->batch)
+		g_object_unref(data->batch);
+	if (data->self)
+		g_object_unref(data->self);
+	g_free(data->string);
+	if (data->active_job)
+		g_object_unref(data->active_job);
+	g_free(data);
+}
+
 static void choose_logfile(GtkButton *saveButton, XmiMsimGuiBatchControlsBox *self) {
 	XmiMsimGuiFileChooserDialog *dialog;
 	gchar *filename = NULL;
@@ -126,25 +147,102 @@ static void choose_logfile(GtkButton *saveButton, XmiMsimGuiBatchControlsBox *se
 	xmi_msim_gui_file_chooser_dialog_destroy(dialog);
 }
 
-static void finished_event_cb(XmiMsimBatchAbstract *batch, gboolean result, const gchar *buffer, XmiMsimGuiBatchControlsBox *self) {
-	if (result) {
-		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "success"), NULL);
+static gboolean finished_event_idle_cb(gpointer _data) {
+	struct update_gui_data *data = _data;
+
+	gchar *buffer = g_strdup_printf("%s\n", data->string);
+
+	if (data->result) {
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(
+			data->self->controlsLogW,
+			data->self->timer,
+			data->self->controlsLogB,
+			buffer,
+			-1,
+			gtk_text_tag_table_lookup(
+				gtk_text_buffer_get_tag_table(data->self->controlsLogB),
+				"success"),
+			NULL);
 	}
 	else {
-		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error"), NULL);
+		xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(
+			data->self->controlsLogW,
+			data->self->timer,
+			data->self->controlsLogB,
+			buffer,
+			-1,
+			gtk_text_tag_table_lookup(
+				gtk_text_buffer_get_tag_table(data->self->controlsLogB),
+				"error"),
+			NULL);
 	}
-	if (self->logFile) {
-		g_output_stream_write(G_OUTPUT_STREAM(self->logFile), buffer, strlen(buffer), NULL, NULL);
+
+	if (data->self->logFile) {
+		g_output_stream_write(G_OUTPUT_STREAM(data->self->logFile), buffer, strlen(buffer), NULL, NULL);
 	}
-	g_main_loop_quit(self->main_loop);
+
+	g_free(buffer);
+
+	g_main_loop_quit(data->self->main_loop);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void finished_event_cb(XmiMsimBatchAbstract *batch, gboolean result, const gchar *buffer, XmiMsimGuiBatchControlsBox *self) {
+	struct update_gui_data *data = g_malloc0(sizeof(struct update_gui_data));
+	data->batch = g_object_ref(batch);
+	data->string = g_strdup(buffer);
+	data->self = g_object_ref(self);
+	data->result = result;
+
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, finished_event_idle_cb, data, update_gui_data_free);
+}
+
+static gboolean progress_event_idle_cb(gpointer _data) {
+	struct update_gui_data *data = _data;
+
+	int file_index = round(data->fraction * xmi_msim_batch_abstract_get_number_of_jobs(data->batch));
+	gchar *pbartext = g_strdup_printf("File %d/%d completed", file_index, xmi_msim_batch_abstract_get_number_of_jobs(data->batch));
+	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(data->self->progressbarW), pbartext);
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(data->self->progressbarW), data->fraction);
+	g_free(pbartext);
+
+	return G_SOURCE_REMOVE;
 }
 
 static void progress_event_cb(XmiMsimBatchAbstract *batch, gdouble fraction, XmiMsimGuiBatchControlsBox *self) {
-	int file_index = round(fraction * xmi_msim_batch_abstract_get_number_of_jobs(batch));
-	gchar *pbartext = g_strdup_printf("File %d/%d completed", file_index, xmi_msim_batch_abstract_get_number_of_jobs(batch));
-	gtk_progress_bar_set_text(GTK_PROGRESS_BAR(self->progressbarW), pbartext);
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(self->progressbarW), fraction);
-	g_free(pbartext);
+	struct update_gui_data *data = g_malloc0(sizeof(struct update_gui_data));
+	data->batch = g_object_ref(batch);
+	data->self = g_object_ref(self);
+	data->fraction = fraction;
+
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, progress_event_idle_cb, data, update_gui_data_free);
+}
+
+static gboolean active_job_changed_idle_cb(gpointer _data) {
+	struct update_gui_data *data = _data;
+
+	int pid;
+	xmi_msim_job_get_pid(data->active_job, &pid, NULL); // let's assume this won't fail...
+	gchar *xmimsim_executable = NULL;
+	g_object_get(data->batch, "executable", &xmimsim_executable, NULL);
+	gchar *buffer = g_strdup_printf("%s was started with process id %d\n", xmimsim_executable, pid);
+	g_free(xmimsim_executable);
+	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(
+		data->self->controlsLogW,
+		data->self->timer,
+		data->self->controlsLogB,
+		buffer,
+		-1,
+		NULL);
+
+	if (data->self->logFile) {
+		g_output_stream_write(G_OUTPUT_STREAM(data->self->logFile), buffer, strlen(buffer), NULL, NULL);
+	}
+
+	g_free(buffer);
+
+	return G_SOURCE_REMOVE;
 }
 
 static void active_job_changed_cb(XmiMsimBatchAbstract *batch, XmiMsimJob *active_job, XmiMsimGuiBatchControlsBox *self) {
@@ -152,35 +250,67 @@ static void active_job_changed_cb(XmiMsimBatchAbstract *batch, XmiMsimJob *activ
 	if (active_job == NULL)
 		return;
 
-	int pid;
-	xmi_msim_job_get_pid(active_job, &pid, NULL); // let's assume this won't fail...
-	gchar *xmimsim_executable = NULL;
-	g_object_get(batch, "executable", &xmimsim_executable, NULL);
-	gchar *buffer = g_strdup_printf("%s was started with process id %d\n", xmimsim_executable, pid);
-	g_free(xmimsim_executable);
-	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, NULL);
-	if (self->logFile) {
-		g_output_stream_write(G_OUTPUT_STREAM(self->logFile), buffer, strlen(buffer), NULL, NULL);
+	struct update_gui_data *data = g_malloc0(sizeof(struct update_gui_data));
+	data->batch = g_object_ref(batch);
+	data->self = g_object_ref(self);
+	data->active_job = g_object_ref(active_job);
+
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, active_job_changed_idle_cb, data, update_gui_data_free);
+}
+
+static gboolean stdout_event_idle_cb(gpointer _data) {
+	struct update_gui_data *data = _data;
+
+	gchar *buffer = g_strdup_printf("%s\n", data->string);
+	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(data->self->controlsLogW, data->self->timer, data->self->controlsLogB, buffer, -1, NULL);
+	if (data->self->logFile) {
+		g_output_stream_write(G_OUTPUT_STREAM(data->self->logFile), buffer, strlen(buffer), NULL, NULL);
 	}
 	g_free(buffer);
+
+	return G_SOURCE_REMOVE;
 }
 
 static void stdout_event_cb(XmiMsimBatchAbstract *batch, const gchar *string, XmiMsimGuiBatchControlsBox *self) {
-	gchar *buffer = g_strdup_printf("%s\n", string);
-	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, NULL);
-	if (self->logFile) {
-		g_output_stream_write(G_OUTPUT_STREAM(self->logFile), buffer, strlen(buffer), NULL, NULL);
+	struct update_gui_data *data = g_malloc0(sizeof(struct update_gui_data));
+	data->batch = g_object_ref(batch);
+	data->string = g_strdup(string);
+	data->self = g_object_ref(self);
+
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, stdout_event_idle_cb, data, update_gui_data_free);
+
+}
+
+static gboolean stderr_event_idle_cb(gpointer _data) {
+	struct update_gui_data *data = _data;
+
+	gchar *buffer = g_strdup_printf("%s\n", data->string);
+	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(
+		data->self->controlsLogW,
+		data->self->timer,
+		data->self->controlsLogB,
+		buffer,
+		-1,
+		gtk_text_tag_table_lookup(
+			gtk_text_buffer_get_tag_table(data->self->controlsLogB),
+			"error"),
+		NULL);
+
+	if (data->self->logFile) {
+		g_output_stream_write(G_OUTPUT_STREAM(data->self->logFile), buffer, strlen(buffer), NULL, NULL);
 	}
 	g_free(buffer);
+
+	return G_SOURCE_REMOVE;
 }
 
 static void stderr_event_cb(XmiMsimBatchAbstract *batch, const gchar *string, XmiMsimGuiBatchControlsBox *self) {
-	gchar *buffer = g_strdup_printf("%s\n", string);
-	xmi_msim_gui_utils_text_buffer_insert_at_cursor_with_tags(self->controlsLogW, self->timer, self->controlsLogB, buffer, -1, gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(self->controlsLogB), "error"), NULL);
-	if (self->logFile) {
-		g_output_stream_write(G_OUTPUT_STREAM(self->logFile), buffer, strlen(buffer), NULL, NULL);
-	}
-	g_free(buffer);
+	struct update_gui_data *data = g_malloc0(sizeof(struct update_gui_data));
+	data->batch = g_object_ref(batch);
+	data->string = g_strdup(string);
+	data->self = g_object_ref(self);
+
+	gdk_threads_add_idle_full(G_PRIORITY_DEFAULT_IDLE, stderr_event_idle_cb, data, update_gui_data_free);
 }
 
 static void play_button_clicked(GtkButton *button, XmiMsimGuiBatchControlsBox *self) {
