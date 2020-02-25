@@ -4,8 +4,8 @@
 <name>XMI-MSIM</name>
 <meta>
 	<prefix name='default'>/usr/local</prefix>	
-	<prefix name='source'>/Users/schoon/github/xmimsim</prefix>	
-	<prefix name='build'>/Users/schoon/github/xmimsim/build</prefix>	
+	<prefix name='source'>/Users/${env:USER}/github/xmimsim</prefix>	
+	<prefix name='build'>/Users/${env:USER}/github/xmimsim/build</prefix>	
 	<destination overwrite="yes">${env:PWD}</destination>
 	<run-install-name-tool/>
 	<gtk>gtk+-3.0</gtk>
