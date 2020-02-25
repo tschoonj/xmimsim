@@ -35,6 +35,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Silence warnings about using deprecated OpenCL 1.2 functions.
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
+// Silence warnings on Ubuntu
+#define CL_TARGET_OPENCL_VERSION 110
+
 #ifdef HAVE_OPENCL_CL_H
   #include <OpenCL/cl.h>
 #elif defined(HAVE_CL_CL_H)
