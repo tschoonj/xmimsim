@@ -108,6 +108,9 @@ static void xmi_msim_gui_plugins_engine_init(XmiMsimGuiPluginsEngine *engine) {
 		}
 	}
 
+	// embedded plugins
+	peas_engine_add_search_path(PEAS_ENGINE(engine), "resource:///com/github/tschoonj/xmimsim/gui/sources", NULL);
+
 	gchar *sources_dir = NULL;
 
 	// system-wide plugins

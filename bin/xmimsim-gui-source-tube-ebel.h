@@ -30,8 +30,21 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_IS_SOURCE_TUBE_EBEL_CLASS(klass)       (G_TYPE_CHECK_CLASS_TYPE ((klass), XMI_MSIM_GUI_TYPE_SOURCE_TUBE_EBEL))
 #define XMI_MSIM_GUI_SOURCE_TUBE_EBEL_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCE_TUBE_EBEL, XmiMsimGuiSourceTubeEbelClass))
 
-typedef struct _XmiMsimGuiSourceTubeEbel XmiMsimGuiSourceTubeEbel;
-typedef struct _XmiMsimGuiSourceTubeEbelClass   XmiMsimGuiSourceTubeEbelClass;
+typedef struct _XmiMsimGuiSourceTubeEbel          XmiMsimGuiSourceTubeEbel;
+typedef struct _XmiMsimGuiSourceTubeEbelPrivate   XmiMsimGuiSourceTubeEbelPrivate;
+typedef struct _XmiMsimGuiSourceTubeEbelClass     XmiMsimGuiSourceTubeEbelClass;
+
+struct _XmiMsimGuiSourceTubeEbel
+{
+  	XmiMsimGuiSourceAbstract parent_instance;
+	XmiMsimGuiSourceTubeEbelPrivate *priv;
+};
+
+
+struct _XmiMsimGuiSourceTubeEbelClass
+{
+  XmiMsimGuiSourceAbstractClass parent_class;
+};
 
 GType xmi_msim_gui_source_tube_ebel_get_type(void) G_GNUC_CONST;
 

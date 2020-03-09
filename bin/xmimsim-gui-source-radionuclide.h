@@ -31,7 +31,19 @@ G_BEGIN_DECLS
 #define XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_GET_CLASS(obj)        (G_TYPE_INSTANCE_GET_CLASS ((obj), XMI_MSIM_GUI_TYPE_SOURCE_RADIONUCLIDE, XmiMsimGuiSourceRadionuclideClass))
 
 typedef struct _XmiMsimGuiSourceRadionuclide XmiMsimGuiSourceRadionuclide;
+typedef struct _XmiMsimGuiSourceRadionuclidePrivate   XmiMsimGuiSourceRadionuclidePrivate;
 typedef struct _XmiMsimGuiSourceRadionuclideClass   XmiMsimGuiSourceRadionuclideClass;
+
+struct _XmiMsimGuiSourceRadionuclide
+{
+  	XmiMsimGuiSourceAbstract parent_instance;
+	XmiMsimGuiSourceRadionuclidePrivate *priv;
+};
+
+struct _XmiMsimGuiSourceRadionuclideClass
+{
+  XmiMsimGuiSourceAbstractClass parent_class;
+};
 
 GType xmi_msim_gui_source_radionuclide_get_type(void) G_GNUC_CONST;
 

@@ -1,4 +1,7 @@
 [Plugin]
 Module=xmimsim-gui-source-radionuclide
 Name=Radionuclide Source Generator
+Authors=Tom Schoonjans
 Loader=C
+Builtin=true
+Embedded=peas_register_radionuclides_types
