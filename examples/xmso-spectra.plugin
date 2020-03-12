@@ -1,0 +1,4 @@
+[Plugin]
+Module=xmso-spectra
+Name=XMSO spectra source
+Loader=python3
