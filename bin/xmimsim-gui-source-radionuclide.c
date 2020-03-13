@@ -33,21 +33,14 @@ enum {
 	ACTIVITY_UNIT_Bq,
 };
 
-struct _XmiMsimGuiSourceRadionuclide
+struct _XmiMsimGuiSourceRadionuclidePrivate
 {
-  	XmiMsimGuiSourceAbstract parent_instance;
   	// all our widgets
 	GtkWidget *radioNuclideW;
 	GtkWidget *activityW;
 	GtkWidget *activityUnitW;
 	GtkWidget *nuclideSolidAngleW;
 	gboolean dispose_called;
-};
-
-struct _XmiMsimGuiSourceRadionuclideClass
-{
-  XmiMsimGuiSourceAbstractClass parent_class;
-
 };
 
 typedef struct {
@@ -59,12 +52,12 @@ typedef struct {
 
 static const gchar *activity_units[4] = {"mCi", "Ci", "GBq", "Bq"};
 
-G_DEFINE_DYNAMIC_TYPE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
+G_DEFINE_TYPE_WITH_PRIVATE(XmiMsimGuiSourceRadionuclide, xmi_msim_gui_source_radionuclide, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT)
 
-G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module);
+G_MODULE_EXPORT void peas_register_radionuclides_types(PeasObjectModule *module);
 
-G_MODULE_EXPORT void peas_register_types(PeasObjectModule *module) {
-	xmi_msim_gui_source_radionuclide_register_type(G_TYPE_MODULE(module));
+G_MODULE_EXPORT void peas_register_radionuclides_types(PeasObjectModule *module) {
+	g_debug("Entering tube peas_register_radionuclides_types");
 
 	peas_object_module_register_extension_type(module, XMI_MSIM_GUI_TYPE_SOURCE_ABSTRACT, XMI_MSIM_GUI_TYPE_SOURCE_RADIONUCLIDE);
 }
@@ -99,10 +92,10 @@ static void xmi_msim_gui_source_radionuclide_class_init(XmiMsimGuiSourceRadionuc
 static xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclide *source, GError **error) {
 	xmi_nuclide_parameters *xnp = (xmi_nuclide_parameters *) g_malloc(sizeof(xmi_nuclide_parameters));
 
-	xnp->radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(source->radioNuclideW));
-	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(source->activityUnitW));
+	xnp->radioNuclide = gtk_combo_box_get_active(GTK_COMBO_BOX(source->priv->radioNuclideW));
+	xnp->activityUnit = gtk_combo_box_get_active(GTK_COMBO_BOX(source->priv->activityUnitW));
 	
-	const gchar *text = gtk_entry_get_text(GTK_ENTRY(source->activityW));
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(source->priv->activityW));
 	gchar *endPtr;
 	xnp->activity = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || xnp->activity <= 0.0) {
@@ -110,7 +103,7 @@ static xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclide *sour
 		g_free(xnp);
 		return NULL;
 	}
-	text = gtk_entry_get_text(GTK_ENTRY(source->nuclideSolidAngleW));
+	text = gtk_entry_get_text(GTK_ENTRY(source->priv->nuclideSolidAngleW));
 	xnp->nuclide_solid_angle = strtod(text, &endPtr);
 	if (strlen(text) == 0 || text + strlen(text) != endPtr || xnp->nuclide_solid_angle <= 0.0 || xnp->nuclide_solid_angle >= 2.0*M_PI) {
 		g_set_error(error, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR, XMI_MSIM_GUI_SOURCE_RADIONUCLIDE_ERROR_INVALID_DATA, "Invalid solid angle: must be greater than zero and less than 2\317\200");
@@ -124,15 +117,15 @@ static xmi_nuclide_parameters* get_parameters(XmiMsimGuiSourceRadionuclide *sour
 static void set_parameters(XmiMsimGuiSourceRadionuclide *source, xmi_nuclide_parameters *xnp) {
 	gchar *buf;
 
-	gtk_combo_box_set_active(GTK_COMBO_BOX(source->radioNuclideW), xnp->radioNuclide);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(source->activityUnitW), xnp->activityUnit);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(source->priv->radioNuclideW), xnp->radioNuclide);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(source->priv->activityUnitW), xnp->activityUnit);
 
 	buf = g_strdup_printf("%g", xnp->activity);
-	gtk_entry_set_text(GTK_ENTRY(source->activityW), buf);
+	gtk_entry_set_text(GTK_ENTRY(source->priv->activityW), buf);
 	g_free(buf);
 
 	buf = g_strdup_printf("%g", xnp->nuclide_solid_angle);
-	gtk_entry_set_text(GTK_ENTRY(source->nuclideSolidAngleW), buf);
+	gtk_entry_set_text(GTK_ENTRY(source->priv->nuclideSolidAngleW), buf);
 	g_free(buf);
 }
 
@@ -288,7 +281,8 @@ static xmi_nuclide_parameters* get_preferences() {
 }
 
 static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *source) {
-	source->dispose_called = FALSE;
+	source->priv = xmi_msim_gui_source_radionuclide_get_instance_private(source);
+	source->priv->dispose_called = FALSE;
 
 	// construct the widgets, and set them to their values as we go along...
 	GtkWidget *mainVBox = GTK_WIDGET(source);
@@ -296,17 +290,17 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Radionuclide"), FALSE, FALSE, 2);
-	source->radioNuclideW = gtk_combo_box_text_new();
+	source->priv->radioNuclideW = gtk_combo_box_text_new();
 
 	gchar **nuclides;
 	int nNuclides, i;
 	nuclides = GetRadioNuclideDataList(&nNuclides, NULL);
 	for (i = 0 ; i < nNuclides ; i++) {
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->radioNuclideW), nuclides[i]);
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->priv->radioNuclideW), nuclides[i]);
 		g_free(nuclides[i]);
 	}
 	g_free(nuclides);
-	gtk_box_pack_end(GTK_BOX(hbox), source->radioNuclideW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), source->priv->radioNuclideW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, FALSE, FALSE, 2);
 	gtk_widget_show_all(hbox);
 
@@ -314,25 +308,25 @@ static void xmi_msim_gui_source_radionuclide_init(XmiMsimGuiSourceRadionuclide *
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new("Activity"), FALSE, FALSE, 2);
-	source->activityW = gtk_entry_new();
+	source->priv->activityW = gtk_entry_new();
 
-	source->activityUnitW = gtk_combo_box_text_new();
+	source->priv->activityUnitW = gtk_combo_box_text_new();
 	for (i = 0 ; i < 4 ; i++) {
-		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->activityUnitW), activity_units[i]);
+		gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(source->priv->activityUnitW), activity_units[i]);
 	}
-	gtk_box_pack_end(GTK_BOX(hbox), source->activityUnitW, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(hbox), source->activityW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), source->priv->activityUnitW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), source->priv->activityW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, FALSE, FALSE, 2);
 	gtk_widget_show_all(hbox);
 
-	source->nuclideSolidAngleW = gtk_entry_new();
+	source->priv->nuclideSolidAngleW = gtk_entry_new();
 	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
 	GtkWidget *label = gtk_label_new("Source solid angle (sr)");
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 2);
 	GtkWidget *slitsButton = gtk_button_new_with_label("Get from slits");
 	gtk_box_pack_end(GTK_BOX(hbox), slitsButton, FALSE, FALSE, 2);
-	gtk_box_pack_end(GTK_BOX(hbox), source->nuclideSolidAngleW, FALSE, FALSE, 2);
+	gtk_box_pack_end(GTK_BOX(hbox), source->priv->nuclideSolidAngleW, FALSE, FALSE, 2);
 	gtk_box_pack_start(GTK_BOX(mainVBox), hbox, FALSE, FALSE, 2);
 	gtk_widget_show_all(hbox);
 
@@ -356,7 +350,7 @@ static void slits_button_clicked_cb(XmiMsimGuiSourceRadionuclide *source) {
 	xmi_input_free(current);
 
 	gchar *buf = g_strdup_printf("%g", solid_angle);
-	gtk_entry_set_text(GTK_ENTRY(source->nuclideSolidAngleW), buf);
+	gtk_entry_set_text(GTK_ENTRY(source->priv->nuclideSolidAngleW), buf);
 	g_free(buf);
 	return;
 }
@@ -516,7 +510,7 @@ static const gchar *xmi_msim_gui_source_radionuclide_real_get_about_text(XmiMsim
 static void xmi_msim_gui_source_radionuclide_dispose(GObject *object) {
 	XmiMsimGuiSourceRadionuclide *source = XMI_MSIM_GUI_SOURCE_RADIONUCLIDE(object);
 
-	if (source->dispose_called == FALSE) {
+	if (source->priv->dispose_called == FALSE) {
 		// save current input in preferences if valid
 		// this can only occur the first time the dispose method is called though!
 		xmi_nuclide_parameters *xnp = get_parameters(source, NULL);
@@ -524,7 +518,7 @@ static void xmi_msim_gui_source_radionuclide_dispose(GObject *object) {
 			set_preferences(xnp);
 			g_free(xnp);
 		}
-		source->dispose_called = TRUE;
+		source->priv->dispose_called = TRUE;
 	}
 	G_OBJECT_CLASS(xmi_msim_gui_source_radionuclide_parent_class)->dispose(object);
 }

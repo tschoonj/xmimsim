@@ -1,0 +1,5 @@
+[Plugin]
+Module=pymca-ebel
+Name=PyMca Ebel source
+Loader=python3
+Depends=xmimsim-gui-source-tube-ebel

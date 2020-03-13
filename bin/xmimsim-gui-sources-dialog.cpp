@@ -313,8 +313,14 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 		gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(export_dialog));
 		xmi_msim_gui_file_chooser_dialog_destroy(export_dialog);
 		GError *error = NULL;
-		if (!xmi_msim_gui_source_abstract_save(source, (const char *) filename, &error)) {
-			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(export_dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting %s spectrum to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+		if (xmi_msim_gui_source_abstract_save(source, (const char *) filename, &error)) {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "The %s spectrum was successfully exported to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
+
+			gtk_dialog_run(GTK_DIALOG(info_dialog));
+			gtk_widget_destroy(info_dialog);
+		}
+		else {
+			GtkWidget *info_dialog = gtk_message_dialog_new(GTK_WINDOW(dialog), (GtkDialogFlags) (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT), GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "Error exporting %s spectrum to %s", xmi_msim_gui_source_abstract_get_name(source), filename);
 			gtk_message_dialog_format_secondary_markup(GTK_MESSAGE_DIALOG(info_dialog), "%s", error->message);
 
 			gtk_dialog_run(GTK_DIALOG(info_dialog));
@@ -327,7 +333,6 @@ static void export_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog 
 	else {
 		xmi_msim_gui_file_chooser_dialog_destroy(export_dialog);
 	}
-	return;
 }
 
 static void image_button_clicked_cb(GtkButton *button, XmiMsimGuiSourcesDialog *dialog) {

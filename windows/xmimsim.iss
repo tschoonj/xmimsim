@@ -111,11 +111,6 @@ Source: "{#srcdir}\xml\xmimsim-1.0.dtd" ; DestDir: "{app}\Share" ; Components: c
 
 Source: "{#builddir}\src\.libs\xmimsim-cl.dll" ; DestDir: "{app}\Lib\OpenCL" ; Components: core
 
-Source: "{#builddir}\bin\.libs\libxmimsim-gui-source-radionuclide.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
-Source: "{#builddir}\bin\.libs\libxmimsim-gui-source-tube-ebel.dll" ; DestDir: "{app}\Lib\Sources" ; Components: core
-Source: "{#srcdir}\bin\xmimsim-gui-source-radionuclide.plugin" ; DestDir: "{app}\Lib\Sources" ; Components: core
-Source: "{#srcdir}\bin\xmimsim-gui-source-tube-ebel.plugin" ; DestDir: "{app}\Lib\Sources" ; Components: core
-
 Source: "{#builddir}\src\XmiMsim-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
 Source: "{#builddir}\bin\XmiMsimGui-1.0.typelib" ; DestDir: "{app}\Lib\girepository-1.0" ; Components: core
 

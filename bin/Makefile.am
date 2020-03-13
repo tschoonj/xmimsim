@@ -26,6 +26,7 @@ AM_CFLAGS = $(WSTRICT_CFLAGS)
 NULL=
 
 noinst_LTLIBRARIES=$(NULL)
+noinst_PROGRAMS = $(NULL)
 
 if ENABLE_GUI
 libxmimsim_gui_includedir = ${includedir}/xmimsim-gui
@@ -109,6 +110,10 @@ libxmimsim_gui_la_SOURCES = \
 	xmimsim-gui-plugins-engine.c \
 	xmimsim-gui-batch-controls-box.c \
 	xmimsim-gui-batch-multi-selection-type-grid.c \
+	xmimsim-gui-source-tube-ebel.h \
+	xmimsim-gui-source-tube-ebel.c \
+	xmimsim-gui-source-radionuclide.h \
+	xmimsim-gui-source-radionuclide.c \
 	$(NULL)
 
 
@@ -139,47 +144,6 @@ libxmimsim_gui_la_LIBADD = \
 
 plugindir = $(libdir)/xmimsim-gui/sources
 
-dist_plugin_DATA = \
-	xmimsim-gui-source-tube-ebel.plugin \
-	xmimsim-gui-source-radionuclide.plugin \
-	$(NULL)
-
-plugin_LTLIBRARIES = \
-	libxmimsim-gui-source-tube-ebel.la \
-	libxmimsim-gui-source-radionuclide.la \
-	$(NULL)
-libxmimsim_gui_source_tube_ebel_la_CPPFLAGS = \
-	$(AM_CPPFLAGS) \
-	@gtkmm3_CFLAGS@ \
-	@xraylib_CFLAGS@ \
-	@xml2_CFLAGS@ \
-	@libsoup_CFLAGS@ \
-	$(NULL)
-libxmimsim_gui_source_tube_ebel_la_SOURCES = \
-	xmimsim-gui-source-tube-ebel.h \
-	xmimsim-gui-source-tube-ebel.c \
-	$(NULL)
-libxmimsim_gui_source_tube_ebel_la_LDFLAGS = -module -avoid-version -shared \
-	@LDFLAGS_XMIMSIM_CL@ \
-	$(AM_LDFLAGS) \
-	$(NULL)
-libxmimsim_gui_source_tube_ebel_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
-
-libxmimsim_gui_source_radionuclide_la_CPPFLAGS = \
-	$(AM_CPPFLAGS) \
-	@gtkmm3_CFLAGS@ \
-	@xraylib_CFLAGS@ \
-	@xml2_CFLAGS@ \
-	$(NULL)
-libxmimsim_gui_source_radionuclide_la_SOURCES = \
-	xmimsim-gui-source-radionuclide.h \
-	xmimsim-gui-source-radionuclide.c \
-	$(NULL)
-libxmimsim_gui_source_radionuclide_la_LDFLAGS = -module -avoid-version -shared \
-	@LDFLAGS_XMIMSIM_CL@ \
-	$(AM_LDFLAGS) \
-	$(NULL)
-libxmimsim_gui_source_radionuclide_la_LIBADD = libxmimsim-gui.la ../src/libxmimsim.la
 noinst_LTLIBRARIES += \
 	libxmimsim-gui-source-random.la
 libxmimsim_gui_source_random_la_CPPFLAGS = \
@@ -203,7 +167,6 @@ libxmimsim_gui_source_random_la_LIBADD = libxmimsim-gui.la \
 	@easyRNG_LIBS@ \
 	@xraylib_LIBS@ \
 	$(NULL)
-		    
 endif
 
 bin_PROGRAMS =  xmimsim \
@@ -219,7 +182,6 @@ bin_PROGRAMS =  xmimsim \
 		xmsa2xmso \
 		$(NULL)
 
-noinst_PROGRAMS = $(NULL)
 #if ENABLE_GUI
 #noinst_PROGRAMS += xmimsim-gui-xmsi-selection-scrolled-window-test
 #endif
@@ -240,6 +202,32 @@ noinst_PROGRAMS = $(NULL)
 
 if ENABLE_GUI
 bin_PROGRAMS += xmimsim-gui
+
+xmimsim_gui_SOURCES = \
+	xmimsim-gui-main.c
+	$(NULL)
+
+nodist_xmimsim_gui_SOURCES = \
+	$(NULL)
+
+xmimsim_gui_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	@gtkmm3_CFLAGS@ \
+	@xraylib_CFLAGS@ \
+	@xml2_CFLAGS@ \
+	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
+	$(NULL)
+
+xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
+
+xmimsim_gui_LDADD = \
+    @gtkmm3_LIBS@ \
+    @xraylib_LIBS@ \
+    @xml2_LIBS@ \
+    ../src/libxmimsim.la \
+    libxmimsim-gui.la \
+    $(NULL)
+
 BUILT_SOURCES = \
 	$(nodist_xmimsim_gui_SOURCES) \
 	$(nodist_libxmimsim_gui_la_SOURCES) \
@@ -262,22 +250,6 @@ xmimsim_harvester_LDADD = ../src/libxmimsim.la \
 			  @glib2_LIBS@
 
 
-xmimsim_gui_SOURCES = \
-	xmimsim-gui-main.c
-	$(NULL)
-
-nodist_xmimsim_gui_SOURCES = \
-	$(NULL)
-
-xmimsim_gui_CPPFLAGS = \
-	$(AM_CPPFLAGS) \
-	@gtkmm3_CFLAGS@ \
-	@xraylib_CFLAGS@ \
-	@xml2_CFLAGS@ \
-	-DXMIMSIM_ICON_DEFAULT=\"$(datadir)/xmimsim/Logo_xmi_msim.png\" \
-	$(NULL)
-
-xmimsim_gui_LDFLAGS = $(EXTRA_LDFLAGS)
 
 if ENABLE_GUI
 if OS_DARWIN
@@ -288,17 +260,7 @@ libxmimsim_gui_osx_la_SOURCES = xmimsim-gui-osx.m xmimsim-gui-osx.h
 libxmimsim_gui_osx_la_OBJCFLAGS = @gtkmm3_CFLAGS@
 libxmimsim_gui_la_LIBADD += libxmimsim-gui-osx.la
 endif
-endif
 
-
-xmimsim_gui_LDADD = libxmimsim-gui.la \
-		    @gtkmm3_LIBS@ \
-		    @xraylib_LIBS@ \
-		    @xml2_LIBS@ \
-		    ../src/libxmimsim.la
-
-
-if ENABLE_GUI
 if ENABLE_UPDATER
 libxmimsim_gui_include_HEADERS += xmimsim-gui-updater.h
 libxmimsim_gui_la_SOURCES += xmimsim-gui-updater.c xmimsim-gui-updater.h
@@ -310,14 +272,16 @@ libxmimsim_gui_la_LIBADD += \
 	@libsoup_LIBS@ \
 	$(NULL)
 endif
-endif
 
 if OS_WINDOWS
 xmimsim_gui_LDFLAGS += -Wl,-subsystem,windows
 xmimsim_gui_SOURCES += xmimsim-icon.rc
 xmimsim_gui_LDADD += xmimsim-icon.o
 xmimsim_gui_CPPFLAGS += -I$(builddir)  -D_WIN32_WINNT=0x0501
+libxmimsim_gui_la_LDFLAGS += -export-symbols-regex '^xmi_msim_gui_'
 endif
+endif
+
 
 xmimsim_SOURCES = xmimsim.c
 xmimsim_CPPFLAGS = @OPENMPI_CFLAGS@ \
@@ -435,6 +399,7 @@ INTROSPECTION_COMPILER_ARGS = --includedir=$(top_builddir)/src
 
 if ENABLE_GUI
 if HAVE_INTROSPECTION
+
 introspection_sources = \
 	xmimsim-gui-source-abstract.c \
 	xmimsim-gui-source-abstract.h \
@@ -450,6 +415,10 @@ introspection_sources = \
 	xmimsim-gui-type-builtins.h \
 	xmimsim-gui-xmso-results-application-window.c \
 	xmimsim-gui-xmso-results-application-window.h \
+	xmimsim-gui-source-tube-ebel.h \
+	xmimsim-gui-source-tube-ebel.c \
+	xmimsim-gui-source-radionuclide.h \
+	xmimsim-gui-source-radionuclide.c \
 	$(NULL)
 
 XmiMsimGui-1.0.gir: libxmimsim-gui.la
@@ -487,5 +456,14 @@ xmimsim-gui-resources.c: xmimsim-gui.gresource.xml $(shell $(GLIB_COMPILE_RESOUR
 clean-local:
 	rm -rf $(nodist_libxmimsim_gui_la_SOURCES) $(nodist_xmimsim_gui_SOURCES) libxmimsim-gui-0.def $(CLEANFILES)
 
-EXTRA_DIST = xmimsim-gui.gresource.xml gtk-yes.png gtk-no.png menus-appmenu.ui menus-common.ui coordinate_system.png
+EXTRA_DIST = \
+	xmimsim-gui.gresource.xml \
+	gtk-yes.png \
+	gtk-no.png \
+	menus-appmenu.ui \
+	menus-common.ui \
+	coordinate_system.png \
+	xmimsim-gui-source-tube-ebel.plugin \
+	xmimsim-gui-source-radionuclide.plugin \
+	$(NULL)
 

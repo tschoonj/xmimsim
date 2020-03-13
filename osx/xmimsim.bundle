@@ -35,10 +35,6 @@
 <binary dest="${bundle}/Contents/Resources">${prefix:default}/lib/xmimsim/xmimsim-cl.so</binary>
 <binary dest="${bundle}/Contents/Resources">${prefix:default}/lib/xmimsim/xmimsim-metal.so</binary>
 <data dest="${bundle}/Contents/Resources">${prefix:default}/share/xmimsim/xmi_kernels.metallib</data>
-<binary dest="${bundle}/Contents/Resources/sources/libxmimsim-gui-source-radionuclide.so">${prefix:default}/lib/xmimsim-gui/sources/libxmimsim-gui-source-radionuclide.so</binary>
-<binary dest="${bundle}/Contents/Resources/sources/libxmimsim-gui-source-tube-ebel.so">${prefix:default}/lib/xmimsim-gui/sources/libxmimsim-gui-source-tube-ebel.so</binary>
-<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-radionuclide.plugin">${prefix:default}/lib/xmimsim-gui/sources/xmimsim-gui-source-radionuclide.plugin</data>
-<data dest="${bundle}/Contents/Resources/sources/xmimsim-gui-source-tube-ebel.plugin">${prefix:default}/lib/xmimsim-gui/sources/xmimsim-gui-source-tube-ebel.plugin</data>
 <data dest="${bundle}/Contents/Resources/include/xmimsim">${prefix:default}/include/xmimsim</data>
 <data dest="${bundle}/Contents/Resources/include/xmimsim-gui">${prefix:default}/include/xmimsim-gui</data>
 

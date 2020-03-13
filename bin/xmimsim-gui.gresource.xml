@@ -43,4 +43,8 @@
 		<file preprocess="xml-stripblanks">menus-appmenu.ui</file>
 		<file preprocess="xml-stripblanks">menus-common.ui</file>
 	</gresource>
+	<gresource prefix="/com/github/tschoonj/xmimsim/gui/sources">
+		<file>xmimsim-gui-source-tube-ebel.plugin</file>
+		<file>xmimsim-gui-source-radionuclide.plugin</file>
+	</gresource>
 </gresources>

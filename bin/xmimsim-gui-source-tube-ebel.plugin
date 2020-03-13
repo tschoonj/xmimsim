@@ -1,4 +1,7 @@
 [Plugin]
 Module=xmimsim-gui-source-tube-ebel
 Name=Ebel Tube Source Generator
+Authors=Tom Schoonjans
 Loader=C
+Builtin=true
+Embedded=peas_register_tube_ebel_types

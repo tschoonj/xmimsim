@@ -122,8 +122,6 @@ fi || :
 %defattr(-,root,root)
 %{_libdir}/libxmimsim.so.*
 %{_libdir}/libxmimsim-gui.so.*
-%{_libdir}/xmimsim-gui/sources/*.so
-%{_libdir}/xmimsim-gui/sources/*.plugin
 %{_bindir}/xmimsim
 %{_bindir}/xmimsim-pymca
 %{_bindir}/xmimsim-gui
