@@ -345,6 +345,7 @@ WSTRICT_CFLAGS=
 #AX_CHECK_COMPILE_FLAG([-Werror=deprecated],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated"],,)
 #AX_CHECK_COMPILE_FLAG([-Werror=deprecated-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=deprecated-declarations"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-declarations],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-declarations"],,)
+AX_CHECK_COMPILE_FLAG([-Werror=implicit-function-declaration],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit-function-declaration"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=missing-prototypes],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=missing-prototypes"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=implicit],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=implicit"],,)
 AX_CHECK_COMPILE_FLAG([-Werror=shadow],[WSTRICT_CFLAGS="${WSTRICT_CFLAGS} -Werror=shadow"],,)
