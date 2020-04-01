@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include <math.h>
+#include <string.h>
 
 struct _XmiMsimGuiBatchControlsBox {
 	GtkBox parent_instance;
