@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glib/gstdio.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
+#include <string.h>
 
 static G_DEFINE_QUARK("options-box", options_box)
 #define OPTIONS_BOX_QUARK options_box_quark()
