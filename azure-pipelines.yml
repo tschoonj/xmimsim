@@ -75,7 +75,7 @@ jobs:
     - script: |
         set -e -x
         brew install autoconf automake libtool wget pkg-config libxslt hdf5 libsoup pygobject3 bash swig numpy gcc llvm librsvg
-        pip3 install lxml
+        /usr/local/opt/python@3.8/bin/pip3 install lxml
       displayName: Install shared Homebrew dependencies
 
     - script: |
@@ -103,10 +103,9 @@ jobs:
 
     - script: |
         set -e -x
+        export PATH=/usr/local/opt/python@3.8/bin:$PATH
         autoreconf -fi
-        export CPPFLAGS="-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libxml2 -I/usr/local/opt/boost/include"
-        export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig
-        ./configure $EXTRA --enable-custom-detector-response --disable-static --enable-introspection PYTHON=/usr/local/bin/python3 SHELL=/usr/local/bin/bash
+        ./configure $EXTRA --enable-custom-detector-response --disable-static --enable-introspection SHELL=/usr/local/bin/bash
         make
         make check
       displayName: Test build
@@ -116,6 +115,9 @@ jobs:
         FC: gfortran
         OBJC: /usr/local/opt/llvm/bin/clang
         LIBS: -L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib
+        CPPFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libxml2 -I/usr/local/opt/boost/include
+        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig
+        PYTHON: /usr/local/opt/python@3.8/bin/python3
 
     - script: |
         cd tests
@@ -167,7 +169,7 @@ jobs:
     - script: |
         set PATH=C:\msys64\usr\bin;%PATH%
         pacman --noconfirm -Syyuu
-        pacman --noconfirm -Syuu
+        pacman --noconfirm -Syu
       displayName: Update MSYS2
     - script: |
         set PATH=C:\msys64\usr\bin;%PATH%
