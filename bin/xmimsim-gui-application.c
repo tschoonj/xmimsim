@@ -482,7 +482,7 @@ static void app_startup(GApplication *app) {
 	g_free(installation_dir);
 	g_free(path_to_plplot);
 #else
-	g_setenv("LANG","en_US",TRUE);
+	g_setenv("LANG", "en_US.UTF-8", TRUE);
 #endif
 
 	setbuf(stdout, NULL);

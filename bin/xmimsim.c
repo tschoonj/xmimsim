@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 #if defined(G_OS_WIN32)
 	setlocale(LC_ALL,"English_United States");
 #else
-	g_setenv("LANG","en_US",TRUE);
+	g_setenv("LANG", "en_US.UTF-8", TRUE);
 #endif
 
 	//parse options
