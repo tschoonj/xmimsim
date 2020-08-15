@@ -1,156 +1,156 @@
 version: 2.1
 commands:
-  full_build:
-    description: "Full build including make distcheck"
-    parameters:
-      EXTRA:
-        type: string
-    steps:
-      - checkout
-      - run: autoreconf -fi
-      - run: ./configure << parameters.EXTRA >> --enable-custom-detector-response --disable-static --enable-introspection --enable-silent-rules
-      - run: make
-      - run:
-        command: make distcheck
-        no_output_timeout: 30m
+        full_build:
+                description: "Full build including make distcheck"
+                parameters:
+                        EXTRA:
+                                type: string
+                steps:
+                        - checkout
+                        - run: autoreconf -fi
+                        - run: ./configure << parameters.EXTRA >> --enable-custom-detector-response --disable-static --enable-introspection --enable-silent-rules
+                        - run: make
+                        - run:
+                                command: make distcheck
+                                no_output_timeout: 30m
 jobs:
-  # bionic: fgsl and gtkmm-plplot
-  # no updater
-  # with gui
-  job1:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui --disable-updater"
-  # bionic: fgsl and gtkmm-plplot
-  # with updater
-  # with gui
-  job2:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui -enable-updater"
-  # bionic: fgsl
-  # no updater
-  # no gui
-  job3:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater"
-  # bionic: easyRNG and gtkmm-plplot
-  # no updater
-  # with gui
-  job4:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui --disable-updater"
-  # bionic: easyRNG and gtkmm-plplot
-  # with updater
-  # with gui
-  job5:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui --enable-updater"
-  # bionic: easyRNG
-  # no updater
-  # no gui
-  job6:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater"
-  # centos7: fgsl and gtkmm-plplot
-  # no updater
-  # with gui
-  # with google-analytics
-  job7:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui --disable-updater --enable-google-analytics"
-  # centos7: fgsl and gtkmm-plplot
-  # with updater
-  # with gui
-  # with google-analytics
-  job8:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--enable-gui --enable-updater --enable-google-analytics"
-  # centos7: fgsl
-  # no updater
-  # no gui
-  # with google-analytics
-  job9:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater --enable-google-analytics"
-  # bionic: fgsl
-  # no updater
-  # no gui
-  # with MPI
-  job10:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater --enable-mpi"
-  # bionic: easyRNG
-  # no updater
-  # no gui
-  # with MPI
-  job11:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater --enable-mpi"
-  # centos7: easyRNG
-  # no updater
-  # no gui
-  # with google-analytics
-  # with MPI
-  job12:
-    docker:
-      - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
-    steps:
-      - full_build:
-        EXTRA: "--disable-gui --disable-updater --enable-mpi --enable-google-analytics"
-    environment:
-      MPICC: "/usr/lib64/openmpi/bin/mpicc"
+        # bionic: fgsl and gtkmm-plplot
+        # no updater
+        # with gui
+        job1:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui --disable-updater"
+        # bionic: fgsl and gtkmm-plplot
+        # with updater
+        # with gui
+        job2:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui -enable-updater"
+        # bionic: fgsl
+        # no updater
+        # no gui
+        job3:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater"
+        # bionic: easyRNG and gtkmm-plplot
+        # no updater
+        # with gui
+        job4:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.disable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui --disable-updater"
+        # bionic: easyRNG and gtkmm-plplot
+        # with updater
+        # with gui
+        job5:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.with-gtkmm-plplot.enable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui --enable-updater"
+        # bionic: easyRNG
+        # no updater
+        # no gui
+        job6:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater"
+        # centos7: fgsl and gtkmm-plplot
+        # no updater
+        # with gui
+        # with google-analytics
+        job7:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.with-gtkmm-plplot.disable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui --disable-updater --enable-google-analytics"
+        # centos7: fgsl and gtkmm-plplot
+        # with updater
+        # with gui
+        # with google-analytics
+        job8:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.with-gtkmm-plplot.enable-updater.enable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--enable-gui --enable-updater --enable-google-analytics"
+        # centos7: fgsl
+        # no updater
+        # no gui
+        # with google-analytics
+        job9:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater --enable-google-analytics"
+        # bionic: fgsl
+        # no updater
+        # no gui
+        # with MPI
+        job10:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater --enable-mpi"
+        # bionic: easyRNG
+        # no updater
+        # no gui
+        # with MPI
+        job11:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:bionic.with-easyRNG.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater --enable-mpi"
+        # centos7: easyRNG
+        # no updater
+        # no gui
+        # with google-analytics
+        # with MPI
+        job12:
+                docker:
+                        - image: "tomschoonjans/xmimsim-travis-ci:centos7.with-fgsl.without-gtkmm-plplot.disable-updater.disable-gui.with-mpi"
+                steps:
+                        - full_build:
+                                EXTRA: "--disable-gui --disable-updater --enable-mpi --enable-google-analytics"
+                environment:
+                        MPICC: "/usr/lib64/openmpi/bin/mpicc"
 
 workflows:
-  workflow:
-    triggers:
-      - schedule:
-        cron: "0 0 * * 0"
-        filters:
-          branches:
-            only:
-              - master
-    jobs:
-      - job1
-      - job2
-      - job3
-      - job4
-      - job5
-      - job6
-      - job7
-      - job8
-      - job9
-      - job10
-      - job11
-      - job12
+        workflow:
+                triggers:
+                        - schedule:
+                                cron: "0 0 * * 0"
+                                filters:
+                                        branches:
+                                                only:
+                                                        - master
+                jobs:
+                        - job1
+                        - job2
+                        - job3
+                        - job4
+                        - job5
+                        - job6
+                        - job7
+                        - job8
+                        - job9
+                        - job10
+                        - job11
+                        - job12
