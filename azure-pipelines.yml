@@ -116,7 +116,7 @@ jobs:
         OBJC: /usr/local/opt/llvm/bin/clang
         LIBS: -L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib
         CPPFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libxml2 -I/usr/local/opt/boost/include
-        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig
+        PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig
         PYTHON: /usr/local/opt/python@3.8/bin/python3
 
     - script: |
