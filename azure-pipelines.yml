@@ -75,7 +75,7 @@ jobs:
     - script: |
         set -e -x
         brew install autoconf automake libtool wget pkg-config libxslt hdf5 libsoup pygobject3 bash swig numpy gcc llvm librsvg
-        /usr/local/opt/python@3.8/bin/pip3 install lxml
+        /usr/local/bin/pip3 install lxml
       displayName: Install shared Homebrew dependencies
 
     - script: |
@@ -103,7 +103,6 @@ jobs:
 
     - script: |
         set -e -x
-        export PATH=/usr/local/opt/python@3.8/bin:$PATH
         autoreconf -fi
         ./configure $EXTRA --enable-custom-detector-response --disable-static --enable-introspection SHELL=/usr/local/bin/bash
         make
@@ -117,7 +116,7 @@ jobs:
         LIBS: -L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib
         CPPFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libxml2 -I/usr/local/opt/boost/include
         PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig
-        PYTHON: /usr/local/opt/python@3.8/bin/python3
+        PYTHON: /usr/local/bin/python3
 
     - script: |
         cd tests
