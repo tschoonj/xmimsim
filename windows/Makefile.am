@@ -87,7 +87,7 @@ iss: $(GTK3_RUNTIME_FILE)
 	$(MAKE) common
 	lib /machine:X64 /def:libxmimsim-0.def
 	lib /machine:X64 /def:libxmimsim-gui-0.def
-	iscc.exe "-I$(abs_top_srcdir_win)/windows" "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
+	iscc.exe "-I$(abs_top_srcdir_win)/windows" "-dMY_MINGW=$(mingw_prefix_win)" "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
 
 EXTRA_DIST = xmimsim.iss
 

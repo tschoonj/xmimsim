@@ -656,6 +656,10 @@ if test x$OS_WINDOWS = "x1" ; then
 	abs_homedir_win=`pwd -W`
 	AC_SUBST(abs_homedir_win)
 	cd $abs_top_builddir_win
+	AS_VAR_IF(MINGW_PREFIX, [], AC_MSG_ERROR([Missing required variable: MINGW_PREFIX!]))
+  	AC_ARG_VAR(MINGW_PREFIX, [])
+	mingw_prefix_win=`cygpath -w $MINGW_PREFIX`
+  	AC_SUBST(mingw_prefix_win)
 fi
 
 
