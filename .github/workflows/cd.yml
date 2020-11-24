@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  #schedule:
+  #  - cron: '0 2 * * *' # run at 2 AM UTC
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  msys2:
+    timeout-minutes: 60
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      compiler: msvc_msys2
+      ARCH: x64
+      MSYS2_ARCH: x86_64
+      MSYS2_DIR: msys64
+      MSYSTEM: MINGW64
+      UPDATER: true
+      RNG: easyRNG
+      PLOT: gtkmm-plplot
+      GOOGLE_ANALYTICS: true
+      DEPLOY: true
+      DO_NOT_USE_DATA: true
+    steps:
+    # required for the lib command
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    - uses: crazy-max/ghaction-chocolatey@v1.4.0
+      with:
+        args: install innosetup
+    - uses: msys2/setup-msys2@v2
+      with:
+        path-type: inherit
+        update: true
+        install: >
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-gcc-fortran
+          mingw-w64-x86_64-libtool
+          mingw-w64-x86_64-libxslt
+          mingw-w64-x86_64-hdf5
+          mingw-w64-x86_64-pkg-config
+          mingw-w64-x86_64-curl
+          mingw-w64-x86_64-glib2
+          mingw-w64-x86_64-libsoup
+          mingw-w64-x86_64-python-gobject
+          mingw-w64-x86_64-pygobject-devel
+          mingw-w64-x86_64-gobject-introspection
+          mingw-w64-x86_64-python-numpy
+          mingw-w64-x86_64-python-scipy
+          mingw-w64-x86_64-swig
+          mingw-w64-x86_64-cython
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-python-matplotlib
+          automake
+          autoconf
+          make
+          wget
+          tar
+          patch
+          dos2unix
+    - uses: actions/checkout@v2
+    - name: Run before-build script
+      run: |
+        sh appveyor-before-build.sh
+    - name: Run build script
+      id: run-build-script
+      run: |
+        sh appveyor-build-script.sh
+        ARTIFACT=$(ls XMI-MSIM-*.exe)
+        echo "::set-output name=ARTIFACT::$ARTIFACT"
+    - name: Upload nightly build artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Windows 64-bit nightly build
+        path: ${{ steps.run-build-script.outputs.ARTIFACT }}
+    - name: Upload nightly build artifact to AWS S3
+      if: github.ref == 'refs/heads/master'
+      run: |
+        pip install awscli
+        aws s3 cp ${FILE} s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION} --acl public-read
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        FILE: ${{ steps.run-build-script.outputs.ARTIFACT }}
+        AWS_REGION: 'us-east-1'
+        S3_BUCKET: xmi-msim
+        S3_KEY: nightly/${{ steps.run-build-script.outputs.ARTIFACT }}

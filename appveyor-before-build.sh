@@ -20,7 +20,7 @@ else
 	tar xfz xraylib-${XRAYLIB_STABLE}.tar.gz
 	cd xraylib-${XRAYLIB_STABLE}
 fi
-./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration --enable-python-numpy
+./configure --prefix=$HOME/install --disable-static --enable-python --enable-python-integration --enable-python-numpy --disable-ruby --disable-lua --enable-fortran2003
 make -j2
 make install
 cd ..

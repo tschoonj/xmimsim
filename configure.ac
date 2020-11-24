@@ -44,8 +44,8 @@ LDFLAGS_XMIMSIM_CL=""
 case "$host" in
 	*mingw*)
 		OS_WINDOWS=1
-		LDFLAGS_XMIMSIM_LIB+="-no-undefined -Wl,--output-def,libxmimsim-0.def"
-		LDFLAGS_XMIMSIM_GUI_LIB+="-no-undefined -Wl,--output-def,libxmimsim-gui-0.def"
+		LDFLAGS_XMIMSIM_LIB+="-no-undefined -Wl,--output-def,libxmimsim-0.def -Wl,--export-all-symbols"
+		LDFLAGS_XMIMSIM_GUI_LIB+="-no-undefined -Wl,--output-def,libxmimsim-gui-0.def -Wl,--export-all-symbols"
 		LDFLAGS_XMIMSIM_CL+="-no-undefined -export-dynamic"
 		;;
 esac
@@ -656,6 +656,10 @@ if test x$OS_WINDOWS = "x1" ; then
 	abs_homedir_win=`pwd -W`
 	AC_SUBST(abs_homedir_win)
 	cd $abs_top_builddir_win
+	AS_VAR_IF(MINGW_PREFIX, [], AC_MSG_ERROR([Missing required variable: MINGW_PREFIX!]))
+  	AC_ARG_VAR(MINGW_PREFIX, [])
+	mingw_prefix_win=`cygpath -w $MINGW_PREFIX`
+  	AC_SUBST(mingw_prefix_win)
 fi
 
 

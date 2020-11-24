@@ -18,8 +18,6 @@
 #define builddir abs_top_builddir_win
 
 #define MyAppName "XMI-MSIM 64-bit"
-#define MY_MINGW "C:\msys64\mingw64\"
-#define MY_HOME "C:\msys64\home\"+GetEnv("USER")+"\"
 
 #define MyAppPublisher "Tom Schoonjans"
 #define MyAppURL "http://github.com/tschoonj/xmimsim"

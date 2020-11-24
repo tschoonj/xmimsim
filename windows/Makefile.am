@@ -13,8 +13,8 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-GTK3_RUNTIME_TAG = 2020-02-21
-GTK3_RUNTIME_VERSION = 3.24.14
+GTK3_RUNTIME_TAG = 2020-11-22
+GTK3_RUNTIME_VERSION = 3.24.23
 GTK3_RUNTIME_FILE = gtk3-runtime-$(GTK3_RUNTIME_VERSION)-$(GTK3_RUNTIME_TAG)-ts-win64.exe
 
 common:
@@ -87,7 +87,7 @@ iss: $(GTK3_RUNTIME_FILE)
 	$(MAKE) common
 	lib /machine:X64 /def:libxmimsim-0.def
 	lib /machine:X64 /def:libxmimsim-gui-0.def
-	iscc.exe "-I$(abs_top_srcdir_win)/windows" "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
+	iscc.exe "-I$(abs_top_srcdir_win)/windows" "-dMY_MINGW=$(mingw_prefix_win)" "-dabs_top_srcdir_win=$(abs_top_srcdir_win)" "-dabs_top_builddir_win=$(abs_top_builddir_win)" "-dMyAppVersion=$(VERSION)" "-dMY_HOME=$(abs_homedir_win)" "-dGTK_INSTALLER_EXE=$(GTK3_RUNTIME_FILE)" "$(srcdir)/xmimsim.iss"
 
 EXTRA_DIST = xmimsim.iss
 

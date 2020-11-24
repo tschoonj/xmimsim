@@ -419,29 +419,29 @@ void test_compare_channels_and_csv(int nchannels, double **channels, const gchar
 
   	while (line) {
   		gsize linelen;
-    	GError *tmp_error = NULL;
-    	line = g_data_input_stream_read_line(data_stream, &linelen, NULL, &tmp_error);
-    	g_assert_null(tmp_error);
-    	if (line == NULL)
-	 		break;
-    	if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
-      		continue;
-    	}
-    	gchar **splitted = g_strsplit(line, ",", 0);
+		GError *tmp_error = NULL;
+		line = g_data_input_stream_read_line(data_stream, &linelen, NULL, &tmp_error);
+		g_assert_null(tmp_error);
+		if (line == NULL)
+			break;
+		if (linelen == 0 || strlen(g_strstrip(line)) == 0) {
+			continue;
+		}
+		gchar **splitted = g_strsplit(line, ",", 0);
 
-    	int i;
- 	   	for (i = 2 ; i < g_strv_length(splitted) ; i++) {
-    		double csv_value = g_ascii_strtod(splitted[i], NULL);
-      		g_assert_cmpfloat(channels[i-1][nlines], ==, csv_value);
-    	}
+		int i;
+		for (i = 2 ; i < g_strv_length(splitted) ; i++) {
+			double csv_value = g_ascii_strtod(splitted[i], NULL);
+			g_assert_true(fabs(channels[i-1][nlines] - csv_value) < 1E-6);
+		}
 
-    	g_free(line);
-    	g_strfreev(splitted);
-    	nlines++;
-  	}
+		g_free(line);
+		g_strfreev(splitted);
+		nlines++;
+	}
 	g_assert_cmpint(nchannels, ==, nlines);
-  	g_object_unref(file_stream);
-  	g_object_unref(data_stream);
+	g_object_unref(file_stream);
+	g_object_unref(data_stream);
 }
 
 void test_compare_channels_and_spe(int nchannels, double *channels, const gchar *spe_file) {
