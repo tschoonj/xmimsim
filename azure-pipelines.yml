@@ -70,6 +70,7 @@ jobs:
         set -e -x
         brew uninstall --force --ignore-dependencies $(brew list) || exit 1
         brew update
+        brew upgrade
         brew cleanup -s
       displayName: Remove all Homebrew packages
     - script: |
