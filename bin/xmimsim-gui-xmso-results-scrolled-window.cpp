@@ -282,14 +282,6 @@ static void xmi_msim_gui_xmso_results_scrolled_window_class_init(XmiMsimGuiXmsoR
 	);
 }
 
-class Plot2D : public Gtk::PLplot::Plot2D {
-	public:
-	Plot2D(
-		const Glib::ustring &axis_title_x,
-		const Glib::ustring &axis_title_y) :
-		Gtk::PLplot::Plot2D(axis_title_x, axis_title_y) {}
-};
-
 static void cell_print_double(GtkTreeViewColumn *column, GtkCellRenderer *renderer, GtkTreeModel *tree_model, GtkTreeIter *iter, gpointer data) {
 
 	gdouble value;
@@ -806,7 +798,7 @@ gboolean xmi_msim_gui_xmso_results_scrolled_window_load_from_file(XmiMsimGuiXmso
 		temp_energies[i] = window->results->input->detector->gain * i + window->results->input->detector->zero;
 	}
 
-	Plot2D *plot_window = Gtk::manage(new Plot2D(window->xaxis_title, window->yaxis_title));
+	Gtk::PLplot::Plot2D *plot_window = Gtk::manage(new Gtk::PLplot::Plot2D(window->xaxis_title, window->yaxis_title));
 	plot_window->hide();
 	plot_window->hide_legend();
 	plot_window->set_axis_logarithmic_y(true);  // make this persistent?
