@@ -64,7 +64,7 @@ elif test $PLOT = "gtkmm-plplot" ; then
 	#cd plplot
 	# fix pango.pc
 	#echo "Requires: gobject-2.0" >> /mingw64/lib/pkgconfig/pango.pc
-	curl -L -s -O https://www.dropbox.com/s/uuh5no2qcyzxwi4/plplot-5.15.0.tar.gz
+	curl -L -s -O https://downloads.sourceforge.net/project/plplot/plplot/5.15.0%20Source/plplot-5.15.0.tar.gz
 	tar xfz plplot-5.15.0.tar.gz
 	cd plplot-5.15.0
 	cmake -G "MSYS Makefiles" -DENABLE_fortran=OFF -DENABLE_tcl=OFF -DENABLE_tk=OFF -DENABLE_DYNDRIVERS=OFF -DPLD_wingcc=OFF -DCMAKE_INSTALL_PREFIX=$HOME/install .
