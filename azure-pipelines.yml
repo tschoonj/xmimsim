@@ -81,6 +81,12 @@ jobs:
 
     - script: |
         set -e -x
+        cp /usr/local/etc/openssl@1.1/cert.pem /usr/local/etc/gnutls/
+        cat /usr/local/etc/gnutls/cert.pem
+      displayName: Copy openssl certs
+
+    - script: |
+        set -e -x
         brew install $HOMEBREW_EXTRA
       displayName: Install extra Homebrew dependencies
       condition: ne(variables['HOMEBREW_EXTRA'], '')
