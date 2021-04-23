@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        rng:
+          - easyRNG
+          - fgsl
+        gui:
+          - enable
+          - disable
+        mac_integration:
+          - enable
+          - disable
+        updater:
+          - enable
+          - disable
+        opencl:
+          - enable
+          - disable
+        exclude:
+          - gui: disable
+            updater: enable
+          - gui: disable
+            mac_integration: enable
+          - opencl: disable
+            mac_integration: enable
+          - updater: disable
+            mac_integration: enable
+          - gui: enable
+            rng: fgsl
+        include:
+          - gui: enable
+            updater: disable
+            extra_deps: tschoonj/tap/gtkmm-plplot libpeas
+          - gui: enable
+            updater: enable
+            extra_deps: tschoonj/tap/gtkmm-plplot libpeas json-glib
+  
+    name: "GUI: ${{ matrix.gui }} OpenCL: ${{ matrix.opencl }} RNG: ${{ matrix.rng}} Update: ${{ matrix.updater }} App: ${{ matrix.mac_integration }}"
+    env:
+      HOMEBREW_CURL_RETRIES: 5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Remove all Homebrew packages
+        run: |
+          set -ex
+          rm -f /usr/local/bin/2to3
+          brew uninstall --force --ignore-dependencies $(brew list) || exit 1
+          brew update
+          brew upgrade
+          brew cleanup -s
+          set +ex
+
+      - name: Install shared Homebrew dependencies
+        run: |
+          set -ex
+          brew install autoconf automake libtool wget pkg-config libxslt hdf5 libsoup pygobject3 bash swig numpy gcc llvm librsvg libxslt git
+          /usr/local/bin/pip3 install lxml
+          set +ex
+      
+      - name: Install extra Homebrew dependencies
+        run: |
+          set -ex
+          brew install tschoonj/tap/xraylib ${{ matrix.extra_deps }} tschoonj/tap/${{ matrix.rng}}
+          set +ex
+
+      - name: Build
+        run: |
+          set -e -x
+          cd ..
+          git clone https://github.com/tschoonj/xmimsim.wiki.git
+          cd xmimsim
+          autoreconf -fi
+          ./configure --${{ matrix.gui }}-gui --${{ matrix.updater}}-updater --disable-google-analytics --${{ matrix.mac_integration }}-mac-integration --enable-custom-detector-response --disable-static --enable-introspection SHELL=/usr/local/bin/bash
+          make
+          make check
+        env:
+          CC: /usr/local/opt/llvm/bin/clang
+          CXX: /usr/local/opt/llvm/bin/clang++
+          FC: gfortran
+          OBJC: /usr/local/opt/llvm/bin/clang
+          LIBS: -L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib
+          # CPPFLAGS: -I/usr/local/opt/boost/include
+          PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libxml2/pkgconfig:/usr/local/opt/libxslt/pkgconfig
+          PYTHON: /usr/local/bin/python3
+
+      - name: Print test logs
+        if: ${{ failure() }}
+        run: |
+          cd tests
+          ls -l
+          cat test*.log
+        
+
+      
