@@ -68,7 +68,7 @@ jobs:
           tar
           patch
           dos2unix
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2.3.4
     - name: Run before-build script
       run: |
         sh appveyor-before-build.sh
