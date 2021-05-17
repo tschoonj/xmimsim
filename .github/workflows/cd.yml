@@ -35,7 +35,7 @@ jobs:
     - uses: ilammy/msvc-dev-cmd@v1.8.0
       with:
         arch: x64
-    - uses: crazy-max/ghaction-chocolatey@v1.4.2
+    - uses: crazy-max/ghaction-chocolatey@v1.5.0
       with:
         args: install innosetup
     - uses: msys2/setup-msys2@v2
