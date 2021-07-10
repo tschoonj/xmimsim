@@ -6,9 +6,10 @@ set -x
 export PKG_CONFIG_PATH=$HOME/install/lib/pkgconfig
 export PATH=$HOME/install/bin:$PATH
 #export GTKMM_PLPLOT_BRANCH=master
-export GTKMM_PLPLOT_STABLE=2.4
+export GTKMM_PLPLOT_STABLE=2.5
 #export XRAYLIB_BRANCH=master
-export XRAYLIB_STABLE=4.0.0
+export XRAYLIB_STABLE=4.1.0
+export EASYRNG_STABLE=1.2
 
 # install xraylib
 if [ -n "$XRAYLIB_BRANCH" ] ; then
@@ -29,20 +30,11 @@ cd ..
 
 if test $RNG = "fgsl" ; then
 	#install gsl
- 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-gsl
-	curl -L -s -O https://doku.lrz.de/download/attachments/43321199/fgsl-1.3.0.tar.gz
-	tar xfz fgsl-1.3.0.tar.gz
-	cd fgsl-1.3.0
-	curl -L -s -O https://github.com/reinh-bader/fgsl/commit/c306e9f936983df5bab68f8ba55006c0f88bc775.diff
-	patch -p1 < c306e9f936983df5bab68f8ba55006c0f88bc775.diff
-	./configure --prefix=$HOME/install --disable-static
-	make
-	make install
-	cd ..
+ 	pacman --ask 20 --noconfirm -Su mingw-w64-$MSYS2_ARCH-fgsl
 elif test $RNG = "easyRNG" ; then
-	curl -L -s -O https://github.com/tschoonj/easyRNG/releases/download/easyRNG-1.2/easyRNG-1.2.tar.gz
-	tar xfz easyRNG-1.2.tar.gz
-	cd easyRNG-1.2
+	curl -L -s -O https://github.com/tschoonj/easyRNG/releases/download/easyRNG-${EASYRNG_STABLE}/easyRNG-${EASYRNG_STABLE}.tar.gz
+	tar xfz easyRNG-${EASYRNG_STABLE}.tar.gz
+	cd easyRNG-${EASYRNG_STABLE}
 	./configure --prefix=$HOME/install --disable-static
 	make -j2
 	make install
