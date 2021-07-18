@@ -115,12 +115,12 @@ Source: "{#builddir}\bin\XmiMsimGui-1.0.typelib" ; DestDir: "{app}\Lib\gireposit
 
 ; Python3!
 Source: "{#MY_MINGW}\bin\python3.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_MINGW}\bin\python3.8.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#MY_MINGW}\bin\python3.9.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#MY_MINGW}\bin\python.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_MINGW}\bin\libpython3.8.dll" ; DestDir: "{app}\Lib" ; Components: core
-Source: "{#MY_MINGW}\lib\python3.8\*" ; Excludes: "test\*"; DestDir: "{app}\Lib\python3.8" ; Components: core ; Flags: recursesubdirs
+Source: "{#MY_MINGW}\bin\libpython3.9.dll" ; DestDir: "{app}\Lib" ; Components: core
+Source: "{#MY_MINGW}\lib\python3.9\*" ; Excludes: "test\*"; DestDir: "{app}\Lib\python3.9" ; Components: core ; Flags: recursesubdirs
 Source: "{#MY_MINGW}\bin\pip.exe" ; DestDir: "{app}\Bin" ; Components: core
-Source: "{#MY_MINGW}\bin\pip3.8.exe" ; DestDir: "{app}\Bin" ; Components: core
+Source: "{#MY_MINGW}\bin\pip3.9.exe" ; DestDir: "{app}\Bin" ; Components: core
 Source: "{#MY_MINGW}\bin\pip3.exe" ; DestDir: "{app}\Bin" ; Components: core
 ; for numpy
 Source: "{#MY_MINGW}\bin\libopenblas.dll" ; DestDir: "{app}\Lib" ; Components: core
