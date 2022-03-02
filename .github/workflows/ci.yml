@@ -54,7 +54,7 @@ jobs:
     env:
       HOMEBREW_CURL_RETRIES: 5
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3
       - name: Remove all Homebrew packages
         run: |
           set -ex
