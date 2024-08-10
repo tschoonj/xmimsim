@@ -137,7 +137,7 @@ xmimsim_metal_la_LDFLAGS += -Wl,-headerpad_max_install_names
 endif
 
 %.air : %.metal
-	$(AM_V_GEN) xcrun --sdk macosx metal $(AM_CPPFLAGS) $(CPPFLAGS) -I${srcdir} -c $< -o $@
+	$(AM_V_GEN) xcrun --sdk macosx metal $(AM_CPPFLAGS) $(CPPFLAGS) -I${srcdir} -D__METAL_MACOS__ -c $< -o $@
 
 %.metallib : %.air
 	$(AM_V_GEN) xcrun --sdk macosx metallib $< -o $@
@@ -169,31 +169,6 @@ libxmimsim_google_analytics_la_CPPFLAGS = \
 		@GOOGLE_ANALYTICS_CFLAGS@
 libxmimsim_google_analytics_la_LIBADD = @GOOGLE_ANALYTICS_LIBS@
 libxmimsim_la_LIBADD += libxmimsim-google-analytics.la 
-endif
-
-# quicklook plugin library for macOS bundle
-if ENABLE_QUICKLOOK
-noinst_LTLIBRARIES += libxmimsim-ql.la
-libxmimsim_ql_la_SOURCES = \
-	xmi_xml.c \
-	xmi_data_structs.c \
-	xmi_lines.h \
-	xmi_lines.c
-libxmimsim_ql_la_CPPFLAGS = -DQUICKLOOK=1 \
-	-I${top_srcdir}/include -I${top_builddir}/include
-libxmimsim_ql_la_CFLAGS = \
-	@xml2_CFLAGS@ \
-	@glib2_CFLAGS@ \
-	@xraylib_CFLAGS@ \
-	@libsoup_CFLAGS@ \
-	@WSTRICT_CFLAGS@
-libxmimsim_ql_la_LIBADD = \
-	@xml2_LIBS@ \
-	@glib2_LIBS@
-libxmimsim_ql_la_LDFLAGS = \
-	-shared \
-	-Wl,-headerpad_max_install_names \
-	-framework CoreFoundation
 endif
 
 xmi_resources.c: xmi.gresource.xml $(shell $(GLIB_COMPILE_RESOURCES) --sourcedir=$(srcdir) --generate-dependencies $(srcdir)/xmi.gresource.xml)
