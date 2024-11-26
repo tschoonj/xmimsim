@@ -79,7 +79,7 @@ jobs:
         ARTIFACT=$(ls XMI-MSIM-*.exe)
         echo "::set-output name=ARTIFACT::$ARTIFACT"
     - name: Upload nightly build artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Windows 64-bit nightly build
         path: ${{ steps.run-build-script.outputs.ARTIFACT }}
